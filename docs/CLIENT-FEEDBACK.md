@@ -6,6 +6,8 @@ Feedback from the client, relayed during development. Newest first. Every agent:
 
 ## 2026-10-27 19:55 — real recording: Liebestraum still read badly; fewer agents
 
+**Status: notes DONE (piano-model, commit 0cd7524): F1 on this recording ±50 ms 0.534 -> 0.666, ±100 ms 0.613 -> 0.790, low-register recall 63 % -> 75 %; aligned reference in test/fixtures/local/liebestraum-abydos.json (local only). Rhythm: score-accuracy (resumed) in progress.**
+
 The client gave a real recording (test/fixtures/local/liebestraum-abydos.mp3, Pixabay license: local only, never commit) that starts right after the first cadenza of Liebestraum No. 3: notes in the low register sound diffuse and are missed, and the rhythm comes out very badly. Plan: piano-model builds a public-domain reference of that section, aligns it to the recording (DTW), compares Basic Pitch vs Onsets and Frames, tunes and compares again; then score-accuracy (resumed, not a new agent) tunes the rhythm on the aligned beats. The client also asked to LIMIT the number of agents: no agent idling for hours, at most two working at once, previews prepared by the lead.
 
 Client's words:
@@ -13,12 +15,16 @@ Client's words:
 
 ## 2026-10-27 19:40 — playback sound: keep the previous piano, the new one sounds dull
 
+**Status: DONE (piano-sound, commit 6fba22e): brighter grand piano, "Piano clásico" back as the "Timbre" option, both with pedal and release.**
+
 The client tried the beta with the new renderer and asked why the previous piano sound was removed: they asked for a grand-piano tone with sustain so it sounds BETTER. The lead measured the new render as much darker than the old one (spectral centroid 761 Hz vs 1412 Hz, rolloff 1418 Hz vs 2858 Hz). Assigned to piano-sound: fix the darkening (mezzo/forte keep the samples' natural brightness) and keep BOTH sounds selectable ("Piano de cola" default, "Piano clásico" = previous samples), with pedal and release for both; re-render the before/after audio.
 
 Client's words:
 > «Por que has quitado el otro sonido de piano? te he pedido un sonido de piano de cola y tener en cuenta el sustain para que suene mejor»
 
 ## 2026-10-27 19:30 — transcription model (client decision)
+
+**Status: DONE (piano-model, commit 0cd7524): Onsets and Frames is the default ('auto' checks the device before downloading 16.5 MB), Basic Pitch the fallback; realistic benchmark F1 0.873 -> 0.936.**
 
 Integrate Magenta's Onsets and Frames as the piano model (realistic benchmark F1 0.940 vs 0.873 for the improved Basic Pitch; arpeggios 94 % vs 81 %), with Basic Pitch kept as the fallback for slow devices. Told to the client: about +15 MB downloaded once (then offline), about 5x slower, and both models' weights were trained on MAESTRO (non-commercial dataset). Assigned to the piano-model agent (prompt PIANO_MODEL).
 
