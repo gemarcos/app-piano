@@ -1,8 +1,9 @@
 // Owner: engine-score. Deterministic synthetic note streams and score builders for the engine tests
 // (not used by the app).
-import type { AnalysisResult, KeyMode, KeySignature, NoteEvent, Score, ScoreEvent, ScoreParams, TimeSignature } from '../../types'
+import type { AnalysisResult, KeyMode, KeySignature, Measure, NoteEvent, Score, ScoreEvent, ScoreParams, TimeSignature } from '../../types'
 import { ticksPerMeasureOf } from './constants'
 import { keyFromFifths } from './keys'
+import { staffVoices } from './notes'
 
 /** Small seeded PRNG (mulberry32). */
 export function rng(seed: number): () => number {
@@ -212,13 +213,22 @@ export interface StaffNote {
   ticks: number
 }
 
-/** The notes a staff sounds: tied events merged into one note per pitch (the playback oracle). */
-export function staffNotes(score: Score, staffIndex: 0 | 1): StaffNote[] {
+/**
+ * The notes a staff sounds, both voices: tied events merged into one note per pitch (the playback
+ * oracle). `voice` restricts it to one voice (1 = Staff.measures, 2 = Staff.voice2).
+ */
+export function staffNotes(score: Score, staffIndex: 0 | 1, voice?: 1 | 2): StaffNote[] {
+  const voices = staffVoices(score.staves[staffIndex])
+  const picked = voice ? (voices[voice - 1] ? [voices[voice - 1]] : []) : voices
+  return picked.flatMap((measures) => voiceNotes(score, measures)).sort((a, b) => a.start - b.start || a.pitch - b.pitch)
+}
+
+function voiceNotes(score: Score, measures: Measure[]): StaffNote[] {
   const out: StaffNote[] = []
   const open = new Map<number, StaffNote>()
   let prevTie = false
   let prevPitches = new Set<number>()
-  for (const m of score.staves[staffIndex].measures) {
+  for (const m of measures) {
     for (const ev of m.events) {
       const at = m.index * score.ticksPerMeasure + ev.start
       const next = new Map<number, StaffNote>()

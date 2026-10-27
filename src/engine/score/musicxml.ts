@@ -2,7 +2,8 @@
 import type { Score, ScoreEvent } from '../../types'
 import { beatTicksOf, meterParts } from './constants'
 import { normalizeKey } from './keys'
-import { AccidentalState, spellChord } from './spelling'
+import { pickupTicks, spellingContext, staffVoices, trimLead } from './notes'
+import { AccidentalState, choiceOf, spellChord, type SpelledPitch, type SpellingChoice } from './spelling'
 
 const TYPES: Record<number, [string, number]> = {
   1: ['16th', 0],
@@ -67,16 +68,66 @@ function beams(events: ScoreEvent[], beat: number): string[][] {
   return out
 }
 
-/** MusicXML 4.0 partwise document (one piano part, two staves). */
-export function scoreToMusicXml(score: Score): string {
+export interface MusicXmlOptions {
+  /**
+   * Write measure 0 as an implicit pickup measure (number 0, shorter) when it starts with at least a
+   * beat of silence in every staff (see pickupTicks). Default true.
+   */
+  pickup?: boolean
+}
+
+const CLEF_SIGN: Record<'treble' | 'bass', string> = { treble: '<sign>G</sign><line>2</line>', bass: '<sign>F</sign><line>4</line>' }
+
+/** Pedal directions of one measure (staff 2), positioned with <offset> from the written measure start. */
+function pedalDirections(score: Score, index: number, lead: number): string[] {
+  const tpm = score.ticksPerMeasure
+  const from = index * tpm
+  const last = index === Math.max(1, score.measureCount) - 1
+  const out: [number, number, string][] = []
+  for (const span of score.pedals ?? []) {
+    if (!(span.end > span.start)) continue
+    const marks: [number, 'start' | 'stop'][] = [
+      [span.end, 'stop'],
+      [span.start, 'start'],
+    ]
+    for (const [tick, type] of marks) {
+      const rel = tick - from
+      if (rel < 0 || rel > tpm || (rel === tpm && !last)) continue
+      const at = Math.max(0, rel - lead)
+      const offset = at > 0 ? `<offset sound="yes">${at}</offset>` : ''
+      out.push([
+        at,
+        type === 'stop' ? 0 : 1,
+        `      <direction placement="below"><direction-type><pedal type="${type}" line="no" sign="yes"/></direction-type>${offset}<staff>2</staff><sound damper-pedal="${type === 'start' ? 'yes' : 'no'}"/></direction>`,
+      ])
+    }
+  }
+  return out.sort((a, b) => a[0] - b[0] || a[1] - b[1]).map((d) => d[2])
+}
+
+/**
+ * MusicXML 4.0 partwise document (one piano part, two staves). Each staff writes one or two voices
+ * (voices 1/2 on the upper staff, 5/6 on the lower; the second voice has stems down and hidden
+ * rests), the staff clefs of the Score, pedal marks with damper-pedal sound from Score.pedals, and
+ * an implicit pickup measure when the music starts after the first beat.
+ */
+export function scoreToMusicXml(score: Score, opts: MusicXmlOptions = {}): string {
   const key = normalizeKey(score.key)
   const tpm = score.ticksPerMeasure
-  const [beatsNum, beatType] = meterParts(score.timeSignature)
-  const beat = beatTicksOf(score.timeSignature)
+  const ts = score.timeSignature
+  const [beatsNum, beatType] = meterParts(ts)
+  const beat = beatTicksOf(ts)
   const bpm = score.bpm > 0 && Number.isFinite(score.bpm) ? score.bpm : 100
   const count = Math.max(1, score.measureCount)
-  const states = score.staves.map(() => new AccidentalState(key))
-  const prevTie = [false, false]
+  const lead = opts.pickup === false ? 0 : pickupTicks(score)
+  const voices = score.staves.map((staff) => staffVoices(staff))
+  const context = spellingContext(score)
+  const staffAcc = score.staves.map(() => new AccidentalState(key))
+  const prevTie = voices.map((vs) => vs.map(() => false))
+  const lastChoice: (SpellingChoice | undefined)[][] = voices.map((vs) => vs.map(() => undefined))
+  const clefs = score.staves.map((staff, si): 'treble' | 'bass' =>
+    staff.clef === 'treble' || staff.clef === 'bass' ? staff.clef : si === 0 ? 'treble' : 'bass',
+  )
   const x: string[] = []
   x.push('<?xml version="1.0" encoding="UTF-8" standalone="no"?>')
   x.push(
@@ -94,17 +145,20 @@ export function scoreToMusicXml(score: Score): string {
   x.push('  </part-list>')
   x.push('  <part id="P1">')
   for (let m = 0; m < count; m++) {
-    x.push(`    <measure number="${m + 1}">`)
+    const cut = m === 0 ? lead : 0
+    const length = tpm - cut
+    const number = lead > 0 ? m : m + 1
+    x.push(`    <measure number="${number}"${cut > 0 ? ' implicit="yes"' : ''}>`)
     if (m === 0) {
       x.push('      <attributes>')
       x.push('        <divisions>4</divisions>')
       x.push(`        <key><fifths>${key.fifths}</fifths><mode>${key.mode}</mode></key>`)
       x.push(`        <time><beats>${beatsNum}</beats><beat-type>${beatType}</beat-type></time>`)
       x.push('        <staves>2</staves>')
-      x.push('        <clef number="1"><sign>G</sign><line>2</line></clef>')
-      x.push('        <clef number="2"><sign>F</sign><line>4</line></clef>')
+      x.push(`        <clef number="1">${CLEF_SIGN[clefs[0]]}</clef>`)
+      x.push(`        <clef number="2">${CLEF_SIGN[clefs[1]]}</clef>`)
       x.push('      </attributes>')
-      const compound = score.timeSignature === '6/8'
+      const compound = ts === '6/8'
       const perMinute = compound ? Math.round(bpm / 1.5) : Math.round(bpm)
       x.push('      <direction placement="above">')
       x.push(
@@ -114,51 +168,77 @@ export function scoreToMusicXml(score: Score): string {
       x.push(`        <sound tempo="${Math.round(bpm * 100) / 100}"/>`)
       x.push('      </direction>')
     }
-    score.staves.forEach((staff, si) => {
-      if (si > 0) x.push(`      <backup><duration>${tpm}</duration></backup>`)
-      const events: ScoreEvent[] = staff.measures[m]?.events ?? [{ start: 0, duration: tpm, pitches: [] }]
-      const staffNo = si + 1
-      const voice = si === 0 ? 1 : 5
-      const acc = states[si]
-      acc.newBar()
-      const beamValues = beams(events, beat)
-      events.forEach((ev, ei) => {
-        if (ev.pitches.length === 0) {
-          prevTie[si] = false
-          const whole = events.length === 1 && ev.start === 0 && ev.duration === tpm
-          const [type, dots] = TYPES[ev.duration] ?? ['quarter', 0]
-          x.push(
-            `      <note>${whole ? '<rest measure="yes"/>' : '<rest/>'}<duration>${ev.duration}</duration><voice>${voice}</voice>` +
-              (whole ? '' : `<type>${type}</type>${'<dot/>'.repeat(dots)}`) +
-              `<staff>${staffNo}</staff></note>`,
-          )
-          return
-        }
-        const tieStop = prevTie[si]
-        const tieStart = ev.tie === true
-        prevTie[si] = tieStart
-        const [type, dots] = TYPES[ev.duration] ?? ['quarter', 0]
-        const pitches = [...ev.pitches].sort((a, b) => a - b)
-        spellChord(pitches, key).forEach((sp, pi) => {
-          const alter = acc.visit(sp, tieStop)
-          let n = '      <note>'
-          if (pi > 0) n += '<chord/>'
-          n += `<pitch><step>${sp.step}</step>${sp.alter !== 0 ? `<alter>${sp.alter}</alter>` : ''}<octave>${sp.octave}</octave></pitch>`
-          n += `<duration>${ev.duration}</duration>`
-          if (tieStop) n += '<tie type="stop"/>'
-          if (tieStart) n += '<tie type="start"/>'
-          n += `<voice>${voice}</voice><type>${type}</type>${'<dot/>'.repeat(dots)}`
-          if (alter !== null) n += `<accidental>${ACCIDENTALS[String(alter)]}</accidental>`
-          n += `<staff>${staffNo}</staff>`
-          if (pi === 0) beamValues[ei].forEach((b, level) => (n += `<beam number="${level + 1}">${b}</beam>`))
-          if (tieStop || tieStart) {
-            n += '<notations>'
-            if (tieStop) n += '<tied type="stop"/>'
-            if (tieStart) n += '<tied type="start"/>'
-            n += '</notations>'
-          }
-          x.push(n + '</note>')
+    let firstSequence = true
+    voices.forEach((vs, si) => {
+      const evs = vs.map((measures) => trimLead(measures[m]?.events ?? [{ start: 0, duration: tpm, pitches: [] }], cut, ts))
+      const twoVoices = evs.length > 1 && evs[1].some((e) => e.pitches.length > 0)
+      // Tie continuations per voice, then accidentals across the voices of the staff in time order.
+      const cont = evs.map((events, vi) => {
+        let tied = prevTie[si][vi]
+        return events.map((ev) => {
+          const c = tied && ev.pitches.length > 0
+          tied = ev.pitches.length > 0 && ev.tie === true
+          return c
         })
+      })
+      staffAcc[si].newBar()
+      const spelled: { sp: SpelledPitch; alter: number | null }[][][] = evs.map((events) => events.map(() => []))
+      const order: [number, number][] = []
+      evs.forEach((events, vi) => events.forEach((ev, i) => ev.pitches.length && order.push([vi, i])))
+      order.sort((a, b) => evs[a[0]][a[1]].start - evs[b[0]][b[1]].start || a[0] - b[0])
+      for (const [vi, i] of order) {
+        const pitches = [...evs[vi][i].pitches].sort((a, b) => a - b)
+        // A tie continuation keeps the letters of its attack.
+        const ctx = cont[vi][i] ? lastChoice[si][vi] : context(m * tpm + evs[vi][i].start)
+        const sps = spellChord(pitches, key, ctx)
+        lastChoice[si][vi] = choiceOf(pitches, sps)
+        spelled[vi][i] = sps.map((sp) => ({ sp, alter: staffAcc[si].visit(sp, cont[vi][i]) }))
+      }
+      evs.forEach((events, vi) => {
+        if (!firstSequence) x.push(`      <backup><duration>${length}</duration></backup>`)
+        firstSequence = false
+        if (si === 1 && vi === 0) x.push(...pedalDirections(score, m, cut))
+        const staffNo = si + 1
+        const voice = si * 4 + vi + 1
+        const beamValues = beams(events, beat)
+        const stem = twoVoices ? `<stem>${vi === 0 ? 'up' : 'down'}</stem>` : ''
+        events.forEach((ev, ei) => {
+          if (ev.pitches.length === 0) {
+            const whole = events.length === 1 && ev.start === 0 && ev.duration === tpm
+            const [type, dots] = TYPES[ev.duration] ?? ['quarter', 0]
+            x.push(
+              `      <note${vi > 0 ? ' print-object="no"' : ''}>${whole ? '<rest measure="yes"/>' : '<rest/>'}<duration>${ev.duration}</duration><voice>${voice}</voice>` +
+                (whole ? '' : `<type>${type}</type>${'<dot/>'.repeat(dots)}`) +
+                `<staff>${staffNo}</staff></note>`,
+            )
+            return
+          }
+          const tieStop = cont[vi][ei]
+          const tieStart = ev.tie === true
+          const [type, dots] = TYPES[ev.duration] ?? ['quarter', 0]
+          spelled[vi][ei].forEach(({ sp, alter }, pi) => {
+            let n = '      <note>'
+            if (pi > 0) n += '<chord/>'
+            n += `<pitch><step>${sp.step}</step>${sp.alter !== 0 ? `<alter>${sp.alter}</alter>` : ''}<octave>${sp.octave}</octave></pitch>`
+            n += `<duration>${ev.duration}</duration>`
+            if (tieStop) n += '<tie type="stop"/>'
+            if (tieStart) n += '<tie type="start"/>'
+            n += `<voice>${voice}</voice><type>${type}</type>${'<dot/>'.repeat(dots)}`
+            if (alter !== null) n += `<accidental>${ACCIDENTALS[String(alter)]}</accidental>`
+            n += stem
+            n += `<staff>${staffNo}</staff>`
+            if (pi === 0) beamValues[ei].forEach((b, level) => (n += `<beam number="${level + 1}">${b}</beam>`))
+            if (tieStop || tieStart) {
+              n += '<notations>'
+              if (tieStop) n += '<tied type="stop"/>'
+              if (tieStart) n += '<tied type="start"/>'
+              n += '</notations>'
+            }
+            x.push(n + '</note>')
+          })
+        })
+        const lastEv = events[events.length - 1]
+        prevTie[si][vi] = lastEv !== undefined && lastEv.pitches.length > 0 && lastEv.tie === true
       })
     })
     if (m === count - 1) x.push('      <barline location="right"><bar-style>light-heavy</bar-style></barline>')

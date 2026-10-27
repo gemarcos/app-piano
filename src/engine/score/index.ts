@@ -38,6 +38,26 @@ export {
   secondsPerTick,
   measureDurationSeconds,
 } from './build'
+export type { EngineParams, SplitMode } from './build'
+
+/**
+ * Source-audio time <-> score ticks through the analysis beat map (rubato), for 'Original' sync:
+ * sourceSecondsAt(score, tick, analysis) / tickAtSourceSeconds(score, seconds, analysis). Without
+ * analysis.beatTimes they equal score.startSeconds + tickToSeconds(score, tick).
+ */
+export { sourceSecondsAt, tickAtSourceSeconds, createTimeMap } from './timemap'
+export type { TimeMap } from './timemap'
+
+/**
+ * scoreNotes: every sounding note (both staves, both voices, ties merged, velocity 0..1, absolute
+ * ticks) for playback renderers. staffVoices: [measures] or [measures, voice2] of a staff.
+ */
+export { scoreNotes, staffVoices, pickupTicks, DEFAULT_VELOCITY } from './notes'
+export type { PlayedNote, VoicedStaff } from './notes'
+
+/** Sustain pedal inferred from raw notes (Score.pedals is built from it). */
+export { inferPedalSeconds } from './pedal'
+export type { PedalSeconds } from './pedal'
 
 /**
  * ABC notation for abcjs (grand staff, L:1/16, correct key-aware accidentals, ties across barlines).
@@ -49,9 +69,10 @@ export type { AbcOptions } from './abc'
 
 /** MusicXML 4.0 partwise document (one piano part, two staves). */
 export { scoreToMusicXml } from './musicxml'
+export type { MusicXmlOptions } from './musicxml'
 
 /** Standard MIDI file bytes (one track per hand). */
-export { scoreToMidi, MIDI_TRACK_NAMES } from './midi'
+export { scoreToMidi, MIDI_TRACK_NAMES, SUSTAIN_CC } from './midi'
 
 /**
  * keyName: "Sol mayor", "Mi menor" (latin/none) or "G mayor", "E menor" (english).

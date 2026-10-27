@@ -66,10 +66,10 @@ function spellTable(key: KeySignature): SpellTable {
  * Spells a MIDI pitch in a key: diatonic notes by the key signature, raised 6th/7th in minor keys,
  * other chromatic notes with sharps in sharp keys and flats in flat keys (C major: C# Eb F# G# Bb).
  */
-export function spellPitch(midi: Midi, key?: KeySignature | null): SpelledPitch {
+export function spellPitch(midi: Midi, key?: KeySignature | null, context?: SpellingChoice): SpelledPitch {
   const k = normalizeKey(key)
   const m = Math.round(Number.isFinite(midi) ? midi : 60)
-  const [li, alter] = spellTable(k).byPc[mod(m, 12)]
+  const [li, alter] = context?.get(mod(m, 12)) ?? spellTable(k).byPc[mod(m, 12)]
   const octave = Math.floor((m - alter - NATURAL_PC[li]) / 12) - 1
   return { step: LETTERS[li], alter, octave }
 }
@@ -98,10 +98,10 @@ const position = (sp: SpelledPitch) => sp.octave * 7 + LETTERS.indexOf(sp.step)
  * on a neighbouring letter wins (fewest accidental signs): F + F# in C major -> F + Gb,
  * Eb + E -> D# + E, B + B# in D# minor -> B + C.
  */
-export function spellChord(pitches: readonly Midi[], key?: KeySignature | null): SpelledPitch[] {
+export function spellChord(pitches: readonly Midi[], key?: KeySignature | null, context?: SpellingChoice): SpelledPitch[] {
   const k = normalizeKey(key)
   const midis = pitches.map((p) => Math.round(Number.isFinite(p) ? p : 60))
-  const base = midis.map((m) => spellPitch(m, k))
+  const base = midis.map((m) => spellPitch(m, k, context))
   let climbs = true
   for (let i = 1; i < base.length; i++) if (position(base[i]) <= position(base[i - 1])) climbs = false
   if (climbs) return base
@@ -129,8 +129,8 @@ export function spellChord(pitches: readonly Midi[], key?: KeySignature | null):
 }
 
 /** Name without octave ("Fa#", "Sib" / "F#", "Bb"); 'none' behaves like latin. */
-export function pitchClassName(midi: Midi, naming: NoteNaming, key?: KeySignature | null): string {
-  const sp = spellPitch(midi, key)
+export function pitchClassName(midi: Midi, naming: NoteNaming, key?: KeySignature | null, context?: SpellingChoice): string {
+  const sp = spellPitch(midi, key, context)
   return letterName(LETTERS.indexOf(sp.step), sp.alter, naming)
 }
 
@@ -138,6 +138,84 @@ export function pitchClassName(midi: Midi, naming: NoteNaming, key?: KeySignatur
 export function pitchName(midi: Midi, naming: NoteNaming, key?: KeySignature): string {
   const sp = spellPitch(midi, key)
   return letterName(LETTERS.indexOf(sp.step), sp.alter, naming) + sp.octave
+}
+
+/** Spelling of some pitch classes, as [letterIndex, alter], overriding the key's default. */
+export type SpellingChoice = ReadonlyMap<number, readonly [number, number]>
+
+/** The spelling of a written chord as a SpellingChoice (tie continuations keep their attack's letters). */
+export function choiceOf(pitches: readonly Midi[], spelled: readonly SpelledPitch[]): SpellingChoice {
+  const out = new Map<number, readonly [number, number]>()
+  spelled.forEach((sp, i) => out.set(mod(Math.round(pitches[i]), 12), [LETTERS.indexOf(sp.step), sp.alter]))
+  return out
+}
+
+/** Line-of-fifths position of each natural letter (C = 0, G = 1, F = -1 ...). */
+const FIFTHS_OF_LETTER = [0, 2, 4, -1, 1, 3, 5]
+const lineOfFifths = ([li, alter]: readonly [number, number]) => FIFTHS_OF_LETTER[li] + 7 * alter
+
+/**
+ * Harmonic spelling of the chromatic notes of a sounding set (a chord with whatever else sounds at
+ * that moment): each chromatic pitch class may take its enharmonic neighbour spelling (G# / Ab);
+ * the combination keeping the set tightest on the line of fifths wins when it is clearly tighter
+ * (by 2 or more) than the key's default. So the Ab of an F minor chord in C major is Ab, and an
+ * augmented C-E-G# keeps its G#. Returns undefined when nothing changes.
+ */
+export function harmonicSpelling(pitches: Iterable<number>, key?: KeySignature | null): SpellingChoice | undefined {
+  const k = normalizeKey(key)
+  const table = spellTable(k).byPc
+  const sig = keySignatureAlters(k.fifths)
+  const pcs = [...new Set([...pitches].map((p) => mod(Math.round(p), 12)))]
+  if (pcs.length < 2) return undefined
+  const fixed: number[] = []
+  const chromatic: { pc: number; options: [number, number][] }[] = []
+  for (const pc of pcs) {
+    const [li, alter] = table[pc]
+    if (alter === sig[li] || Math.abs(alter) !== 1) {
+      fixed.push(lineOfFifths([li, alter]))
+      continue
+    }
+    // The neighbour letter: a sharp becomes a flat on the letter above, a flat a sharp below.
+    const nli = alter > 0 ? (li + 1) % 7 : (li + 6) % 7
+    const nAlter = pc - NATURAL_PC[nli] - 12 * Math.round((pc - NATURAL_PC[nli]) / 12)
+    const options: [number, number][] = [[li, alter]]
+    if (Math.abs(nAlter) === 1) options.push([nli, nAlter])
+    chromatic.push({ pc, options })
+  }
+  if (chromatic.length === 0 || chromatic.length > 4) return undefined
+  const spread = (choice: number[]) => {
+    let lo = Infinity
+    let hi = -Infinity
+    for (const f of fixed) {
+      lo = Math.min(lo, f)
+      hi = Math.max(hi, f)
+    }
+    chromatic.forEach((c, i) => {
+      const f = lineOfFifths(c.options[choice[i]])
+      lo = Math.min(lo, f)
+      hi = Math.max(hi, f)
+    })
+    return hi - lo
+  }
+  const base = chromatic.map(() => 0)
+  let best = base
+  let bestSpread = spread(base)
+  const baseSpread = bestSpread
+  const combos = 1 << chromatic.length
+  for (let mask = 1; mask < combos; mask++) {
+    const choice = chromatic.map((c, i) => ((mask >> i) & 1 && c.options.length > 1 ? 1 : 0))
+    const v = spread(choice)
+    if (v < bestSpread) {
+      bestSpread = v
+      best = choice
+    }
+  }
+  if (baseSpread - bestSpread < 2) return undefined
+  const out = new Map<number, readonly [number, number]>()
+  chromatic.forEach((c, i) => {
+    if (best[i] === 1) out.set(c.pc, c.options[1])
+  })
+  return out.size ? out : undefined
 }
 
 /**

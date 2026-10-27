@@ -1,38 +1,6 @@
-// Owner: engine-score. Hand split, difficulty modes and polyphony cap on grid-snapped notes.
+// Owner: engine-score. Difficulty modes and polyphony cap on grid-snapped notes (hands: hands.ts).
 import type { Difficulty } from '../../types'
 import { forEachOnsetGroup, sortByOnset, type QNote } from './quantize'
-
-/** Pitch gap (semitones) that separates two clusters of simultaneous notes. */
-const CLUSTER_GAP = 7
-
-/**
- * pitch >= splitPoint goes right. Light heuristic: a cluster of simultaneous notes that straddles
- * the split, whose minority-hand notes are all within 2 semitones of it, stays in its majority hand.
- */
-export function assignHands(notes: QNote[], splitPoint: number): void {
-  for (const n of notes) n.right = n.pitch >= splitPoint
-  forEachOnsetGroup(notes, (group) => {
-    if (group.length < 3) return
-    // group is sorted by pitch: split it into clusters separated by wide gaps.
-    let start = 0
-    for (let i = 1; i <= group.length; i++) {
-      if (i < group.length && group[i].pitch - group[i - 1].pitch <= CLUSTER_GAP) continue
-      fixCluster(group.slice(start, i), splitPoint)
-      start = i
-    }
-  })
-}
-
-function fixCluster(cluster: QNote[], split: number): void {
-  let right = 0
-  for (const n of cluster) if (n.right) right++
-  const left = cluster.length - right
-  if (right === 0 || left === 0 || right === left) return
-  const toRight = right > left
-  const minority = cluster.filter((n) => n.right !== toRight)
-  const near = minority.every((n) => (toRight ? n.pitch >= split - 2 : n.pitch <= split + 1))
-  if (near) for (const n of minority) n.right = toRight
-}
 
 /** Keeps outer voices first (top for the right hand when only one fits), then the loudest. */
 export function capGroup(group: QNote[], cap: number, right: boolean): QNote[] {
@@ -45,15 +13,26 @@ export function capGroup(group: QNote[], cap: number, right: boolean): QNote[] {
   return [low, ...inner.slice(0, cap - 2), high].sort((a, b) => a.pitch - b.pitch)
 }
 
-/** Applies the per-hand polyphony cap at every onset. Input sorted by onset; output too. */
+/**
+ * Applies the per-hand polyphony cap at every onset. Input sorted by onset then pitch; output sorted
+ * by onset, and by pitch within each hand.
+ */
 export function capPolyphony(notes: QNote[], cap: number): QNote[] {
   const out: QNote[] = []
-  forEachOnsetGroup(notes, (group) => {
-    const r = group.filter((n) => n.right)
-    const l = group.filter((n) => !n.right)
-    out.push(...capGroup(l, cap, false), ...capGroup(r, cap, true))
-  })
-  return sortByOnset(out)
+  let i = 0
+  while (i < notes.length) {
+    let j = i + 1
+    let right = notes[i].right ? 1 : 0
+    while (j < notes.length && notes[j].on === notes[i].on) right += notes[j++].right ? 1 : 0
+    const left = j - i - right
+    if (left <= cap && right <= cap) for (let k = i; k < j; k++) out.push(notes[k])
+    else {
+      const group = notes.slice(i, j)
+      out.push(...capGroup(group.filter((n) => !n.right), cap, false), ...capGroup(group.filter((n) => n.right), cap, true))
+    }
+    i = j
+  }
+  return out
 }
 
 /** Intermedio: runs collapsed by the 8th grid keep their loudest note; ghost notes in big chords go. */

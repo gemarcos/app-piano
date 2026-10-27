@@ -1,7 +1,7 @@
 // Owner: engine-score. Public-domain demo pieces expressed as raw NoteEvent[] so they go through
 // the same analysis/notation pipeline (and filters) as real transcriptions.
-import type { AnalysisResult, KeySignature, Midi, NoteEvent, ScoreParams, Settings, TimeSignature } from '../types'
-import { analyzeNotes, defaultParams, keyFromFifths, ticksPerMeasureOf } from '../engine/score'
+import type { AnalysisResult, KeySignature, Midi, NoteEvent, Settings, TimeSignature } from '../types'
+import { analyzeNotes, defaultParams, keyFromFifths, ticksPerMeasureOf, type EngineParams } from '../engine/score'
 
 export interface DemoPiece {
   /** Stable id, also used as the library item id (prefixed 'demo-'). */
@@ -179,9 +179,9 @@ export function findDemo(idOrSlug: string): DemoPiece | undefined {
   return demoPieces.find((d) => d.slug === slug)
 }
 
-/** Analysis for a demo: its known tempo, meter and key, first downbeat at 0 s. */
+/** Analysis for a demo: its known tempo, meter and key, first downbeat at 0 s (constant tempo, no beat map). */
 export function demoAnalysis(demo: DemoPiece): AnalysisResult {
-  const detected = analyzeNotes(demo.notes)
+  const { beatTimes: _beats, ...detected } = analyzeNotes(demo.notes)
   return {
     ...detected,
     bpm: demo.bpm,
@@ -193,11 +193,14 @@ export function demoAnalysis(demo: DemoPiece): AnalysisResult {
   }
 }
 
-/** Params for a demo: the user's defaults plus the demo's split point. */
+/**
+ * Params for a demo: the user's defaults plus the demo's split point, with a fixed hand split (the
+ * split points were chosen to reproduce the written hands).
+ */
 export function demoParams(
   demo: DemoPiece,
   settings: Pick<Settings, 'quantize' | 'splitPoint' | 'defaultDifficulty'>,
-): ScoreParams {
-  const params = defaultParams(demoAnalysis(demo), settings)
+): EngineParams {
+  const params: EngineParams = { ...defaultParams(demoAnalysis(demo), settings), splitMode: 'fixed' }
   return demo.splitPoint !== undefined ? { ...params, splitPoint: demo.splitPoint } : params
 }

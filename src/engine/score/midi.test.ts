@@ -2,7 +2,7 @@
 import { Midi } from '@tonejs/midi'
 import { describe, expect, it } from 'vitest'
 import type { ScoreEvent, TimeSignature } from '../../types'
-import { MIDI_TRACK_NAMES, buildScore, keyFromFifths, scoreToMidi } from './index'
+import { MIDI_TRACK_NAMES, buildScore, keyFromFifths, scoreNotes, scoreToMidi } from './index'
 import { knownAnalysis, plainParams, randomNotes, scoreFromMeasures, staffNotes } from './test-helpers'
 
 const ev = (start: number, duration: number, pitches: number[], tie?: boolean): ScoreEvent =>
@@ -58,7 +58,11 @@ describe('scoreToMidi', () => {
             .map((n) => ({ pitch: n.midi, start: n.ticks / perTick, ticks: n.durationTicks / perTick }))
             .sort((x, y) => x.start - y.start || x.pitch - y.pitch)
           expect(back, `${ts} ${difficulty} staff ${s}`).toEqual(staffNotes(score, s))
-          for (const n of midi.tracks[s].notes) expect(n.velocity).toBeCloseTo(s === 0 ? 0.8 : 0.7, 1)
+          // Velocities are the score's own (7-bit MIDI resolution).
+          const want = scoreNotes(score).filter((n) => n.staff === s)
+          const got = [...midi.tracks[s].notes].sort((x, y) => x.ticks - y.ticks || x.midi - y.midi)
+          expect(got).toHaveLength(want.length)
+          got.forEach((n, k) => expect(Math.abs(n.velocity - want[k].velocity)).toBeLessThanOrEqual(1 / 127 + 1e-9))
         }
       }
     })

@@ -2,13 +2,19 @@
 import { Midi } from '@tonejs/midi'
 import type { Score } from '../../types'
 import { meterParts } from './constants'
+import { scoreNotes } from './notes'
 
 export const MIDI_TRACK_NAMES = ['Mano derecha', 'Mano izquierda'] as const
 
+/** MIDI controller of the damper (sustain) pedal. */
+export const SUSTAIN_CC = 64
+
 /**
- * Standard MIDI file bytes: tempo, time signature and two piano tracks (program 0) named
- * 'Mano derecha' / 'Mano izquierda'. Tied events become single notes. (No key-signature meta
- * event: @tonejs/midi 2.0 encodes it incorrectly.)
+ * Standard MIDI file bytes: tempo, time signature and two piano tracks (program 0, channels 0/1)
+ * named 'Mano derecha' / 'Mano izquierda', with both voices of each staff, tied events as single
+ * notes and the score's note velocities. Score.pedals becomes sustain-pedal control changes (CC64
+ * 127 down / 0 up) on both tracks. (No key-signature meta event: @tonejs/midi 2.0 encodes it
+ * incorrectly.)
  */
 export function scoreToMidi(score: Score): Uint8Array {
   const midi = new Midi()
@@ -18,35 +24,22 @@ export function scoreToMidi(score: Score): Uint8Array {
   midi.header.timeSignatures.push({ ticks: 0, timeSignature: meterParts(score.timeSignature) })
   midi.header.update()
   const perTick = midi.header.ppq / 4
-  score.staves.forEach((staff, si) => {
+  const tracks = MIDI_TRACK_NAMES.map((name, si) => {
     const track = midi.addTrack()
-    track.name = MIDI_TRACK_NAMES[si] ?? `Pista ${si + 1}`
+    track.name = name
     track.channel = si
     track.instrument.number = 0
-    const velocity = si === 0 ? 0.8 : 0.7
-    // pitch -> [start tick, length] of a note still tied into the next event
-    const open = new Map<number, [number, number]>()
-    const flush = (pitch: number) => {
-      const note = open.get(pitch)
-      if (!note) return
-      track.addNote({ midi: pitch, ticks: note[0] * perTick, durationTicks: note[1] * perTick, velocity })
-      open.delete(pitch)
-    }
-    for (const measure of staff.measures) {
-      for (const ev of measure.events) {
-        const at = measure.index * score.ticksPerMeasure + ev.start
-        for (const pitch of ev.pitches) {
-          const pending = open.get(pitch)
-          if (pending && pending[0] + pending[1] === at) pending[1] += ev.duration
-          else {
-            flush(pitch)
-            open.set(pitch, [at, ev.duration])
-          }
-          if (!ev.tie) flush(pitch)
-        }
-      }
-    }
-    for (const pitch of [...open.keys()]) flush(pitch)
+    return track
   })
+  for (const n of scoreNotes(score)) {
+    tracks[n.staff].addNote({ midi: n.pitch, ticks: n.tick * perTick, durationTicks: n.ticks * perTick, velocity: n.velocity })
+  }
+  for (const span of score.pedals ?? []) {
+    if (!(span.end > span.start)) continue
+    for (const track of tracks) {
+      track.addCC({ number: SUSTAIN_CC, value: 1, ticks: span.start * perTick })
+      track.addCC({ number: SUSTAIN_CC, value: 0, ticks: span.end * perTick })
+    }
+  }
   return midi.toArray()
 }

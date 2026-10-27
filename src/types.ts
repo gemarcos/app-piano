@@ -63,6 +63,8 @@ export interface ScoreParams {
   pitchRange: [Midi, Midi]
   /** Max simultaneous notes per hand, 1..6. */
   maxPolyphony: number
+  /** Hand separation: 'auto' follows the music (splitPoint is only a soft centre); 'fixed' or absent = pitch >= splitPoint goes right. */
+  splitMode?: 'auto' | 'fixed'
 }
 
 /* ---------- Notation model (output of engine/score) ---------- */
@@ -87,7 +89,10 @@ export interface Measure {
 export interface Staff {
   hand: 'right' | 'left'
   clef: 'treble' | 'bass'
+  /** First (upper) voice: tiles every measure; the viewer's timeline follows it. */
   measures: Measure[]
+  /** Optional second (lower) voice on the same staff, same length as `measures`; its rests are invisible. */
+  voice2?: Measure[]
 }
 
 export interface ScoreStats {
@@ -195,4 +200,8 @@ export interface Settings {
   playbackVolume: number
   /** Play the sustain pedal inferred from the audio (and show its marks in the score). */
   sustainPedal: boolean
+  /** Transcription model: 'auto' = piano model (Onsets and Frames) when the device can run it, else 'fast' (Basic Pitch). */
+  transcriptionModel: TranscriptionModel
 }
+
+export type TranscriptionModel = 'auto' | 'piano' | 'fast'

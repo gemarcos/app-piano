@@ -54,10 +54,12 @@ function allowed(s: number, e: number, ts: TimeSignature, rest: boolean): boolea
   return crossed === 1 && e % 2 === 0
 }
 
-const cache = new Map<string, number[]>()
+const cache = new Map<number, number[]>()
+const TS_ID: Record<TimeSignature, number> = { '4/4': 0, '3/4': 1, '2/4': 2, '6/8': 3 }
 
 function decompose(s: number, e: number, ts: TimeSignature, rest: boolean): number[] {
-  const id = `${ts}|${rest ? 1 : 0}|${s}|${e}`
+  // Numeric key: positions are 0..16, so 32 slots per position are plenty.
+  const id = ((TS_ID[ts] * 2 + (rest ? 1 : 0)) * 32 + s) * 32 + e
   const hit = cache.get(id)
   if (hit) return hit
   let out: number[]

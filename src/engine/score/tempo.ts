@@ -17,6 +17,8 @@ export interface Onset {
   m: number
   /** Lowest pitch of the cluster. */
   low: number
+  /** Highest pitch of the cluster. */
+  high: number
   /** Longest duration in the cluster (seconds). */
   dur: number
 }
@@ -243,10 +245,32 @@ const SUB_FREE = 2.0
 const ALT_FREE = 1.6
 /** One strong beat in three: the grid is probably three times too fast. */
 const ALT3_FREE = 3
+/** Beats this much stronger than the eighth off-beats: hardly any subdivision. */
+const SUB_RICH = 8
 
 export interface TempoChoice {
   bpm: number
   fit: number
+}
+
+/** Ratios of the periodicity peak considered as the beat. */
+export const TEMPO_RATIOS = [1, 2, 0.5, 3, 1 / 3, 1.5, 2 / 3]
+export const inTempoRange = (b: number) => b >= MIN_BPM - 0.5 && b <= MAX_BPM + 0.5
+
+/**
+ * Accent plausibility of a beat level (0..1): strong-weak alternation (or one strong beat in three)
+ * says the beat is slower, off-beats as strong as beats say it is faster; each only counts when
+ * that alternative tempo is in range.
+ */
+export function accentPlausibility(bpm: number, alt: number, alt3: number, sub: number): number {
+  let a = 1
+  if (inTempoRange(bpm / 2)) a = Math.min(a, (ALT_FREE / alt) ** 3)
+  if (inTempoRange(bpm / 3)) a = Math.min(a, (ALT3_FREE / alt3) ** 3)
+  const s = inTempoRange(bpm * 2) ? Math.min(1, (sub / SUB_FREE) ** 1.5) : 1
+  // No subdivision at all (every onset on a beat): written music almost always divides its beat,
+  // so the beat is probably twice as slow (a ballad's eighth-note accompaniment read as quarters).
+  const rich = inTempoRange(bpm / 2) ? Math.min(1, Math.sqrt(SUB_RICH / sub)) : 1
+  return a * s * rich
 }
 
 /**

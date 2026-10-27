@@ -5,7 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import type { Score, ScoreEvent, TimeSignature } from '../../types'
-import { buildScore, keyFromFifths, scoreToMusicXml } from './index'
+import { buildScore, keyFromFifths, pickupTicks, scoreToMusicXml, staffVoices } from './index'
 import { knownAnalysis, plainParams, randomNotes, scoreFromMeasures, staffNotes, type StaffNote } from './test-helpers'
 
 const ev = (start: number, duration: number, pitches: number[], tie?: boolean): ScoreEvent =>
@@ -32,35 +32,52 @@ out = []
 for f in sys.argv[2:]:
     doc = md.parse(f)
     tpm = int(sys.argv[1])
-    measures, notes = [], {'1': [], '2': []}
+    measures, notes, pedals = [], {'1': [], '2': []}, []
     for mi, m in enumerate(doc.getElementsByTagName('measure')):
-        pos, last, totals, backups = 0, 0, {'1': 0, '2': 0}, []
+        pos, last, totals, backups = 0, 0, {}, []
+        implicit = m.getAttribute('implicit') == 'yes'
+        found = []
         for child in m.childNodes:
             if child.nodeType != child.ELEMENT_NODE:
                 continue
             if child.tagName == 'backup':
                 d = int(text(child, 'duration')); backups.append(d); pos -= d
+            elif child.tagName == 'direction':
+                for ped in child.getElementsByTagName('pedal'):
+                    off = text(child, 'offset')
+                    found.append({'type': ped.getAttribute('type'), 'at': pos + (int(off) if off else 0)})
             elif child.tagName == 'note':
-                d = int(text(child, 'duration')); staff = text(child, 'staff')
+                d = int(text(child, 'duration')); staff = text(child, 'staff'); voice = text(child, 'voice')
                 chord = bool(child.getElementsByTagName('chord'))
                 start = last if chord else pos
                 if not chord:
-                    totals[staff] += d; last = pos; pos += d
+                    key = staff + '/' + voice
+                    totals[key] = totals.get(key, 0) + d; last = pos; pos += d
                 p = child.getElementsByTagName('pitch')
                 if p:
                     alter = text(p[0], 'alter')
                     midi = (int(text(p[0], 'octave')) + 1) * 12 + STEP[text(p[0], 'step')] + (int(alter) if alter else 0)
                     ties = [t.getAttribute('type') for t in child.getElementsByTagName('tie')]
                     tied = [t.getAttribute('type') for t in child.getElementsByTagName('tied')]
-                    notes[staff].append({'pitch': midi, 'start': mi * tpm + start, 'ticks': d, 'ties': ties, 'tied': tied})
-        measures.append({'totals': totals, 'backups': backups})
-    out.append({'measures': measures, 'notes': notes})
+                    found.append({'pitch': midi, 'staff': staff, 'start': start, 'ticks': d, 'ties': ties, 'tied': tied})
+        length = max(totals.values()) if totals else tpm
+        base = mi * tpm + (tpm - length if implicit else 0)
+        for n in found:
+            if 'type' in n:
+                pedals.append({'type': n['type'], 'tick': base + n['at']})
+            else:
+                notes[n['staff']].append({'pitch': n['pitch'], 'start': base + n['start'], 'ticks': n['ticks'], 'ties': n['ties'], 'tied': n['tied']})
+        measures.append({'totals': totals, 'backups': backups, 'implicit': implicit, 'number': m.getAttribute('number')})
+    out.append({'measures': measures, 'notes': notes, 'pedals': pedals})
 print(json.dumps(out))
 `
 
 interface Checked {
-  measures: { totals: Record<'1' | '2', number>; backups: number[] }[]
+  /** totals: written length per "staff/voice"; implicit: a pickup measure. */
+  measures: { totals: Record<string, number>; backups: number[]; implicit: boolean; number: string }[]
   notes: Record<'1' | '2', (StaffNote & { ties: string[]; tied: string[] })[]>
+  /** Pedal marks in absolute score ticks. */
+  pedals: { type: string; tick: number }[]
 }
 
 const python = findPython()
@@ -193,10 +210,16 @@ describe.skipIf(!python)('scoreToMusicXml well-formedness (Python minidom)', () 
       check(scores).forEach((parsed, i) => {
         const score = scores[i]
         expect(parsed.measures).toHaveLength(score.measureCount)
-        for (const m of parsed.measures) {
-          expect(m.totals).toEqual({ '1': score.ticksPerMeasure, '2': score.ticksPerMeasure })
-          expect(m.backups).toEqual([score.ticksPerMeasure])
-        }
+        const lead = pickupTicks(score)
+        parsed.measures.forEach((m, mi) => {
+          // Every voice of every staff fills its measure; a pickup measure is shorter and implicit.
+          const length = mi === 0 ? score.ticksPerMeasure - lead : score.ticksPerMeasure
+          const voices = score.staves.flatMap((staff, si) => staffVoices(staff).map((_, vi) => `${si + 1}/${si * 4 + vi + 1}`))
+          expect(m.totals, `${ts} #${i} measure ${mi}`).toEqual(Object.fromEntries(voices.map((v) => [v, length])))
+          expect(m.backups).toEqual(voices.slice(1).map(() => length))
+          expect(m.implicit).toBe(mi === 0 && lead > 0)
+          expect(m.number).toBe(String(lead > 0 ? mi : mi + 1))
+        })
         expect(merged(parsed.notes['1']), `${ts} #${i} RH`).toEqual(staffNotes(score, 0))
         expect(merged(parsed.notes['2']), `${ts} #${i} LH`).toEqual(staffNotes(score, 1))
       })

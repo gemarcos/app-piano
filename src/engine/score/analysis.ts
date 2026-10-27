@@ -7,7 +7,8 @@
 import type { AnalysisResult, NoteEvent, TimeSignature } from '../../types'
 import { keyFromFifths, mod } from './keys'
 import { estimateKey } from './keyfinder'
-import { MAX_BPM, MIN_BPM, chooseTempo, fitGrid, periodicity, refineTempo, type Onset } from './tempo'
+import { beatFeatures, beatPositions, tempoDeviation, trackBeats } from './beats'
+import { MAX_BPM, MIN_BPM, TEMPO_RATIOS, accentPlausibility, fitGrid, inTempoRange, periodicity, refineTempo, tempoPrior, type Onset } from './tempo'
 
 /** Notes starting within this window form one onset (a chord). */
 const CHORD_WINDOW = 0.03
@@ -55,6 +56,22 @@ function percentile(sorted: number[], q: number): number {
   return sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(q * (sorted.length - 1))))]
 }
 
+/** Weight of the upper-line long-note share in the tempo choice (a doubled tempo writes 4-beat notes). */
+const LONG_WEIGHT = 3
+/**
+ * A tracked beat map further than this from a straight line is rubato: RMS 3 % of a beat, or any
+ * beat a tenth of a beat off (a final ritardando the constant grid would drift through).
+ */
+const RUBATO = 0.03
+const RUBATO_WORST = 0.1
+
+interface Candidate {
+  bpm: number
+  beats: number[]
+  fit: number
+  score: number
+}
+
 function analyze(notes: NoteEvent[]): AnalysisResult {
   if (notes.length === 0) return emptyAnalysis()
   const { key, keyConfidence } = estimateKey(notes)
@@ -65,30 +82,68 @@ function analyze(notes: NoteEvent[]): AnalysisResult {
     return { ...emptyAnalysis(), beatOffset: round3(Math.max(0, onsets[0].t)), key, keyConfidence }
   }
 
-  // 1. Periodicity peak, 2. octave / ratio choice, 3. precise integer tempo and its phase.
+  // 1. Periodicity peak. 2. Each simple ratio of it is refined, beat-tracked (the beats follow
+  //    rubato) and scored on its tracked beats: prior x grid fit x accent plausibility x filled beats
+  //    x notation (upper-line notes of four beats or more mean the tempo is doubled).
   const peak = periodicity(onsets, span)
-  const choice = chooseTempo(onsets, peak.best)
-  const bpm = clamp(Math.round(refineTempo(onsets, choice.bpm, 0.015)), MIN_BPM, MAX_BPM)
-  const grid = fitGrid(onsets, bpm)
-  const period = 60 / bpm
+  const upperCut = percentile(pitches, 0.7)
+  const upper = onsets.map((o) => o.high >= upperCut)
+  const lowest = localLowest(onsets, 1.5)
+  const accent = (o: Onset, i: number) => o.w * (1 + clamp(1 - (o.low - lowest[i]) / 7, 0, 1))
+  const weights = onsets.map(accent)
+  const indexOf = new Map(onsets.map((o, i) => [o, i]))
+  let best: Candidate | null = null
+  for (const r of TEMPO_RATIOS) {
+    const raw = peak.best * r
+    if (!inTempoRange(raw)) continue
+    const bpm = refineTempo(onsets, raw, 0.03, 32)
+    const beats = trackBeats(onsets, bpm, (o) => weights[indexOf.get(o)!])
+    if (beats.length < 4) continue
+    const f = beatFeatures(onsets, beats, upper)
+    const score = tempoPrior(bpm) * f.fit * accentPlausibility(bpm, f.alt, f.alt3, f.sub) * (1 - 0.5 * f.empty) * Math.exp(-LONG_WEIGHT * f.long)
+    if (!best || score > best.score) best = { bpm, beats, fit: f.fit, score }
+  }
+  if (!best) return { ...emptyAnalysis(), beatOffset: round3(Math.max(0, onsets[0].t)), key, keyConfidence }
 
-  // 4. Meter and downbeat from beat accents (bass notes, long notes, loud chords).
-  const accents = beatAccents(onsets, grid.phase, period)
+  // 3. Steady (constant grid, as before) or rubato (the tracked beats become the beat map).
+  const inside = best.beats.filter((b) => b >= onsets[0].t - 0.5 && b <= onsets[onsets.length - 1].t + 0.5)
+  const dev = tempoDeviation(inside)
+  const rubato = inside.length >= 8 && (dev.deviation > RUBATO || dev.worst > RUBATO_WORST)
+  const countFactor = 1 - Math.exp(-onsets.length / 12)
+  if (!rubato) {
+    const bpm = clamp(Math.round(refineTempo(onsets, best.bpm, 0.015)), MIN_BPM, MAX_BPM)
+    const grid = fitGrid(onsets, bpm)
+    const period = 60 / bpm
+    // 4. Meter and downbeat from beat accents (bass notes, long notes, loud chords).
+    const accents = beatAccents(onsets, grid.phase, period)
+    const timeSignature = chooseMeter(accents.values)
+    const perBar = timeSignature === '3/4' ? 3 : 4
+    const downbeat = chooseDownbeat(accents.values, perBar)
+    let k = Math.ceil((onsets[0].t - period / 4 - grid.phase) / period)
+    while (mod(k - accents.firstIndex - downbeat, perBar) !== 0) k++
+    const bpmConfidence = clamp(grid.fit * (0.4 + 0.6 * peak.salience) * countFactor, 0, 1)
+    return { bpm, bpmConfidence: round2(bpmConfidence), beatOffset: round3(grid.phase + k * period), timeSignature, key, keyConfidence }
+  }
+  const beats = best.beats
+  const periods = beats.slice(1).map((b, i) => b - beats[i]).sort((a, b) => a - b)
+  const bpm = clamp(Math.round(60 / periods[Math.floor(periods.length / 2)]), MIN_BPM, MAX_BPM)
+  const accents = beatAccentsMap(onsets, beats)
   const timeSignature = chooseMeter(accents.values)
   const perBar = timeSignature === '3/4' ? 3 : 4
   const downbeat = chooseDownbeat(accents.values, perBar)
-  let k = Math.ceil((onsets[0].t - period / 4 - grid.phase) / period)
-  while (mod(k - accents.firstIndex - downbeat, perBar) !== 0) k++
-
-  const countFactor = 1 - Math.exp(-onsets.length / 12)
-  const bpmConfidence = clamp(grid.fit * (0.4 + 0.6 * peak.salience) * countFactor, 0, 1)
+  const firstPeriod = beats[1] - beats[0]
+  let k = 0
+  while (k < beats.length - 1 && beats[k] < onsets[0].t - firstPeriod / 4) k++
+  while (k < beats.length - 1 && mod(k - accents.firstIndex - downbeat, perBar) !== 0) k++
+  const bpmConfidence = clamp(best.fit * (0.4 + 0.6 * peak.salience) * countFactor, 0, 1)
   return {
     bpm,
     bpmConfidence: round2(bpmConfidence),
-    beatOffset: round3(grid.phase + k * period),
+    beatOffset: round3(beats[k]),
     timeSignature,
     key,
     keyConfidence,
+    beatTimes: beats.map(round3),
   }
 }
 
@@ -106,6 +161,7 @@ function buildOnsets(notes: NoteEvent[], low: number, high: number): Onset[] {
     let sumM = 0
     let maxM = 0
     let lowest = Infinity
+    let highest = -Infinity
     let dur = 0
     while (j < notes.length && notes[j].start - t0 <= CHORD_WINDOW) {
       const n = notes[j]
@@ -117,6 +173,7 @@ function buildOnsets(notes: NoteEvent[], low: number, high: number): Onset[] {
       sumM += m
       maxM = Math.max(maxM, m)
       lowest = Math.min(lowest, n.pitch)
+      highest = Math.max(highest, n.pitch)
       dur = Math.max(dur, n.duration)
       j++
     }
@@ -125,6 +182,7 @@ function buildOnsets(notes: NoteEvent[], low: number, high: number): Onset[] {
       w: Math.min(maxV + 0.25 * (sumV - maxV), 2 * maxV),
       m: Math.min(maxM + 0.3 * (sumM - maxM), 2 * maxM),
       low: lowest,
+      high: highest,
       dur,
     })
     i = j
@@ -174,6 +232,28 @@ function beatAccents(onsets: Onset[], phase: number, period: number): BeatAccent
   return { values, firstIndex }
 }
 
+/** beatAccents on a tracked (rubato) beat map: values[k] is beat k of `beats` minus firstIndex. */
+function beatAccentsMap(onsets: Onset[], beats: number[]): BeatAccents {
+  const pos = beatPositions(
+    onsets.map((o) => o.t),
+    beats,
+  )
+  const firstIndex = Math.round(pos[0])
+  const lastIndex = Math.round(pos[pos.length - 1])
+  const values = new Array<number>(Math.max(1, lastIndex - firstIndex + 1)).fill(0)
+  const lowest = localLowest(onsets, 2 * ((beats[beats.length - 1] - beats[0]) / Math.max(1, beats.length - 1)))
+  onsets.forEach((o, i) => {
+    const k = Math.round(pos[i])
+    if (Math.abs(pos[i] - k) > 0.2) return
+    const kk = Math.max(0, Math.min(beats.length - 2, k))
+    const period = beats[kk + 1] - beats[kk]
+    const bass = clamp(1 - (o.low - lowest[i]) / 7, 0, 1)
+    const long = clamp(o.dur / (2 * period), 0, 1)
+    values[k - firstIndex] += o.w * (1 + bass + 0.5 * long)
+  })
+  return { values, firstIndex }
+}
+
 /** Mean accent of the strongest residue class mod m, relative to the overall mean (>= 1). */
 function contrast(values: number[], m: number): number {
   const sums = new Array<number>(m).fill(0)
@@ -191,12 +271,16 @@ function contrast(values: number[], m: number): number {
   return best / mean
 }
 
-/** 4/4 unless a 3-beat accent periodicity clearly wins (needs about 6 bars). */
+/**
+ * 4/4 unless a 3-beat accent periodicity clearly wins: from about 6 bars on, or from 4 bars when it
+ * wins twice as clearly (a short excerpt of a waltz or a Gymnopédie).
+ */
 function chooseMeter(values: number[]): TimeSignature {
-  if (values.length < 18) return '4/4'
+  if (values.length < 12) return '4/4'
   const c3 = contrast(values, 3) - 1
   const c2 = contrast(values, 2) - 1
   const c4 = contrast(values, 4) - 1
+  if (values.length < 18) return c3 > 0.3 && c3 > 2 * Math.max(c2, c4, 0.02) ? '3/4' : '4/4'
   return c3 > 0.15 && c3 > 1.5 * Math.max(c2, c4, 0.02) ? '3/4' : '4/4'
 }
 

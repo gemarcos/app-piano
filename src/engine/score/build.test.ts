@@ -1,6 +1,6 @@
 // Owner: engine-score. buildScore: filters, transposition, quantization, hands, difficulty, layout.
 import { describe, expect, it } from 'vitest'
-import type { Difficulty, NoteEvent, Score, ScoreEvent, ScoreParams, TimeSignature } from '../../types'
+import type { Difficulty, Measure, NoteEvent, Score, ScoreEvent, ScoreParams, TimeSignature } from '../../types'
 import {
   NOTE_VALUES,
   analyzeNotes,
@@ -11,6 +11,7 @@ import {
   sanitizeParams,
   secondsPerTick,
   secondsToTick,
+  staffVoices,
   summarizeScore,
   tickToSeconds,
 } from './index'
@@ -31,9 +32,21 @@ function expectWellFormed(score: Score, maxPolyphony = 6): void {
   expect(score.measureCount).toBeGreaterThanOrEqual(1)
   for (const [si, staff] of score.staves.entries()) {
     expect(staff.hand).toBe(si === 0 ? 'right' : 'left')
-    expect(staff.clef).toBe(si === 0 ? 'treble' : 'bass')
-    expect(staff.measures).toHaveLength(score.measureCount)
-    staff.measures.forEach((m, i) => {
+    expect(['treble', 'bass']).toContain(staff.clef)
+    for (const [vi, measures] of staffVoices(staff).entries()) checkVoice(score, staff, si as 0 | 1, vi, measures, maxPolyphony, values)
+  }
+  // The last measure holds music in some voice (trailing empty measures are trimmed).
+  if (score.stats.noteCount > 0) {
+    const last = score.measureCount - 1
+    expect(score.staves.some((s) => staffVoices(s).some((v) => v[last].events.some((e) => e.pitches.length > 0)))).toBe(true)
+  }
+}
+
+/** One voice of a staff: measures tile exactly, notatable values, sorted pitches, consistent ties. */
+function checkVoice(score: Score, staff: Score['staves'][number], si: 0 | 1, vi: number, measures: Measure[], maxPolyphony: number, values: Set<number>): void {
+  {
+    expect(measures).toHaveLength(score.measureCount)
+    measures.forEach((m, i) => {
       expect(m.index).toBe(i)
       let pos = 0
       for (const e of m.events) {
@@ -47,19 +60,16 @@ function expectWellFormed(score: Score, maxPolyphony = 6): void {
       }
       expect(pos).toBe(score.ticksPerMeasure)
     })
-    const evs = events(score, si as 0 | 1)
+    const evs = measures.flatMap((m) => m.events.map((e) => ({ ...e, at: m.index * score.ticksPerMeasure + e.start })))
     evs.forEach((e, i) => {
+      if (e.pitches.length) expect(e.velocities, `staff ${si} voice ${vi + 1}: velocities parallel to pitches`).toHaveLength(e.pitches.length)
       if (!e.tie) return
       const next = evs[i + 1]
       expect(next, 'a tie needs a following event').toBeDefined()
       expect(next.at).toBe(e.at + e.duration)
       expect(next.pitches).toEqual(e.pitches)
     })
-  }
-  // The last measure holds music (trailing empty measures are trimmed).
-  if (score.stats.noteCount > 0) {
-    const last = score.measureCount - 1
-    expect(score.staves.some((s) => s.measures[last].events.some((e) => e.pitches.length > 0))).toBe(true)
+    void staff
   }
 }
 
@@ -79,6 +89,7 @@ describe('defaultParams / sanitizeParams', () => {
       minDuration: 0.05,
       pitchRange: [21, 108],
       maxPolyphony: 4,
+      splitMode: 'auto',
     })
   })
 
@@ -122,11 +133,11 @@ describe('buildScore basics', () => {
     const score = build([n(60, 0, 4), n(62, 4, 4), n(64, 8, 8), n(67, 16, 16)])
     expect(score.measureCount).toBe(2)
     expect(score.staves[0].measures[0].events).toEqual([
-      { start: 0, duration: 4, pitches: [60] },
-      { start: 4, duration: 4, pitches: [62] },
-      { start: 8, duration: 8, pitches: [64] },
+      { start: 0, duration: 4, pitches: [60], velocities: [0.8] },
+      { start: 4, duration: 4, pitches: [62], velocities: [0.8] },
+      { start: 8, duration: 8, pitches: [64], velocities: [0.8] },
     ])
-    expect(score.staves[0].measures[1].events).toEqual([{ start: 0, duration: 16, pitches: [67] }])
+    expect(score.staves[0].measures[1].events).toEqual([{ start: 0, duration: 16, pitches: [67], velocities: [0.8] }])
     expect(score.staves[1].measures.every((m) => m.events.length === 1 && m.events[0].pitches.length === 0)).toBe(true)
     expect(score.stats.noteCount).toBe(4)
     expect(score.stats.range).toEqual([60, 67])
@@ -135,19 +146,19 @@ describe('buildScore basics', () => {
   it('fills gaps with rests by beats', () => {
     const score = build([n(72, 0, 4), n(74, 12, 4)])
     expect(score.staves[0].measures[0].events).toEqual([
-      { start: 0, duration: 4, pitches: [72] },
+      { start: 0, duration: 4, pitches: [72], velocities: [0.8] },
       { start: 4, duration: 4, pitches: [] },
       { start: 8, duration: 4, pitches: [] },
-      { start: 12, duration: 4, pitches: [74] },
+      { start: 12, duration: 4, pitches: [74], velocities: [0.8] },
     ])
   })
 
   it('reads a short release gap as legato and a long one as a rest', () => {
     const legato = build([n(72, 0, 3), n(74, 4, 4)])
-    expect(legato.staves[0].measures[0].events[0]).toEqual({ start: 0, duration: 4, pitches: [72] })
+    expect(legato.staves[0].measures[0].events[0]).toEqual({ start: 0, duration: 4, pitches: [72], velocities: [0.8] })
     const detached = build([n(72, 0, 1), n(74, 4, 4)])
     expect(detached.staves[0].measures[0].events.slice(0, 2)).toEqual([
-      { start: 0, duration: 1, pitches: [72] },
+      { start: 0, duration: 1, pitches: [72], velocities: [0.8] },
       { start: 1, duration: 3, pitches: [] },
     ])
   })
@@ -155,8 +166,8 @@ describe('buildScore basics', () => {
   it('cuts a held note at the next onset of the same staff (one chord stream per staff)', () => {
     const score = build([n(60, 0, 16), n(64, 4, 4)])
     expect(score.staves[0].measures[0].events.slice(0, 2)).toEqual([
-      { start: 0, duration: 4, pitches: [60] },
-      { start: 4, duration: 4, pitches: [64] },
+      { start: 0, duration: 4, pitches: [60], velocities: [0.8] },
+      { start: 4, duration: 4, pitches: [64], velocities: [0.8] },
     ])
   })
 })
@@ -164,9 +175,9 @@ describe('buildScore basics', () => {
 describe('ties', () => {
   it('ties notes over the barline', () => {
     const score = build([n(72, 12, 8)])
-    expect(score.staves[0].measures[0].events.at(-1)).toEqual({ start: 12, duration: 4, pitches: [72], tie: true })
+    expect(score.staves[0].measures[0].events.at(-1)).toEqual({ start: 12, duration: 4, pitches: [72], velocities: [0.8], tie: true })
     expect(score.staves[0].measures[1].events).toEqual([
-      { start: 0, duration: 4, pitches: [72] },
+      { start: 0, duration: 4, pitches: [72], velocities: [0.8] },
       { start: 4, duration: 4, pitches: [] },
       { start: 8, duration: 8, pitches: [] },
     ])
@@ -179,8 +190,8 @@ describe('ties', () => {
     expect(score.staves[0].measures[0].events).toEqual([
       { start: 0, duration: 4, pitches: [] },
       { start: 4, duration: 2, pitches: [] },
-      { start: 6, duration: 2, pitches: [60, 64, 67], tie: true },
-      { start: 8, duration: 2, pitches: [60, 64, 67] },
+      { start: 6, duration: 2, pitches: [60, 64, 67], velocities: [0.8, 0.8, 0.8], tie: true },
+      { start: 8, duration: 2, pitches: [60, 64, 67], velocities: [0.8, 0.8, 0.8] },
       { start: 10, duration: 2, pitches: [] },
       { start: 12, duration: 4, pitches: [] },
     ])

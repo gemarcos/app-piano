@@ -25,17 +25,30 @@ interface AbcjsResult {
   voices: StaffNote[][]
 }
 
-/** Parses with abcjs and flattens it for playback the way the synth does: sounding notes per voice. */
+/**
+ * Parses with abcjs and flattens it for playback the way the synth does: sounding notes per STAFF
+ * (abcjs makes one track per voice, in V: declaration order: RH, RH2, LH, LH2, PED; the voices of a
+ * staff are merged, and the invisible pedal voice must not sound anything).
+ */
 function viaAbcjs(abc: string): AbcjsResult {
   const [tune] = abcjs.parseOnly(abc)
   const warnings = (tune as unknown as { warnings?: string[] }).warnings ?? []
   const audio = (tune as unknown as { setUpAudio(o: object): { tracks: { cmd: string; pitch: number; start: number; duration: number }[][] } }).setUpAudio({})
-  const voices = audio.tracks.map((track) =>
-    track
+  const ids = [...abc.matchAll(/^V:(\S+)/gm)].map((m) => m[1])
+  const staves = new Map<string, StaffNote[]>()
+  audio.tracks.forEach((track, i) => {
+    const id = ids[i] ?? `T${i}`
+    const notes = track
       .filter((e) => e.cmd === 'note')
       .map((e) => ({ pitch: e.pitch, start: Math.round(e.start * 16), ticks: Math.round(e.duration * 16) }))
-      .sort((a, b) => a.start - b.start || a.pitch - b.pitch),
-  )
+    if (id === 'PED') {
+      expect(notes, 'the pedal voice sounds nothing').toEqual([])
+      return
+    }
+    const staff = id.startsWith('RH') ? 'RH' : id.startsWith('LH') ? 'LH' : id
+    staves.set(staff, [...(staves.get(staff) ?? []), ...notes])
+  })
+  const voices = [...staves.values()].map((notes) => notes.sort((a, b) => a.start - b.start || a.pitch - b.pitch))
   return { warnings, voices }
 }
 

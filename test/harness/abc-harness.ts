@@ -1,11 +1,12 @@
 // Owner: engine-score. Visual check of the ABC output with abcjs (not part of the app bundle).
-// URL: /test/harness/abc.html?case=<slug|stress|six-eight>&naming=latin|english|none&hands=both|right|left
+// URL: /test/harness/abc.html?case=<slug|stress|six-eight|balada|liebestraum>&naming=latin|english|none&hands=both|right|left
 //      &difficulty=original|intermedio|facil&bars=<n, default suggestMeasuresPerLine>&transpose=0&dark=1
 //      &annot=12 (note names at the old abcjs default: Helvetica 12 pt, for before/after comparisons)
 import '@fontsource-variable/plus-jakarta-sans'
 import '../../src/styles/tokens.css'
 import abcjs from 'abcjs'
-import { buildScore, defaultParams, keyName, scoreToAbc, suggestMeasuresPerLine } from '../../src/engine/score'
+import { analyzeNotes, buildScore, defaultParams, keyName, scoreToAbc, suggestMeasuresPerLine } from '../../src/engine/score'
+import { balladStyle, liebestraumStyle } from '../../src/engine/score/performances'
 import type { AbcOptions } from '../../src/engine/score'
 import { demoAnalysis, demoParams, demoPieces } from '../../src/data/demos'
 import type { AnalysisResult, Difficulty, NoteEvent, NoteNaming, Score } from '../../src/types'
@@ -39,6 +40,8 @@ interface Case {
   title: string
   subtitle: string
   score: Score
+  /** Analysed performance: shown with pedal marks and the pickup bar. */
+  realistic?: boolean
 }
 
 const settings = { quantize: 16 as const, splitPoint: 60, defaultDifficulty: difficulty }
@@ -93,11 +96,52 @@ function cases(): Case[] {
     subtitle: 'Prueba',
     score: buildScore(sixNotes, { ...defaultParams(six, settings), transpose }, six, 'Prueba'),
   })
+  for (const [slug, title, perf] of [
+    ['balada', 'Balada lenta', balladStyle({ rubato: 0.04, seed: 2 })],
+    ['liebestraum', 'Estilo Liebestraum n.º 3', liebestraumStyle({ rubato: 0.08, seed: 2 })],
+  ] as const) {
+    const analysis = analyzeNotes(perf.notes)
+    const params = { ...defaultParams(analysis, settings), transpose }
+    out.push({ slug, title, subtitle: 'Interpretación sintética: pedal y rubato', score: buildScore(perf.notes, params, analysis, title), realistic: true })
+  }
   return out
 }
 
 const root = document.getElementById('root')!
-for (const c of cases()) {
+
+/**
+ * Raw mode (?raw=1): window.renderRaw(abc, title?, chips?) renders any ABC into a new paper (probes,
+ * before/after comparisons made with an older engine).
+ */
+function renderRaw(abc: string, title = '', chips: string[] = []): string[] {
+  const section = document.createElement('section')
+  if (title) {
+    const head = document.createElement('header')
+    head.innerHTML = '<h1></h1><div class="meta"></div>'
+    head.querySelector('h1')!.textContent = title
+    for (const text of chips) head.querySelector('.meta')!.append(Object.assign(document.createElement('span'), { className: 'chip', textContent: text }))
+    section.append(head)
+  }
+  const paper = Object.assign(document.createElement('div'), { className: 'paper' })
+  const target = document.createElement('div')
+  paper.append(target)
+  section.append(paper)
+  root.append(section)
+  const tune = abcjs.renderAbc(target, abc, {
+    responsive: 'resize',
+    foregroundColor: 'currentColor',
+    add_classes: true,
+    staffwidth: 330,
+    paddingtop: 0,
+    paddingbottom: 12,
+    paddingleft: 0,
+    paddingright: 10,
+  })
+  return tune[0]?.warnings ?? []
+}
+;(window as unknown as Record<string, unknown>).renderRaw = renderRaw
+
+for (const c of q.get('raw') === '1' ? [] : cases()) {
   if (only && c.slug !== only) continue
   const section = document.createElement('section')
   const head = document.createElement('header')
@@ -117,7 +161,7 @@ for (const c of cases()) {
   root.append(section)
   const perLine = bars ?? suggestMeasuresPerLine(c.score, 330, { noteNames: naming !== 'none' })
   const font = annot ? { annotationSize: annot, annotationFont: 'Helvetica' } : {}
-  const abc = scoreToAbc(c.score, { noteNaming: naming, hands, measuresPerLine: perLine, printTempo: false, ...font })
+  const abc = scoreToAbc(c.score, { noteNaming: naming, hands, measuresPerLine: perLine, printTempo: false, pedalMarks: c.realistic, pickup: c.realistic, ...font })
   const tune = abcjs.renderAbc(target, abc, {
     responsive: 'resize',
     foregroundColor: 'currentColor',
