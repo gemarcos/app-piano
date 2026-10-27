@@ -68,6 +68,12 @@ export interface RecorderOptions {
   /** Auto-stop after this many seconds (fires onAutoStop; stop() still resolves the blob). */
   maxSeconds?: number
   onAutoStop?: () => void
+  /**
+   * Tab mode only: offer THIS tab first in Chrome's picker ("Esta pestaña") and allow picking it at all
+   * (Chrome hides the current tab by default). For screens that play the media themselves (the share link
+   * screen with the official embed). Added by share, 2026-10-27.
+   */
+  preferCurrentTab?: boolean
 }
 
 export interface RecorderHandle {

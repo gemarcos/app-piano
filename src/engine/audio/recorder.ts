@@ -118,7 +118,7 @@ function stopTracks(stream: MediaStream | null) {
   })
 }
 
-async function acquireStream(mode: CaptureMode): Promise<MediaStream> {
+async function acquireStream(mode: CaptureMode, preferCurrentTab = false): Promise<MediaStream> {
   if (mode === 'mic') {
     if (!micSupported()) throw namedError('NotSupportedError', 'Este navegador no permite grabar audio.')
     try {
@@ -134,7 +134,11 @@ async function acquireStream(mode: CaptureMode): Promise<MediaStream> {
   let stream: MediaStream
   try {
     // systemAudio / suppressLocalAudioPlayback are Chromium extensions missing from some DOM typings.
-    const options = { video: true, audio: { ...MUSIC_AUDIO, suppressLocalAudioPlayback: false }, systemAudio: 'include' }
+    const options: Record<string, unknown> = { video: true, audio: { ...MUSIC_AUDIO, suppressLocalAudioPlayback: false }, systemAudio: 'include' }
+    if (preferCurrentTab) {
+      // The media plays in this very tab (official embed): Chrome hides the current tab unless asked to.
+      Object.assign(options, { preferCurrentTab: true, selfBrowserSurface: 'include', surfaceSwitching: 'include' })
+    }
     stream = await navigator.mediaDevices.getDisplayMedia(options as DisplayMediaStreamOptions)
   } catch (err) {
     throw captureError(err, 'tab')
@@ -230,7 +234,7 @@ function abortError(): Error {
 }
 
 export async function startCapture(opts: RecorderOptions): Promise<RecorderHandle> {
-  const stream = await acquireStream(opts.mode)
+  const stream = await acquireStream(opts.mode, opts.preferCurrentTab === true)
   const audioStream = new MediaStream(stream.getAudioTracks())
 
   const mimeType = pickRecorderMime()

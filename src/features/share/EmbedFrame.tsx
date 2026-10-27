@@ -10,13 +10,14 @@ interface EmbedFrameProps {
   onReady: () => void
   onState: (state: EmbedState) => void
   onError: (error: EmbedError) => void
+  onSound?: (sound: { muted: boolean; volume: number }) => void
   className?: string
 }
 
-export function EmbedFrame({ link, playerRef, onReady, onState, onError, className }: EmbedFrameProps) {
+export function EmbedFrame({ link, playerRef, onReady, onState, onError, onSound, className }: EmbedFrameProps) {
   const ref = useRef<HTMLDivElement>(null)
-  const callbacks = useRef({ onReady, onState, onError })
-  callbacks.current = { onReady, onState, onError }
+  const callbacks = useRef({ onReady, onState, onError, onSound })
+  callbacks.current = { onReady, onState, onError, onSound }
 
   useEffect(() => {
     const el = ref.current
@@ -25,6 +26,7 @@ export function EmbedFrame({ link, playerRef, onReady, onState, onError, classNa
       onReady: () => callbacks.current.onReady(),
       onState: (state) => callbacks.current.onState(state),
       onError: (error) => callbacks.current.onError(error),
+      onSound: (sound) => callbacks.current.onSound?.(sound),
     })
     playerRef.current = player
     return () => {

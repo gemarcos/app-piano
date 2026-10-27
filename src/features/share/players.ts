@@ -12,6 +12,8 @@ export interface EmbedCallbacks {
   onReady(): void
   onState(state: EmbedState): void
   onError(error: EmbedError): void
+  /** The player's own sound state once it plays (a muted player gives a silent take). */
+  onSound?(sound: { muted: boolean; volume: number }): void
 }
 
 export interface EmbedPlayer {
@@ -38,6 +40,9 @@ interface YTPlayer {
   playVideo(): void
   pauseVideo(): void
   unMute(): void
+  isMuted(): boolean
+  getVolume(): number
+  setVolume(volume: number): void
   destroy(): void
 }
 
@@ -106,7 +111,20 @@ export function createYouTubePlayer(container: HTMLElement, link: SharedLink, cb
     if (!player || !ready) return
     try {
       player.unMute()
+      if (player.getVolume() < 50) player.setVolume(100)
       player.playVideo()
+    } catch {
+      // the iframe went away
+    }
+  }
+
+  // YouTube falls back to MUTED playback when the browser blocks sound, and a muted player gives a silent
+  // take: when Pauta asked for sound, unmute it again and report what the player says.
+  const checkSound = () => {
+    if (!player) return
+    try {
+      if (wantPlay && player.isMuted()) player.unMute()
+      cb.onSound?.({ muted: player.isMuted(), volume: player.getVolume() })
     } catch {
       // the iframe went away
     }
@@ -138,7 +156,9 @@ export function createYouTubePlayer(container: HTMLElement, link: SharedLink, cb
           },
           onStateChange: (e: { data: number }) => {
             const state = YT_STATES[e.data]
-            if (state && !destroyed) cb.onState(state)
+            if (!state || destroyed) return
+            cb.onState(state)
+            if (state === 'playing') checkSound()
           },
           onError: (e: { data: number }) => {
             if (!destroyed) cb.onError(youtubeError(e.data))

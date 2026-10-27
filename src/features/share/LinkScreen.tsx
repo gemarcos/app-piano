@@ -99,6 +99,7 @@ function LinkView({ link }: { link: SharedLink }) {
   const [shown, setShown] = useState(false)
   const [video, setVideo] = useState<EmbedState | null>(null)
   const [nudge, setNudge] = useState(false)
+  const [sound, setSound] = useState<{ muted: boolean; volume: number } | null>(null)
   const [attempt, setAttempt] = useState(0)
   const [opening, setOpening] = useState(false)
   const player = useRef<EmbedPlayer | null>(null)
@@ -145,6 +146,7 @@ function LinkView({ link }: { link: SharedLink }) {
   const onReady = useCallback(() => setShown(true), [])
   const onState = useCallback((state: EmbedState) => setVideo(state), [])
   const onError = useCallback((error: EmbedError) => setBlock((current) => current ?? error), [])
+  const onSound = useCallback((next: { muted: boolean; volume: number }) => setSound(next), [])
 
   // The take plays the video; if it does not start (mobile autoplay rules), suggest tapping it.
   const recording = take.phase === 'recording'
@@ -198,6 +200,18 @@ function LinkView({ link }: { link: SharedLink }) {
   const cardH = Math.round(cardW / ratio)
 
   const takeBlocked = take.phase === 'denied' || take.phase === 'error'
+  // One quiet line under the title: what the phone does with the sound, or what to fix when nothing arrives.
+  const hint = recording
+    ? nudge
+      ? 'Toca el vídeo si no empieza'
+      : take.silent
+        ? take.mode === 'tab'
+          ? 'No llega sonido. Comparte «Esta pestaña» con su audio.'
+          : 'No llega sonido. Sube el volumen del vídeo.'
+        : ''
+    : !desktop && hasPlayer && !takeBlocked
+      ? 'El vídeo suena por el altavoz: sube el volumen.'
+      : ''
   const taking = recording || take.phase === 'stopping'
   const state = block ?? (shown ? 'ready' : 'loading')
   const meta = link.platform === 'other' ? hostOf(link.url) : [platformName(link.platform), info?.author].filter(Boolean).join(' · ')
@@ -206,7 +220,7 @@ function LinkView({ link }: { link: SharedLink }) {
   return (
     <Page className="share-link">
       <TopBar left={<IconButton icon={XClose} label="Cerrar" onClick={close} />} />
-      <div className="share-link__stage" data-platform={link.platform} data-state={state} data-video={video ?? undefined}>
+      <div className="share-link__stage" data-platform={link.platform} data-state={state} data-video={video ?? undefined} data-muted={sound ? String(sound.muted) : undefined}>
         <AnimatePresence mode="wait" initial={false}>
           {block ? (
             <BlockCard
@@ -238,6 +252,7 @@ function LinkView({ link }: { link: SharedLink }) {
                   onReady={onReady}
                   onState={onState}
                   onError={onError}
+                  onSound={onSound}
                   className={cx('share-player__frame', shown && 'is-shown')}
                 />
               )}
@@ -248,8 +263,8 @@ function LinkView({ link }: { link: SharedLink }) {
         <div className="share-link__info">
           {title ? <h1 className="share-link__title">{title}</h1> : <h1 className="visually-hidden">Vídeo compartido</h1>}
           {meta && <p className="share-link__meta">{meta}</p>}
-          <p className={cx('share-link__nudge', nudge && 'is-on')} aria-live="polite">
-            {nudge ? 'Toca el vídeo si no empieza' : ''}
+          <p className={cx('share-link__nudge', hint && 'is-on')} aria-live="polite">
+            {hint}
           </p>
         </div>
 
@@ -265,7 +280,7 @@ function LinkView({ link }: { link: SharedLink }) {
                 transition={{ duration: 0.28, ease }}
               >
                 <p role="alert">{take.message}</p>
-                <Button onClick={() => void take.start(take.mode)}>Reintentar</Button>
+                <Button onClick={() => void take.start(take.mode, { currentTab: hasPlayer })}>Reintentar</Button>
               </motion.div>
             ) : taking ? (
               <motion.div key="meter" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.24, ease }}>
@@ -296,28 +311,58 @@ function LinkView({ link }: { link: SharedLink }) {
               Escuchar
             </Button>
           </>
-        ) : (
+        ) : desktop && hasPlayer ? (
+          // Computer: record the player's own sound (this tab); the microphone is only the fallback.
           <>
             <Button
               variant="accent"
+              size="lg"
+              icon={Monitor02}
+              loading={take.phase === 'starting' && take.mode === 'tab'}
+              disabled={take.phase === 'starting'}
+              onClick={() => void take.start('tab')}
+            >
+              Grabar el vídeo
+            </Button>
+            <Button
+              variant="secondary"
               size="lg"
               icon={Microphone01}
               loading={take.phase === 'starting' && take.mode === 'mic'}
               disabled={take.phase === 'starting'}
               onClick={() => void take.start('mic')}
             >
+              Micrófono
+            </Button>
+          </>
+        ) : (
+          // Phone (or no player here): a browser cannot capture the player's audio, only the microphone. A saved
+          // file is the exact-audio route.
+          <>
+            <Button
+              variant="accent"
+              size="lg"
+              icon={Microphone01}
+              loading={take.phase === 'starting' && take.mode === 'mic'}
+              disabled={take.phase === 'starting' || opening}
+              onClick={() => void take.start('mic')}
+            >
               Escuchar
             </Button>
-            {desktop && (
+            {desktop ? (
               <Button
                 variant="secondary"
                 size="lg"
                 icon={Monitor02}
                 loading={take.phase === 'starting' && take.mode === 'tab'}
                 disabled={take.phase === 'starting'}
-                onClick={() => void take.start('tab')}
+                onClick={() => void take.start('tab', { currentTab: false })}
               >
                 Pestaña
+              </Button>
+            ) : (
+              <Button variant="secondary" size="lg" icon={Upload01} loading={opening} disabled={take.phase === 'starting'} onClick={() => fileInput.current?.click()}>
+                Archivo
               </Button>
             )}
           </>

@@ -10,9 +10,14 @@
 //   f) Home "Enlace" pill -> dialog -> #/link (plain text without a link is refused)
 //   g) fake microphone on #/link -> Detener -> Processing -> new item with sourceName = the link (and the oEmbed title)
 //   h) no console errors from the app itself (third-party embed noise is reported, not counted)
+//   s) a silent microphone on #/link shows the quiet "No llega sonido" hint after ~3 s (phone actions: Escuchar + Archivo)
+//   k) (--audio, visible Chrome) computer: "Grabar el vídeo" captures Pauta's own tab (one confirmation, auto-accepted)
+//      and the take is the embedded video's sound: track "Tab audio", non-silent stored take, meter moving, notes
 //   plus one informational row: a real TikTok short link through TikTok's oEmbed (never fails the run).
 // Usage: node scripts/e2e-share.mjs [--url http://localhost:5195/] [--build] [--headful] [--keep] [--verbose]
-//                                   [--shots] [--no-checks]
+//                                   [--shots] [--no-checks] [--audio]
+//   --audio runs check k in a visible Chrome window: headless Chrome has no audio output, so a tab capture is silent
+//   there; the video's sound plays on this computer's speakers for ~7 s.
 //   Without a server answering at --url it serves dist/ (built first when missing; --build rebuilds) with
 //   `node scripts/serve.mjs start <port> --preview` and stops it at the end.
 //   --shots also saves docs/screenshots/share-*.png (390x844 @2x, light and dark); --no-checks only takes them.
@@ -81,7 +86,7 @@ export async function serviceWorkerReady(page, timeout = 30_000) {
 
 /** The link screen's state: data-platform / data-state / data-video of .share-link__stage. */
 export const linkState = (page) =>
-  page.$eval('.share-link__stage', (el) => ({ platform: el.dataset.platform, state: el.dataset.state, video: el.dataset.video ?? '' })).catch(() => null)
+  page.$eval('.share-link__stage', (el) => ({ platform: el.dataset.platform, state: el.dataset.state, video: el.dataset.video ?? '', muted: el.dataset.muted ?? '' })).catch(() => null)
 
 /** Waits for the link screen to settle on one of `states`. */
 export async function waitLinkState(page, states, timeout = 30_000) {
@@ -133,6 +138,7 @@ async function main() {
   const VERBOSE = argv.includes('--verbose')
   const SHOTS = argv.includes('--shots') || argv.includes('--no-checks')
   const CHECKS = !argv.includes('--no-checks')
+  const AUDIO = argv.includes('--audio')
 
   const serve = (cmd) => {
     const args = [path.join(ROOT, 'scripts', 'serve.mjs'), cmd, String(PORT)]
@@ -343,6 +349,110 @@ async function main() {
         return `${seen.state}; video while recording: ${video}; timer ${timer}, bars peak ${peak}px; item "${doc.title}", ${doc.notes} notes, sourceName ${doc.sourceName}; Back returns to the link`
       })
 
+      await step('s', 'Silent microphone on the player screen -> quiet hint', async () => {
+        // A separate browser whose fake microphone plays silence.
+        const quiet = await puppeteer.launch({ executablePath: chromePath(), headless: !HEADFUL, args: chromeArgs(path.join(FIXTURES, 'silence.wav')) })
+        try {
+          const p = await quiet.newPage()
+          await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true })
+          watch(p)
+          await p.goto(linkUrl(YT_LINK), { waitUntil: 'domcontentloaded' })
+          await waitLinkState(p, ['ready', 'not-embeddable', 'offline', 'failed'], 30_000)
+          const idle = await p.$eval('.share-link__nudge', (el) => el.textContent?.trim() ?? '')
+          const buttons = await p.$$eval('.share-link__controls button', (bs) => bs.map((b) => b.textContent.trim()))
+          if (buttons.join('/') !== 'Escuchar/Archivo') throw new Error(`phone actions ${buttons.join('/')}`)
+          await clickByText(p, '.share-link__controls button', 'Escuchar')
+          await p.waitForSelector('button[aria-label="Detener"]:not([disabled])', { timeout: 15_000 })
+          const hint = await p
+            .waitForFunction(() => {
+              const text = document.querySelector('.share-link__nudge')?.textContent ?? ''
+              return /No llega sonido/.test(text) ? text : null
+            }, { timeout: 8000, polling: 200 })
+            .then((h) => h.jsonValue())
+          return `phone: ${buttons.join(' + ')}, idle line "${idle}"; silent take -> "${hint}"`
+        } finally {
+          await quiet.close().catch(() => {})
+          await page.bringToFront()
+        }
+      })
+
+      await step('k', "Computer: 'Grabar el vídeo' records the embedded video's sound", async () => {
+        if (!AUDIO) return { skip: 'needs --audio (visible Chrome: headless has no audio output, so a tab capture is silent)' }
+        // No fake media flags: --use-fake-device-for-media-stream and --use-fake-ui-for-media-stream also fake the tab capture
+        // ("Fake audio"). Autoplay policy as in a normal browser.
+        const desk = await puppeteer.launch({
+          executablePath: chromePath(),
+          headless: false,
+          args: ['--no-sandbox', '--auto-accept-this-tab-capture', '--window-size=1200,900'],
+        })
+        try {
+          const p = await desk.newPage()
+          await p.setViewport({ width: 1180, height: 820 })
+          watch(p)
+          // Records which source the capture really is (track label), independently of the app.
+          await p.evaluateOnNewDocument(() => {
+            const original = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices)
+            navigator.mediaDevices.getDisplayMedia = async (options) => {
+              const stream = await original(options)
+              window.__capture = { options, label: stream.getAudioTracks()[0]?.label ?? null }
+              return stream
+            }
+          })
+          await p.goto(linkUrl(YT_LINK), { waitUntil: 'domcontentloaded' })
+          await waitLinkState(p, ['ready'], 30_000)
+          const buttons = await p.$$eval('.share-link__controls button', (bs) => bs.map((b) => b.textContent.trim()))
+          if (buttons[0] !== 'Grabar el vídeo' || buttons[1] !== 'Micrófono') throw new Error(`computer actions ${buttons.join('/')}`)
+          await clickByText(p, '.share-link__controls button', 'Grabar el vídeo')
+          await p.waitForSelector('button[aria-label="Detener"]:not([disabled])', { timeout: 15_000 })
+          let peak = 0
+          let silentHint = false
+          const t0 = Date.now()
+          while (Date.now() - t0 < 7000) {
+            peak = Math.max(peak, await p.$$eval('.share-meter__bars .ui-livebars__bar', (bars) => Math.max(0, ...bars.map((b) => parseFloat(b.style.height) || 0))))
+            silentHint ||= await p.$eval('.share-link__nudge', (el) => /No llega sonido/.test(el.textContent ?? ''))
+            await sleep(250)
+          }
+          const capture = await p.evaluate(() => window.__capture)
+          const muted = (await linkState(p))?.muted
+          await p.click('button[aria-label="Detener"]')
+          const end = await p
+            .waitForFunction(() => (/^#\/score\//.test(location.hash) ? 'score' : document.querySelector('.cap-proc__message p')?.textContent || null), { timeout: TRANSCRIBE_TIMEOUT, polling: 250 })
+            .then((h) => h.jsonValue(), async () => `timeout on ${await currentHash(p)} (${await p.$eval('.cap-proc__label', (el) => el.textContent).catch(() => '?')})`)
+          if (end !== 'score') throw new Error(`processing: ${end}; meter peak ${peak.toFixed(0)}px; capture ${JSON.stringify(capture)}`)
+          const id = decodeURIComponent((await currentHash(p)).split('/').pop())
+          const take = await p.evaluate(async (scoreId) => {
+            const db = await new Promise((res, rej) => {
+              const r = indexedDB.open('pauta')
+              r.onsuccess = () => res(r.result)
+              r.onerror = () => rej(r.error)
+            })
+            const get = (store, key) =>
+              new Promise((res) => {
+                const r = db.transaction(store).objectStore(store).get(key)
+                r.onsuccess = () => res(r.result)
+              })
+            const doc = await get('scores', scoreId)
+            const audio = doc?.audioId ? await get('audio', doc.audioId) : null
+            db.close()
+            const item = doc ? { source: doc.source, notes: doc.notes.length, sourceName: doc.sourceName } : null
+            if (!audio) return { doc: item, rms: 0, seconds: 0 }
+            const buffer = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(await audio.blob.arrayBuffer())
+            const data = buffer.getChannelData(0)
+            let sum = 0
+            for (let i = 0; i < data.length; i++) sum += data[i] * data[i]
+            return { doc: item, seconds: buffer.duration, rms: Math.sqrt(sum / data.length) }
+          }, id)
+          if (capture?.label !== 'Tab audio' || capture?.options?.preferCurrentTab !== true) throw new Error(`capture ${JSON.stringify(capture)}`)
+          if (!(take.rms > 0.01)) throw new Error(`silent take (RMS ${take.rms})`)
+          if (!(peak > 8)) throw new Error('the meter never moved')
+          if (take.doc?.source !== 'tab' || !(take.doc.notes > 0) || take.doc.sourceName !== YT_LINK) throw new Error(`item ${JSON.stringify(take.doc)}`)
+          return `capture "${capture.label}" (preferCurrentTab, auto-accepted), player muted=${muted}; take ${take.seconds.toFixed(1)} s, RMS ${take.rms.toFixed(3)}, meter peak ${peak.toFixed(0)}px, silence hint ${silentHint ? 'shown' : 'not shown'}; item source tab, ${take.doc.notes} notes`
+        } finally {
+          await desk.close().catch(() => {})
+          await page.bringToFront()
+        }
+      })
+
       await step('t', 'TikTok short link through oEmbed, real network (informational)', async () => {
         const p = await newPage()
         await p.goto(linkUrl('https://vm.tiktok.com/ZGeToSUk4/'), { waitUntil: 'domcontentloaded' })
@@ -442,6 +552,32 @@ async function screenshots({ newPage, linkUrl, oembed401, tiktokFails, BASE }) {
       await m.close()
     }
 
+    // Computer: the player's own sound is the primary action ("Grabar el vídeo"), the microphone the fallback.
+    const desk = await newPage({ dark })
+    await desk.setViewport({ width: 1100, height: 760, deviceScaleFactor: 1 })
+    await desk.goto(linkUrl(YT_LINK), { waitUntil: 'domcontentloaded' })
+    await waitLinkState(desk, ['ready'], 30_000)
+    await sleep(2200)
+    await desk.screenshot({ path: path.join(OUT, `share-link-desktop${sfx}.png`) })
+    await desk.close()
+
+    // A silent microphone: after ~3 s the quiet hint says what to do.
+    const hush = await puppeteer.launch({ executablePath: chromePath(), headless: true, args: chromeArgs(path.join(FIXTURES, 'silence.wav')) })
+    try {
+      const q = await hush.newPage()
+      await q.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true })
+      await q.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: dark ? 'dark' : 'light' }])
+      await q.goto(linkUrl(YT_LINK), { waitUntil: 'domcontentloaded' })
+      await waitLinkState(q, ['ready'], 30_000)
+      await sleep(1200)
+      await clickByText(q, '.share-link__controls button', 'Escuchar')
+      await q.waitForFunction(() => /No llega sonido/.test(document.querySelector('.share-link__nudge')?.textContent ?? ''), { timeout: 10_000 })
+      await sleep(600)
+      await shot(q, 'link-silent')
+    } finally {
+      await hush.close()
+    }
+
     // Microphone permission denied: a separate browser that answers every permission prompt with "deny".
     const denying = await puppeteer.launch({
       executablePath: chromePath(),
@@ -462,7 +598,7 @@ async function screenshots({ newPage, linkUrl, oembed401, tiktokFails, BASE }) {
     } finally {
       await denying.close()
     }
-    console.log(`screenshots ${dark ? 'dark' : 'light'}: docs/screenshots/share-{home,enlace,link-youtube,link-recording,import,link-noembed,link-short,link-unsupported,link-denied}${sfx}.png`)
+    console.log(`screenshots ${dark ? 'dark' : 'light'}: docs/screenshots/share-{home,enlace,link-youtube,link-recording,import,link-noembed,link-short,link-unsupported,link-desktop,link-silent,link-denied}${sfx}.png`)
   }
 }
 
