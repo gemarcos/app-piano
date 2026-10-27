@@ -6,11 +6,17 @@ import type { RawActivations, TranscriberBackend, WorkerRequest, WorkerResponse 
 export type { TranscriberBackend } from './protocol'
 
 export interface TranscribeOptions {
-  /** 0..1, higher = more notes (maps to onset/frame thresholds). */
+  /**
+   * 0..1, higher = more notes (maps to onset/frame thresholds, see params.ts). 0.5 is the calibrated default
+   * (best F1 on the fixtures); 0 keeps only confident notes, 1 roughly doubles the note count.
+   */
   sensitivity: number
-  /** Shortest note to keep, milliseconds. */
+  /** Shortest note to keep, milliseconds (90 by default; 60–110 is the sweet spot, the settings slider allows 40–250). */
   minNoteMs: number
 }
+
+/** Calibrated defaults (the same values as DEFAULT_SETTINGS.sensitivity / minNoteMs). */
+export const DEFAULT_TRANSCRIBE_OPTIONS: Readonly<TranscribeOptions> = { sensitivity: 0.5, minNoteMs: 90 }
 
 export type TranscribeStage = 'loading-model' | 'analyzing' | 'extracting-notes'
 
@@ -214,11 +220,12 @@ export function startTranscription(
 
 /**
  * Transcribes mono MODEL_SAMPLE_RATE samples (see engine/audio toModelInput) into note events.
- * `onProgress` receives 0..1 overall progress and the current stage:
- * 'loading-model' 0–0.1, 'analyzing' 0.1–0.9, 'extracting-notes' 0.9–1.
+ * `onProgress` receives monotonic 0..1 overall progress and the current stage:
+ * 'loading-model' 0–0.1 (model download/warm-up; instant once preloaded), 'analyzing' 0.1–0.9, 'extracting-notes' 0.9–1.
  * Resolves NoteEvent[] sorted by start (piano range, velocity 0..1); [] when nothing was detected.
  * Rejects with a short Spanish message (`name: 'TranscriptionError'`), or an AbortError after cancel().
- * cancel() terminates the shared worker, so any other job in flight is aborted too.
+ * cancel() terminates the shared worker, so any other job in flight is aborted too (the next call recreates it).
+ * The samples are copied to the worker (not transferred): the caller may keep using them.
  */
 export function transcribe(
   samples: Float32Array,

@@ -17,21 +17,27 @@ export interface DecoderParams {
   energyTolerance: number
   inferOnsets: boolean
   melodiaTrick: boolean
+  /** Same-pitch onsets closer than this many frames collapse into the strongest one (0 = off). */
+  onsetNmsFrames: number
+  /** Bass onsets are weaker: their effective onset threshold is lowered by up to this fraction (see bassOnsetScale). */
+  bassOnsetBonus: number
 }
 
 /**
- * Threshold anchors at sensitivity 0, 0.5 and 1 (linear in between).
- * The 0.5 point is the best mean F1 on test/fixtures, clean and "room" variants
- * (scripts/fixtures/check-transcription.mjs --sweep); higher sensitivity lowers both thresholds.
+ * Threshold anchors at sensitivity 0, 0.5 and 1 (linear in between), calibrated with
+ * scripts/fixtures/check-transcription.mjs on the synthetic and real-piano fixtures, clean and "room":
+ * 0.5 is the best mean F1 (onset 0.70 / frame 0.30); the F1 plateau is flat around it (0.65–0.725 / 0.25–0.325).
+ * 0 keeps only confident notes, 1 roughly doubles the note count (soft playing, quiet or distant recordings).
  */
-export const ONSET_ANCHORS: [number, number, number] = [0.9, 0.75, 0.35]
-export const FRAME_ANCHORS: [number, number, number] = [0.35, 0.25, 0.15]
+export const ONSET_ANCHORS: [number, number, number] = [0.85, 0.7, 0.45]
+export const FRAME_ANCHORS: [number, number, number] = [0.4, 0.3, 0.2]
 export const DEFAULT_ENERGY_TOLERANCE = 11
-/**
- * Above this sensitivity, the "melodia" pass also adds notes found from sustained energy without a clear
- * onset (soft or legato playing). Below it, that pass mostly adds overtones, so it stays off.
- */
-export const MELODIA_FROM_SENSITIVITY = 0.8
+/** ±5 frames (58 ms): faster than any same-key repetition on a piano. */
+export const ONSET_NMS_FRAMES = 5
+/** Bass bonus: the onset threshold is 15 % lower up to E2 (MIDI 40), easing back to normal at E3 (52). */
+export const BASS_ONSET_BONUS = 0.15
+export const BASS_FULL_BONUS_MAX = 40
+export const BASS_NO_BONUS_MIN = 52
 
 function clamp01(v: number): number {
   return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5
@@ -49,6 +55,10 @@ export function minNoteFrames(minNoteMs: number): number {
   return Math.max(1, Math.round((ms / 1000) * MODEL_FPS) - 1)
 }
 
+/**
+ * The "melodia" pass (notes from sustained energy without an onset) stays off at every sensitivity:
+ * on piano it mostly adds overtones (mean F1 0.83 -> 0.72 at sensitivity 1 on the fixtures).
+ */
 export function decoderParams(opts: TranscribeOptions): DecoderParams {
   return {
     onsetThreshold: interpolateAnchors(ONSET_ANCHORS, opts.sensitivity),
@@ -56,8 +66,27 @@ export function decoderParams(opts: TranscribeOptions): DecoderParams {
     minNoteFrames: minNoteFrames(opts.minNoteMs),
     energyTolerance: DEFAULT_ENERGY_TOLERANCE,
     inferOnsets: true,
-    melodiaTrick: clamp01(opts.sensitivity) > MELODIA_FROM_SENSITIVITY,
+    melodiaTrick: false,
+    onsetNmsFrames: ONSET_NMS_FRAMES,
+    bassOnsetBonus: BASS_ONSET_BONUS,
   }
+}
+
+/**
+ * Per-bin onset multipliers (88 bins, A0 first) that lower the effective onset threshold of bass notes by `bonus`:
+ * full bonus up to BASS_FULL_BONUS_MAX, none from BASS_NO_BONUS_MIN, linear in between.
+ * Multiplying an onset by 1 / (1 - b) is the same as comparing it with threshold * (1 - b).
+ */
+export function bassOnsetScale(bonus: number): Float64Array {
+  const b = Number.isFinite(bonus) ? Math.min(0.9, Math.max(0, bonus)) : 0
+  const scale = new Float64Array(PIANO_MAX - PIANO_MIN + 1)
+  for (let i = 0; i < scale.length; i++) {
+    const pitch = PIANO_MIN + i
+    const t =
+      pitch <= BASS_FULL_BONUS_MAX ? 1 : pitch >= BASS_NO_BONUS_MIN ? 0 : (BASS_NO_BONUS_MIN - pitch) / (BASS_NO_BONUS_MIN - BASS_FULL_BONUS_MAX)
+    scale[i] = 1 / (1 - b * t)
+  }
+  return scale
 }
 
 /** Shape of basic-pitch's NoteEventTime. */

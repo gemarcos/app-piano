@@ -113,10 +113,24 @@ function loadModel(url: string, onProgress?: (fraction: number) => void, prefer?
         }
         loaded?.graph.dispose()
         loaded = null
-        const graph = await tf.loadGraphModel(url, {
-          onProgress: (fraction) => loadListeners.forEach((listener) => listener(fraction)),
-        })
-        await warmUp(graph)
+        const fetchGraph = () =>
+          tf.loadGraphModel(url, { onProgress: (fraction) => loadListeners.forEach((listener) => listener(fraction)) })
+        let graph = await fetchGraph()
+        try {
+          await warmUp(graph)
+        } catch (err) {
+          if (backend !== 'webgl') throw err
+          // The GPU cannot run the model (shader / texture limits): reload it on the CPU (the files are cached by now).
+          console.warn('[Pauta] WebGL warm-up failed, using the CPU', err)
+          try {
+            graph.dispose()
+          } catch {
+            /* lost context: nothing to free */
+          }
+          backend = await selectBackend(false)
+          graph = await fetchGraph()
+          await warmUp(graph)
+        }
         loaded = { url, graph, basicPitch: new BasicPitch(Promise.resolve(graph)) }
         return loaded
       } catch (err) {

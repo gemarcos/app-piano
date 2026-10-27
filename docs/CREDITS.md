@@ -30,6 +30,7 @@ Every Unsplash page above showed "Free to use under the Unsplash License". None 
 - **MP3 renders**: [midi-js-soundfonts](https://github.com/gleitz/midi-js-soundfonts) by **Benjamin Gleitzman**. Its README releases the FluidR3_GM renders under the [Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/us/) license. The repository code is MIT, © 2012 Benjamin Gleitzman. The percussion renders come from **Paul Rosen**'s fork ([paulrosen/midi-js-soundfonts](https://github.com/paulrosen/midi-js-soundfonts), MIT), which abcjs uses by default.
 - **Downloaded from**: `https://paulrosen.github.io/midi-js-soundfonts/FluidR3_GM/` (the folder abcjs 6.7 uses as its default `soundFontUrl`).
 - **Attribution line** (CC BY 3.0): "Piano sounds: FluidR3_GM by Frank Wen, rendered by the midi-js-soundfonts project (Benjamin Gleitzman, Paul Rosen), CC BY 3.0."
+- **Test audio**: `test/fixtures/piano-*.wav` are rendered from these same samples by `scripts/fixtures/make-piano-fixtures.mjs` (CC BY 3.0, same attribution); each fixture's JSON has a `source` field.
 
 ## Brand icons (`public/icons/`)
 

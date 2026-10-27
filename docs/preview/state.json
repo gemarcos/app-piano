@@ -1,0 +1,82 @@
+{
+  "project": "Pauta",
+  "nextBoard": 4,
+  "nextMotion": 3,
+  "seen": {
+    "assets-board-dark.png": 1793101996952,
+    "assets-board.png": 1793101996952,
+    "assets-icons.png": 1793101996952,
+    "engine-score-oda.png": 1793101996966,
+    "ui-actionsheet-dark.png": 1793101996966,
+    "ui-actionsheet.png": 1793101996966,
+    "ui-confirm-dark.png": 1793101996966,
+    "ui-confirm.png": 1793101996966,
+    "ui-kit-dark.png": 1793101996979,
+    "ui-kit-light.png": 1793101996979,
+    "ui-prompt-dark.png": 1793101996979,
+    "ui-prompt.png": 1793101996979,
+    "ui-screen-skeleton-dark.png": 1793101996979,
+    "ui-screen-skeleton.png": 1793101996992,
+    "ui-sheet-dark.png": 1793101996992,
+    "ui-sheet.png": 1793101996992,
+    "ui-tab-skeleton-dark.png": 1793101996992,
+    "ui-tab-skeleton.png": 1793101997000,
+    "ui-toast-dark.png": 1793101997002,
+    "ui-toast.png": 1793101997005,
+    "ui-vinyl-dark.png": 1793101997006,
+    "ui-vinyl.png": 1793101997006,
+    "settings-about-dark.png": 1793105030659,
+    "settings-about-full-dark.png": 1793105033956,
+    "settings-about-full.png": 1793105020024,
+    "settings-about.png": 1793105016735,
+    "settings-clear-confirm-dark.png": 1793105037226,
+    "settings-clear-confirm.png": 1793105023285,
+    "settings-main-dark.png": 1793105025553,
+    "settings-main-full-dark.png": 1793105028433,
+    "settings-main-full.png": 1793105014564,
+    "settings-main.png": 1793105011662
+  },
+  "reportsSeen": {
+    "assets.json": 1793101996926,
+    "ui.json": 1793101996926,
+    "engine-audio.json": 1793105109490
+  },
+  "journalSeen": 4,
+  "deliveries": [
+    {
+      "when": "earlier",
+      "files": [
+        "docs/preview/00-moodboard.jpg",
+        "docs/preview/00-guia-de-estilo.jpg",
+        "docs/preview/01-avance.jpg",
+        "docs/preview/02-avance.jpg",
+        "docs/preview/motion-01-vinilo-y-hoja.mp4"
+      ],
+      "caption": "Entregas de la sesión en Linux"
+    },
+    {
+      "when": "2026-10-27 13:40",
+      "files": [
+        "docs/preview/03-avance.jpg",
+        "docs/preview/motion-02-tema.mp4",
+        "docs/preview/motion-02-tema-dark.mp4"
+      ],
+      "caption": "Avance 3: ya están Ajustes y Acerca de, en claro y oscuro, con dos vídeos del cambio de tema (fundido suave).",
+      "sources": [
+        "settings-main.png",
+        "settings-main-dark.png",
+        "settings-main-full.png",
+        "settings-main-full-dark.png",
+        "settings-about.png",
+        "settings-about-dark.png"
+      ]
+    }
+  ],
+  "updatedAt": "2026-10-27T12:45:51.913Z",
+  "shown": [
+    "settings-about",
+    "settings-main",
+    "theme-switch-video"
+  ],
+  "notes": "Pending ideas: engine-score demos with smaller note names (light/dark); Acerca de push transition video once worth it; settings-clear-confirm(-dark) not shown (confirm dialog already in kit)."
+}

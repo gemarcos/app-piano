@@ -85,6 +85,7 @@ export interface RecorderHandle {
  * Other names: 'NotFoundError' (no microphone), 'NotReadableError' (device busy), 'NotSupportedError',
  * 'NoAudioTrackError' (tab shared without audio). `startedAt` is Date.now() at start.
  * onAutoStop also fires when the user ends tab sharing from the browser UI.
+ * stop() rejects with 'AbortError' after cancel() and with 'RecorderError' if the recorder fails mid-take.
  */
 export async function startRecording(opts: RecorderOptions): Promise<RecorderHandle> {
   return startCapture(opts)

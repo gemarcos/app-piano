@@ -1,6 +1,7 @@
 // Browser harness for the audio + transcription pipeline (served by the Vite dev server).
 // Open /test/harness/transcribe.html?fixture=scale.wav (results on window.__result), or drive it with
-// scripts/fixtures/check-transcription.mjs through window.__run / __sweep / __perf.
+// scripts/fixtures/check-transcription.mjs through window.__run / __sweep / __perf / __raw.
+// Test-only: it imports the decoder (basic-pitch) on the page for offline sweeps; the app never does.
 import {
   decodeMediaFile,
   isMicSupported,
@@ -201,6 +202,19 @@ async function sweep(fixtures: string[], grid: SweepGrid): Promise<SweepRow[]> {
   return rows
 }
 
+/** Cached activations of a fixture run with { raw: true }, as base64 Float32 rows [frames x 88] (calibration dumps). */
+function rawDump(fixture: string) {
+  const cached = rawStore.get(fixture)
+  if (!cached) return null
+  const b64 = (a: Float32Array) => {
+    const bytes = new Uint8Array(a.buffer, a.byteOffset, a.byteLength)
+    let bin = ''
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+    return btoa(bin)
+  }
+  return { nFrames: cached.raw.nFrames, frames: b64(cached.raw.frames), onsets: b64(cached.raw.onsets) }
+}
+
 /** Times a transcription of `seconds` of audio built by tiling a fixture. */
 async function perf(fixture: string, seconds: number, options: RunOptions = {}) {
   const { samples } = await prepare(fixture)
@@ -294,12 +308,14 @@ declare global {
     __run?: typeof run
     __sweep?: typeof sweep
     __perf?: typeof perf
+    __raw?: typeof rawDump
   }
 }
 
 window.__run = run
 window.__sweep = sweep
 window.__perf = perf
+window.__raw = rawDump
 window.__record = record
 window.__recordCancel = recordCancel
 window.__tabCapture = tabCapture

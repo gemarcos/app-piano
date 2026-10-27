@@ -209,10 +209,45 @@ const CAPTURE_B = `PHASE B (capture). Home and the capture screens are placehold
 - The Home -> Record 'hero-vinyl' layoutId may not animate with AnimatePresence mode="wait": fall back to a matching scale/fade.
 - Read the engine-audio report first: calibrated sensitivity mapping, error names and messages, encodeWav, toMono.`
 
+/* ---------- Phase D: reviewers that only report, then fixers per owner, then a final check ---------- */
+
+const REVIEW_COMMON = `PHASE D REVIEWER. You only REPORT: never edit app files. Write only your screenshots (docs/screenshots/review-<area>-*.png) and your report. The app is feature-complete after phase C: read docs/agents/reports/*.json (integration.json first) and docs/CLIENT-FEEDBACK.md before you start.
+Every finding has: severity (high | medium | low), location (file:line or screen + state), problem, why it matters, the concrete fix, and the owner who should apply it (BRIEF section 5). Rank by severity. No nitpicks the BRIEF or the client did not ask for.
+Report: docs/agents/reports/review-<area>.json = { summary, findings: [{ severity, owner, location, problem, fix }], verification }, and return the same JSON.`
+
+const REVIEW_DESIGN = `ROLE: review-design. Port 5191. Compare every screen and state (light and dark, 390x844 and 320x640) with docs/reference and BRIEF section 2: whitespace and one idea per screen; coherent radii, shadows, type scale and icon sizes; accent only for progress, active states and the one primary action; no emojis, no stray or explanatory text; Spanish copy; dark-mode legibility of the score; motion quality (durations, easing, reduced motion).`
+
+const REVIEW_CODE = `ROLE: review-code. No server needed (port 5192 if you need one). Read src/** looking for real defects: AudioContext / worker / MediaStream leaks; abcjs synth and timer cleanup on unmount and on param changes; IndexedDB errors and transactions; async races (StrictMode double effects, setState after unmount, stale closures); error paths and their Spanish messages; offline precache of model, soundfont, images and fonts; bundle split (tfjs only in the worker chunk).`
+
+const REVIEW_TRANSCRIPTION = `ROLE: review-transcription. Port 5193. Quality from audio to notation with test/fixtures: scripts/fixtures/check-transcription.mjs plus the real app flow (import each fixture). F1 per fixture; tempo, key and meter against the ground-truth JSON; readability of the resulting scores (difficulty modes, hand split, ties, accidentals), with screenshots.`
+
+const REVIEW_MOBILE = `ROLE: review-mobile. Port 5194. Mobile usability: 44 px touch targets; safe areas (emulate a notch); sheets and dialogs (focus, scroll, drag to dismiss); empty, loading and error states on every screen; labels, roles and focus order; 320 px width; offline after the first load (production preview + service worker).`
+
+const FIX = (owner) => `PHASE D FIXER (owner: ${owner}). Apply the findings assigned to "${owner}" in docs/agents/reports/review-*.json, highest severity first, only inside your ownership (BRIEF section 5). Verify each fix (typecheck, tests, screenshots light and dark) and report which findings you fixed, which you rejected and why. Report file: docs/agents/reports/fix-${owner}.json.`
+
+const FINAL = `PHASE D FINAL CHECK. Port 5189. npm run typecheck, npm test, npm run build and node scripts/e2e.mjs must all pass; refresh docs/screenshots/final-*.png (light and dark) and README.md. Fix only small regressions (you may edit any file); report anything bigger. Report file: docs/agents/reports/final.json.`
+
 /* ---------- Runner: the order of work (the Windows lead runs it by hand with the Agent tool) ---------- */
 
-const run = (role, phaseName, prompt) =>
-  agent(COMMON + '\n\n' + prompt, { label: role, phase: phaseName, schema: REPORT })
+const REVIEW = {
+  type: 'object',
+  properties: {
+    summary: { type: 'string' },
+    findings: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { severity: { type: 'string' }, owner: { type: 'string' }, location: { type: 'string' }, problem: { type: 'string' }, fix: { type: 'string' } },
+        required: ['severity', 'owner', 'location', 'problem', 'fix'],
+      },
+    },
+    verification: { type: 'string' },
+  },
+  required: ['summary', 'findings', 'verification'],
+}
+
+const run = (role, phaseName, prompt, schema = REPORT) =>
+  agent(COMMON + '\n\n' + prompt, { label: role, phase: phaseName, schema })
     .then((r) => (r ? { role, ...r } : { role, failed: true }))
 
 const upstream = (...roles) =>
@@ -238,5 +273,18 @@ log('Build agents done. Failed: ' + (failed.length ? failed.join(', ') : 'none')
 phase('C · Integrate')
 const all = ['ui', 'assets', 'engine-audio', 'engine-score', 'settings', 'library', 'viewer', 'capture']
 const integration = await run('integration', 'C · Integrate', INTEGRATION + '\n\n' + upstream(...all))
-// Phase D (review + fixes) prompts are added here when phase C finishes.
-return { reports, integration }
+
+phase('D · Review')
+const reviews = await Promise.all(
+  [
+    ['review-design', REVIEW_DESIGN],
+    ['review-code', REVIEW_CODE],
+    ['review-transcription', REVIEW_TRANSCRIPTION],
+    ['review-mobile', REVIEW_MOBILE],
+  ].map(([role, prompt]) => run(role, 'D · Review', REVIEW_COMMON + '\n\n' + prompt, REVIEW)),
+)
+// One fixer per owner that received findings, in parallel (owners never share files).
+const owners = [...new Set(reviews.flatMap((r) => (r.findings ?? []).map((f) => f.owner)))]
+const fixes = await Promise.all(owners.map((owner) => run('fix-' + owner, 'D · Review', FIX(owner))))
+const final = await run('final', 'D · Review', FINAL)
+return { reports, integration, reviews, fixes, final }

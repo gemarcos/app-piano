@@ -1,14 +1,21 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { DEFAULT_SETTINGS } from '../../state/settings'
+import { DEFAULT_TRANSCRIBE_OPTIONS } from './index'
 import {
+  BASS_FULL_BONUS_MAX,
+  BASS_NO_BONUS_MIN,
+  BASS_ONSET_BONUS,
+  bassOnsetScale,
   decoderParams,
   finalizeNotes,
   FRAME_ANCHORS,
   interpolateAnchors,
-  MELODIA_FROM_SENSITIVITY,
   minNoteFrames,
   MODEL_FPS,
   ONSET_ANCHORS,
+  ONSET_NMS_FRAMES,
+  PIANO_MIN,
 } from './params'
 
 describe('sensitivity -> decoder thresholds', () => {
@@ -42,10 +49,21 @@ describe('sensitivity -> decoder thresholds', () => {
     expect(interpolateAnchors([1, 0.5, 0], 0.25)).toBeCloseTo(0.75)
   })
 
-  it('only enables the melodia pass at high sensitivity', () => {
-    expect(decoderParams({ sensitivity: 0.5, minNoteMs: 90 }).melodiaTrick).toBe(false)
-    expect(decoderParams({ sensitivity: MELODIA_FROM_SENSITIVITY, minNoteMs: 90 }).melodiaTrick).toBe(false)
-    expect(decoderParams({ sensitivity: 0.95, minNoteMs: 90 }).melodiaTrick).toBe(true)
+  it('uses the calibrated default at sensitivity 0.5 (onset 0.70 / frame 0.30)', () => {
+    const p = decoderParams({ sensitivity: 0.5, minNoteMs: 90 })
+    expect(p.onsetThreshold).toBeCloseTo(0.7)
+    expect(p.frameThreshold).toBeCloseTo(0.3)
+    expect(p.inferOnsets).toBe(true)
+    expect(p.onsetNmsFrames).toBe(ONSET_NMS_FRAMES)
+    expect(p.bassOnsetBonus).toBe(BASS_ONSET_BONUS)
+  })
+
+  it('DEFAULT_TRANSCRIBE_OPTIONS matches the settings defaults', () => {
+    expect(DEFAULT_TRANSCRIBE_OPTIONS).toEqual({ sensitivity: DEFAULT_SETTINGS.sensitivity, minNoteMs: DEFAULT_SETTINGS.minNoteMs })
+  })
+
+  it('never enables the melodia pass (it adds overtones on piano)', () => {
+    for (const s of [0, 0.5, 0.8, 0.95, 1]) expect(decoderParams({ sensitivity: s, minNoteMs: 90 }).melodiaTrick).toBe(false)
   })
 
   it('converts minNoteMs to model frames (notes must last longer than the result)', () => {
@@ -56,6 +74,26 @@ describe('sensitivity -> decoder thresholds', () => {
     expect(minNoteFrames(-5)).toBe(1)
     expect(minNoteFrames(Number.NaN)).toBe(7)
     expect(minNoteFrames(500)).toBeGreaterThan(minNoteFrames(200))
+  })
+})
+
+describe('bassOnsetScale', () => {
+  it('lowers the effective onset threshold of bass notes only', () => {
+    const scale = bassOnsetScale(0.15)
+    expect(scale.length).toBe(88)
+    const at = (pitch: number) => scale[pitch - PIANO_MIN]
+    expect(at(21)).toBeCloseTo(1 / 0.85)
+    expect(at(BASS_FULL_BONUS_MAX)).toBeCloseTo(1 / 0.85)
+    expect(at(46)).toBeCloseTo(1 / (1 - 0.15 * 0.5))
+    expect(at(BASS_NO_BONUS_MIN)).toBe(1)
+    expect(at(108)).toBe(1)
+    for (let p = 22; p <= 108; p++) expect(at(p)).toBeLessThanOrEqual(at(p - 1))
+  })
+
+  it('is neutral for a zero or invalid bonus and clamps huge ones', () => {
+    expect(Array.from(bassOnsetScale(0)).every((v) => v === 1)).toBe(true)
+    expect(Array.from(bassOnsetScale(Number.NaN)).every((v) => v === 1)).toBe(true)
+    expect(Number.isFinite(bassOnsetScale(5)[0])).toBe(true)
   })
 })
 
