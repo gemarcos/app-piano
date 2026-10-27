@@ -122,3 +122,34 @@ export function finalizeNotes(raw: readonly TimedNote[]): NoteEvent[] {
   out.sort((a, b) => a.start - b.start || a.pitch - b.pitch)
   return out
 }
+
+/**
+ * Piano model (Onsets and Frames) onset threshold at sensitivity 0, 0.5 and 1. On a real recording (the client's
+ * Liebestraum No. 3, test/fixtures/local) 0.35 finds far more of the soft and re-struck notes than Magenta's 0.5
+ * (F1 at +-50 ms 0.60 -> 0.67, at +-100 ms 0.75 -> 0.80) and costs nothing on the realistic benchmark as long as
+ * notes under ~90 ms are dropped (0.937 -> 0.938). 0.6 keeps only confident notes, 0.2 adds the faintest ones.
+ * The frame threshold only changes durations (never which notes exist), so it stays at Magenta's 0.5.
+ */
+export const PIANO_ONSET_ANCHORS: [number, number, number] = [0.6, 0.35, 0.2]
+export const PIANO_FRAME_THRESHOLD = 0.5
+
+export interface PianoDecoderParams {
+  onsetThreshold: number
+  frameThreshold: number
+  /** Seconds: shorter notes are dropped. */
+  minDuration: number
+}
+
+/** Shortest note the piano model keeps (seconds) for a minNoteMs setting: the same value (frames are 32 ms long). */
+export function pianoMinDuration(minNoteMs: number): number {
+  const ms = Number.isFinite(minNoteMs) ? Math.max(0, minNoteMs) : 90
+  return ms / 1000
+}
+
+export function pianoDecoderParams(opts: TranscribeOptions): PianoDecoderParams {
+  return {
+    onsetThreshold: interpolateAnchors(PIANO_ONSET_ANCHORS, opts.sensitivity),
+    frameThreshold: PIANO_FRAME_THRESHOLD,
+    minDuration: pianoMinDuration(opts.minNoteMs),
+  }
+}

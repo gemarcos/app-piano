@@ -9,6 +9,7 @@ export interface SoftwareCredit {
 }
 
 export const SOFTWARE: SoftwareCredit[] = [
+  { name: 'Onsets and Frames (Magenta.js)', author: 'Google Magenta', license: 'Apache-2.0', url: 'https://github.com/magenta/magenta-js' },
   { name: 'Basic Pitch', author: 'Spotify', license: 'Apache-2.0', url: 'https://github.com/spotify/basic-pitch-ts' },
   { name: 'TensorFlow.js', author: 'Google', license: 'Apache-2.0', url: 'https://github.com/tensorflow/tfjs' },
   { name: 'abcjs', author: 'Paul Rosen, Gregory Dyke', license: 'MIT', url: 'https://github.com/paulrosen/abcjs' },

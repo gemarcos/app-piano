@@ -10,6 +10,14 @@
 //                       (default: Chrome's own choice; on Windows headless Chrome usually gets the GPU via ANGLE/D3D11)
 //   --backend cpu       force the tfjs CPU backend
 //   --tuning off|<cents> disable tuning compensation or force a correction (default: automatic, as shipped)
+//   --model auto|piano|fast  transcription model (Settings.transcriptionModel; default auto): piano = Onsets and
+//                       Frames, fast = Basic Pitch; the model that actually ran is printed per fixture
+//   --sweep-piano       grid-search the piano model's decoder (onset / frame thresholds, minimum duration, onset
+//                       shift) on cached activations of the realistic benchmark (implies --model piano)
+//   --local             also run the local real recordings: test/fixtures/local/<name>.json references (from
+//                       scripts/fixtures/align-reference.mjs) next to their audio (git-ignored, never committed):
+//                       note F1 at +-50 and +-100 ms, recall by register, octave / semitone / merged errors
+//   --local-only        only the local recordings (sweeps then run on them, scored at +-50 ms)
 //   --sweep             grid-search decoder thresholds on cached activations
 //                       (--onset a:b:step, --frame a:b:step, --tol 8,11,15, --min 70,90,120 refine the grid)
 //   --sweep-sensitivity F1 of the shipped sensitivity mapping at 0, 0.1 … 1 (per --min value)
@@ -29,7 +37,7 @@
 // scripts/fixtures/make-real-fixtures.mjs (Salamander grand: pedal, rubato, hall, detuned, sped-up, phone captures),
 // scored with onset +-50 ms and an error breakdown (missed / merged repeats / octave / +-1 semitone / re-triggered /
 // other extras, duration errors, velocity correlation, recall of arpeggio and soft notes), with means per condition.
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import puppeteer from 'puppeteer-core'
@@ -48,6 +56,22 @@ const REAL = [
   'phone-ballad.webm', 'phone-moonlight-125.webm',
 ].map((f) => `real/${f}`)
 const CONDITIONS = ['estudio', 'sala', 'desafinado', 'acelerado', 'movil']
+/** Local real recordings: every test/fixtures/local/*.json with a "file" whose audio is present. */
+function localFixtures() {
+  const dir = path.join(ROOT, 'test', 'fixtures', 'local')
+  if (!existsSync(dir)) return []
+  return readdirSync(dir)
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => {
+      try {
+        return JSON.parse(readFileSync(path.join(dir, f), 'utf8')).file
+      } catch {
+        return null
+      }
+    })
+    .filter((file) => file && existsSync(path.join(dir, file)))
+    .map((file) => `local/${file}`)
+}
 
 const args = process.argv.slice(2)
 const flag = (name) => args.includes(name)
@@ -61,6 +85,10 @@ const opts = {
   minNoteMs: Number(option('--min-note-ms', 90)),
   backend: option('--backend', undefined),
   tuning: ((v) => (v === undefined || v === 'auto' ? undefined : v === 'off' ? 'off' : Number(v)))(option('--tuning', undefined)),
+  model: flag('--sweep-piano') ? 'piano' : option('--model', 'auto'),
+  sweepPiano: flag('--sweep-piano'),
+  local: flag('--local') || flag('--local-only'),
+  localOnly: flag('--local-only'),
   gpu: flag('--gpu'),
   swiftshader: flag('--swiftshader'),
   sweep: flag('--sweep'),
@@ -87,6 +115,12 @@ const span = (name, fallback) => {
   return Array.from({ length: Math.round((b - a) / step) + 1 }, (_, i) => +(a + i * step).toFixed(3))
 }
 const mean = (values) => values.reduce((sum, v) => sum + v, 0) / Math.max(1, values.length)
+if (!['auto', 'piano', 'fast'].includes(opts.model)) {
+  console.error(`--model must be auto, piano or fast (got ${opts.model})`)
+  process.exit(2)
+}
+/** "piano", "fast" or "fast (no-webgl2)" for a result. */
+const ran = (r) => (r?.model ? `${r.model}${r.fallback ? ` (${r.fallback})` : ''}` : '?')
 
 const roleRecall = (m, name) => {
   const e = m.breakdown.recallByRole[name]
@@ -104,7 +138,7 @@ async function realBenchmark(call, runOpts, results) {
     if (!m) continue
     const b = m.breakdown
     const share = (e) => (e && e.truth ? ((100 * e.tp) / e.truth).toFixed(0).padStart(4) : '   -')
-    rows.push({ fixture, condition: r.info?.condition ?? '?', m })
+    rows.push({ fixture, condition: r.info?.condition ?? '?', m, model: r.model })
     console.log(
       [
         fixture.slice(5).padEnd(28),
@@ -134,6 +168,7 @@ async function realBenchmark(call, runOpts, results) {
         share(b.soft),
       ].join(' '),
     )
+    if (r.model !== rows[0]?.model) console.log(`    model: ${ran(r)}`)
     if (r.tuning && (r.tuning.applied || Math.abs(r.tuning.cents) >= 8))
       console.log(`    tuning: detected ${r.tuning.cents} cents (confidence ${r.tuning.confidence}), corrected ${r.tuning.applied}; truth ${r.info?.residualCents ?? 0}`)
     if (opts.verbose) {
@@ -165,6 +200,47 @@ async function realBenchmark(call, runOpts, results) {
   console.log(`  soft notes (velocity < 0.35) recall: ${st ? ((100 * soft.reduce((s, e) => s + e.tp, 0)) / st).toFixed(1) : '-'} % of ${st}`)
   const vel = rows.map((x) => x.m.breakdown.velocityCorr).filter(Number.isFinite)
   console.log(`  velocity correlation (mean r): ${vel.length ? fmt(mean(vel)) : '-'}   onset MAE ${fmt(mean(rows.map((x) => x.m.onsetMaeMs)), 1)} ms, bias ${fmt(mean(rows.map((x) => x.m.onsetBiasMs)), 1)} ms`)
+  const models = Object.entries(rows.reduce((acc, x) => ({ ...acc, [x.model ?? '?']: (acc[x.model ?? '?'] ?? 0) + 1 }), {}))
+  console.log(`  model that ran: ${models.map(([k, v]) => `${k} x${v}`).join(', ')}`)
+}
+
+async function localBenchmark(call, runOpts, results) {
+  const files = localFixtures()
+  if (!files.length) {
+    console.log('\nLocal recordings: none in test/fixtures/local')
+    return
+  }
+  console.log(`\nLocal real recordings (test/fixtures/local; exact pitch, onsets at +-50 / +-100 ms)\n`)
+  for (const fixture of files) {
+    const r = await call((f, o) => window.__run(f, o), fixture, { ...runOpts, tolerances: [0.05, 0.1] })
+    results[fixture] = r
+    const by = r.byTolerance ?? {}
+    const line = (tol) => {
+      const m = by[tol]
+      if (!m) return `+-${tol} ms: -`
+      return `+-${tol} ms: P ${fmt(m.precision, 3)} R ${fmt(m.recall, 3)} F1 ${fmt(m.f1, 3)} (tp ${m.tp}, fp ${m.fp}, fn ${m.fn}), bias ${fmt(m.onsetBiasMs, 0)} ms, MAE ${fmt(m.onsetMaeMs, 0)} ms`
+    }
+    console.log(`${fixture.slice(6)}  ${fmt(r.duration, 1)} s, ${r.notes.length} notes (truth ${by['50']?.truth ?? '?'}), model ${ran(r)}, ${r.timings.transcribeMs} ms`)
+    console.log(`  ${line('50')}`)
+    console.log(`  ${line('100')}`)
+    const m = by['100']
+    if (m) {
+      const b = m.breakdown
+      const reg = (k) => (b.recallByRole[k]?.truth ? `${((100 * b.recallByRole[k].tp) / b.recallByRole[k].truth).toFixed(0)} % of ${b.recallByRole[k].truth}` : '-')
+      console.log(`  recall by register (+-100 ms): below C3 ${reg('low')}, C3-B3 ${reg('mid-low')}, C4-B4 ${reg('mid-high')}, C5 and up ${reg('high')}`)
+      console.log(
+        `  errors (+-100 ms): missed ${b.missed}, merged re-strikes ${b.merged}, octave ${b.octave}, semitone ${b.semitone}, repeated ${b.repeat}, other extra ${b.extra}; ` +
+          `velocity r ${Number.isFinite(b.velocityCorr) ? fmt(b.velocityCorr) : '-'}`,
+      )
+    }
+    if (r.tuning) console.log(`  tuning: detected ${r.tuning.cents} cents (confidence ${r.tuning.confidence}), corrected ${r.tuning.applied}`)
+    if (opts.dump) {
+      // Transcribed notes for offline work on the score (e.g. rhythm against the reference's beats).
+      const out = path.join(opts.dump, `${fixture.slice(6)}.${r.model ?? 'notes'}.notes.json`)
+      writeFileSync(out, JSON.stringify({ fixture, model: r.model, notes: r.notes }))
+      console.log(`  notes written to ${out}`)
+    }
+  }
 }
 
 let server = null
@@ -215,12 +291,19 @@ try {
   }
 
   // Sweeps reuse the activations of the main run (no second inference pass).
-  const runOpts = { sensitivity: opts.sensitivity, minNoteMs: opts.minNoteMs, backend: opts.backend, tuning: opts.tuning, raw: Boolean(opts.sweep || opts.sweepSensitivity || opts.sweepReal || opts.dump) }
+  const runOpts = {
+    sensitivity: opts.sensitivity,
+    minNoteMs: opts.minNoteMs,
+    backend: opts.backend,
+    tuning: opts.tuning,
+    model: opts.model,
+    raw: Boolean(opts.sweep || opts.sweepSensitivity || opts.sweepReal || opts.sweepPiano || opts.dump),
+  }
   if (opts.dump) mkdirSync(opts.dump, { recursive: true })
-  console.log(`\nTranscription check  (sensitivity ${opts.sensitivity}, minNoteMs ${opts.minNoteMs}, tuning ${opts.tuning ?? 'auto'}, ${baseUrl})\n`)
+  console.log(`\nTranscription check  (model ${opts.model}, sensitivity ${opts.sensitivity}, minNoteMs ${opts.minNoteMs}, tuning ${opts.tuning ?? 'auto'}, ${baseUrl})\n`)
   console.log('fixture                  kind   dur(s)  notes truth   prec  recall    F1  bias(ms)  load+infer+notes ms (total)')
   const results = {}
-  const selected = opts.realOnly ? [] : opts.only ? FIXTURES.filter((f) => f === 'scale.wav' || opts.only.split(',').includes(f)) : FIXTURES
+  const selected = opts.realOnly || opts.localOnly ? [] : opts.only ? FIXTURES.filter((f) => f === 'scale.wav' || opts.only.split(',').includes(f)) : FIXTURES
   for (const fixture of selected) {
     const r = await call((f, o) => window.__run(f, o), fixture, runOpts)
     results[fixture] = r
@@ -238,6 +321,7 @@ try {
         m ? fmt(m.f1).padStart(6) : '     -',
         m ? fmt(m.onsetBiasMs, 0).padStart(8) : '       -',
         `  ${t.loadMs}+${t.inferenceMs}+${t.notesMs} (${t.transcribeMs})`,
+        ` ${ran(r)}`,
       ].join(' '),
     )
     if (opts.verbose && m) {
@@ -272,7 +356,7 @@ try {
     console.log(`mean F1: synthetic ${fmt(f1Of(SYNTH), 3)}, real piano ${fmt(f1Of(PIANO), 3)}, all ${fmt(f1Of(CALIBRATION), 3)}`)
   const stages = first?.stages
   if (stages) console.log('progress stages (first..last):', Object.entries(stages).map(([k, [a, b]]) => `${k} ${fmt(a)}..${fmt(b)}`).join(', '))
-  if (opts.realOnly) {
+  if (opts.realOnly || opts.localOnly) {
     // the legacy scale.wav gate only applies when the legacy fixtures run
   } else if (!scale || scale.f1 < 0.9) {
     console.log(`\nFAIL: scale.wav F1 ${scale ? fmt(scale.f1) : '?'} < 0.90`)
@@ -281,19 +365,22 @@ try {
     console.log(`\nOK: scale.wav F1 ${fmt(scale.f1)} >= 0.90`)
   }
 
-  if (!opts.noReal) await realBenchmark(call, runOpts, results)
+  if (!opts.noReal && !opts.localOnly) await realBenchmark(call, runOpts, results)
+  if (opts.local) await localBenchmark(call, runOpts, results)
+  /** Fixtures the sweeps run on: the realistic benchmark, or the local recordings with --local-only. */
+  const sweepSet = opts.localOnly ? localFixtures() : REAL
   if (opts.json) {
     const slim = Object.fromEntries(
       Object.entries(results).map(([f, r]) => [
         f,
         {
-          kind: r.kind, duration: r.duration, notes: r.notes.length, backend: r.backend, timings: r.timings, info: r.info, tuning: r.tuning,
+          kind: r.kind, duration: r.duration, notes: r.notes.length, backend: r.backend, model: r.model, fallback: r.fallback, timings: r.timings, info: r.info, tuning: r.tuning,
           metrics: r.metrics && { ...r.metrics, falsePositives: undefined, falseNegatives: undefined },
           breakdown: r.detailed?.breakdown,
         },
       ]),
     )
-    writeFileSync(opts.json, JSON.stringify({ options: { sensitivity: opts.sensitivity, minNoteMs: opts.minNoteMs }, results: slim }, null, 1))
+    writeFileSync(opts.json, JSON.stringify({ options: { model: opts.model, sensitivity: opts.sensitivity, minNoteMs: opts.minNoteMs }, results: slim }, null, 1))
     console.log(`\nresults written to ${opts.json}`)
   }
 
@@ -301,8 +388,10 @@ try {
     const seconds = Number(opts.perf)
     const p = await call((f, s, o) => window.__perf(f, s, o), 'melody-bass.wav', seconds, runOpts)
     console.log(
-      `\nperf: ${seconds} s of audio -> ${p.notes} notes, ${p.backend}, total ${p.transcribeMs} ms ` +
-        `(load ${p.loadMs}, inference ${p.inferenceMs}, notes ${p.decodeMs}) = ${fmt(seconds / (p.transcribeMs / 1000), 1)}x real time`,
+      `\nperf: ${seconds} s of audio -> ${p.notes} notes, model ${ran(p)}, ${p.backend}, total ${p.transcribeMs} ms ` +
+        `(load ${p.loadMs}, inference ${p.inferenceMs}, notes ${p.decodeMs}) = ${fmt(seconds / (p.transcribeMs / 1000), 1)}x real time` +
+        ` (${fmt(seconds / ((p.transcribeMs - p.loadMs) / 1000), 1)}x without the model load)` +
+        (p.memory ? `; after: ${p.memory.tensors} tensors, ${fmt(p.memory.bytes / 1048576, 1)} MiB${p.memory.gpuAllocated ? `, GPU textures ${fmt(p.memory.gpuAllocated / 1048576, 0)} MiB` : ''}` : ''),
     )
   }
 
@@ -345,14 +434,34 @@ try {
       energyTolerance: list('--tol', '11'),
       minNoteMs: list('--min', String(opts.minNoteMs)),
     }
-    const rows = await call((f, g) => window.__sweep(f, g), REAL, grid)
+    const rows = await call((f, g) => window.__sweep(f, g), sweepSet, grid)
     rows.sort((a, b) => b.meanF1 - a.meanF1)
     console.log(`\nreal sweep: ${rows.length} combinations, best 15 by mean F1`)
     rows.slice(0, 15).forEach((row) =>
       console.log(
         `  on ${fmt(row.params.onsetThreshold)} fr ${fmt(row.params.frameThreshold)} tol ${row.params.energyTolerance} min ${row.params.minNoteMs} | ` +
-          REAL.map((f) => `${f.slice(5, 13)} ${fmt(row.f1[f])}`).join(' ') +
+          sweepSet.map((f) => `${f.split('/').pop().slice(0, 10)} ${fmt(row.f1[f])}`).join(' ') +
           ` | mean ${fmt(row.meanF1, 3)} | dur err ${Object.values(row.durationErrors ?? {}).reduce((a, b) => a + b, 0)}`,
+      ),
+    )
+  }
+
+  if (opts.sweepPiano) {
+    const grid = {
+      onset: list('--onset', '0.3,0.4,0.45,0.5,0.55,0.6,0.7'),
+      frame: list('--frame', '0.5'),
+      minDuration: list('--min-dur', '0,0.04,0.06,0.09'),
+      shift: list('--shift', '0.015'),
+      tolerance: option('--sweep-tol', null) === null ? undefined : Number(option('--sweep-tol', null)),
+    }
+    const rows = await call((f, g) => window.__sweepPiano(f, g), sweepSet, grid)
+    rows.sort((a, b) => b.meanF1 - a.meanF1)
+    console.log(`\npiano sweep: ${rows.length} combinations, best 15 by mean F1`)
+    rows.slice(0, 15).forEach((row) =>
+      console.log(
+        `  on ${fmt(row.params.onset)} fr ${fmt(row.params.frame)} min ${fmt(row.params.minDuration, 3)} shift ${fmt(row.params.shift, 3)} | ` +
+          sweepSet.map((f) => `${f.split('/').pop().slice(0, 10)} ${fmt(row.f1[f])}`).join(' ') +
+          ` | mean ${fmt(row.meanF1, 3)} | dur err ${row.durationErrors}`,
       ),
     )
   }

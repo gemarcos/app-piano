@@ -1,0 +1,22 @@
+Pauta - piano transcription model (src/engine/transcribe/oaf/)
+
+This folder contains code derived from Magenta.js (https://github.com/magenta/magenta-js), the Onsets and Frames
+piano transcription model (music/src/transcription/model.ts, transcription_utils.ts, audio_utils.ts, constants.ts and
+music/src/core/audio_utils.ts).
+
+  Copyright 2018 Google Inc. All Rights Reserved.
+  Copyright 2018 The Magenta Team. All rights reserved.
+  Licensed under the Apache License, Version 2.0 (see LICENSE in this folder).
+
+Magenta.js's audio utilities are based on google/web-audio-recognition (librosa-compat), also Apache-2.0.
+
+Changes made by the Pauta authors (2026), as required by section 4(b) of the license: the model graph is rewritten with
+core TensorFlow.js ops instead of tfjs-layers (BatchNorm folded into the convolutions, fused activations, an LSTM with
+a fused WebGL cell), the input is processed chunk by chunk with the same context frames and carried LSTM state, the log
+mel front end is reimplemented for speed with the same arithmetic, and the decoder outputs the app's NoteEvent. Every
+derived file keeps the original copyright header and states its changes.
+
+Paper: Curtis Hawthorne, Erich Elsen, Jialin Song, Adam Roberts, Ian Simon, Colin Raffel, Jesse Engel, Sageev Oore,
+Douglas Eck. "Onsets and Frames: Dual-Objective Piano Transcription." ISMIR 2018.
+
+The model weights are not in this folder: see public/models/onsets-frames/NOTICE.

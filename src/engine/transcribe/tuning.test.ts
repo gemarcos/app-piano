@@ -96,3 +96,34 @@ describe('retune', () => {
     expect(scaleNoteTimes(inRetuned, 1)).toBe(inRetuned)
   })
 })
+
+describe('resampleBy (piano model input: 22.05 -> 16 kHz, tuning compensated in the same pass)', () => {
+  it('keeps the frequency of a tone and the expected length', async () => {
+    const { resampleBy } = await import('./tuning')
+    const n = 22050
+    const tone = new Float32Array(n)
+    for (let i = 0; i < n; i++) tone[i] = Math.sin((2 * Math.PI * 440 * i) / 22050)
+    const out = resampleBy(tone, 22050 / 16000)
+    expect(out.length).toBe(Math.floor(n / (22050 / 16000)))
+    // Zero crossings over the middle second-fraction: 440 Hz at 16 kHz.
+    let crossings = 0
+    for (let i = 1001; i < 15001; i++) if (out[i - 1] < 0 !== out[i] < 0) crossings++
+    expect(crossings / 2 / (14000 / 16000)).toBeCloseTo(440, -1)
+    // A +40 cent recording: the combined step lowers it to 440 Hz.
+    const sharp = new Float32Array(n)
+    const f = 440 * 2 ** (40 / 1200)
+    for (let i = 0; i < n; i++) sharp[i] = Math.sin((2 * Math.PI * f * i) / 22050)
+    const fixed = resampleBy(sharp, (22050 / 16000) * 2 ** (-40 / 1200))
+    let c2 = 0
+    for (let i = 1001; i < 15001; i++) if (fixed[i - 1] < 0 !== fixed[i] < 0) c2++
+    expect(c2 / 2 / (14000 / 16000)).toBeCloseTo(440, -1)
+  })
+
+  it('returns a copy for a unit step', async () => {
+    const { resampleBy } = await import('./tuning')
+    const x = new Float32Array([1, 2, 3])
+    const y = resampleBy(x, 1)
+    expect(Array.from(y)).toEqual([1, 2, 3])
+    expect(y).not.toBe(x)
+  })
+})

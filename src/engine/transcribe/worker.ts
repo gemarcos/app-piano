@@ -1,12 +1,25 @@
-// Basic Pitch inference worker. The ONLY module that imports tfjs / basic-pitch (keeps the main bundle lean).
-// One long-lived instance keeps the model loaded; jobs run one at a time.
+// Transcription worker: the piano model (Onsets and Frames, oaf/) and Basic Pitch, the fast fallback. The ONLY
+// module that imports tfjs / basic-pitch (keeps the main bundle lean). One long-lived instance keeps the models
+// loaded; jobs run one at a time.
 import * as tf from '@tensorflow/tfjs'
 import { BasicPitch } from '@spotify/basic-pitch'
-import type { RawActivations, TranscriberBackend, TuningInfo, WorkerRequest, WorkerResponse } from './protocol'
-import { decoderParams, scaleNoteTimes } from './params'
+import type { NoteEvent, TranscriptionModel } from '../../types'
+import type {
+  ActiveModel,
+  PianoFallback,
+  RawActivations,
+  TranscriberBackend,
+  TranscriptionInfo,
+  TuningInfo,
+  WorkerRequest,
+  WorkerResponse,
+} from './protocol'
+import { decoderParams, pianoDecoderParams, scaleNoteTimes } from './params'
 import { decodeNotes } from './decode'
 import { estimateTuning, retune, retuneFactor, tuningCorrection, TUNING_MIN_CONFIDENCE } from './tuning'
 import { withVelocities } from './velocity'
+import { PianoModel } from './oaf/piano'
+import { isModelCached } from './oaf/weights'
 
 interface WorkerScope {
   onmessage: ((event: MessageEvent<WorkerRequest>) => void) | null
@@ -24,6 +37,8 @@ const MODEL_WINDOW = 43844
 /** Shorter inputs (< ~0.1 s) cannot contain a note. */
 const MIN_SAMPLES = 2048
 const OUTPUTS = ['Identity_1', 'Identity_2', 'Identity'] // frames, onsets, contours
+/** Share of the 'loading-model' stage (0..0.1) used by the piano model's download. */
+const DOWNLOAD_SHARE = 0.09
 
 interface LoadedModel {
   url: string
@@ -37,6 +52,7 @@ let renderer: string | undefined
 let loaded: LoadedModel | null = null
 let loading: Promise<LoadedModel> | null = null
 let queue: Promise<void> = Promise.resolve()
+const piano = new PianoModel()
 
 tf.enableProdMode()
 
@@ -77,7 +93,7 @@ async function selectBackend(preferWebgl: boolean): Promise<TranscriberBackend> 
     try {
       if (await tf.setBackend('webgl')) {
         await tf.ready()
-        // Half-float GPUs lose too much precision in the CQT front end.
+        // Half-float GPUs lose too much precision (Basic Pitch's CQT front end, the piano model's LSTM).
         if (tf.env().getBool('WEBGL_RENDER_FLOAT32_CAPABLE')) {
           renderer = webglRenderer()
           return 'webgl'
@@ -90,6 +106,15 @@ async function selectBackend(preferWebgl: boolean): Promise<TranscriberBackend> 
   await tf.setBackend('cpu')
   await tf.ready()
   return 'cpu'
+}
+
+/** Picks the tfjs backend once per worker (both models share it). */
+async function ensureBackend(prefer?: TranscriberBackend): Promise<TranscriberBackend> {
+  if (!backend) {
+    backend = await selectBackend(prefer !== 'cpu')
+    console.info(`[Pauta] transcriber backend: ${backend}${renderer ? ` (${renderer})` : ''}`)
+  }
+  return backend
 }
 
 async function warmUp(graph: tf.GraphModel) {
@@ -111,10 +136,7 @@ function loadModel(url: string, onProgress?: (fraction: number) => void, prefer?
   if (!loading) {
     loading = (async () => {
       try {
-        if (!backend) {
-          backend = await selectBackend(prefer !== 'cpu')
-          console.info(`[Pauta] Basic Pitch backend: ${backend}${renderer ? ` (${renderer})` : ''}`)
-        }
+        await ensureBackend(prefer)
         loaded?.graph.dispose()
         loaded = null
         const fetchGraph = () =>
@@ -131,6 +153,7 @@ function loadModel(url: string, onProgress?: (fraction: number) => void, prefer?
           } catch {
             /* lost context: nothing to free */
           }
+          piano.dispose()
           backend = await selectBackend(false)
           graph = await fetchGraph()
           await warmUp(graph)
@@ -151,8 +174,9 @@ function loadModel(url: string, onProgress?: (fraction: number) => void, prefer?
 async function fallBackToCpu(url: string): Promise<LoadedModel> {
   loaded?.graph.dispose()
   loaded = null
+  piano.dispose()
   backend = await selectBackend(false)
-  console.info(`[Pauta] Basic Pitch backend: ${backend} (fallback)`)
+  console.info(`[Pauta] transcriber backend: ${backend} (fallback)`)
   return loadModel(url)
 }
 
@@ -188,32 +212,48 @@ function flatten(rows: number[][]): Float32Array {
   return out
 }
 
-async function runTranscription(req: Extract<WorkerRequest, { type: 'transcribe' }>) {
-  const { id, samples, opts } = req
-  let lastFraction = 0
-  const progress = (fraction: number, stage: 'loading-model' | 'analyzing' | 'extracting-notes') => {
-    lastFraction = Math.max(lastFraction, Math.min(1, fraction))
-    post({ type: 'progress', id, fraction: lastFraction, stage })
-  }
+type TranscribeRequest = Extract<WorkerRequest, { type: 'transcribe' }>
+type Progress = (fraction: number, stage: 'loading-model' | 'analyzing' | 'extracting-notes') => void
 
-  const t0 = performance.now()
-  progress(0, 'loading-model')
+interface JobResult {
+  notes: NoteEvent[]
+  raw?: RawActivations
+  loadedAt: number
+  inferredAt: number
+}
+
+/** Global tuning of the input and the correction to apply (cents), unless the request disables it. */
+function measureTuning(req: TranscribeRequest): TuningInfo | undefined {
+  if (req.samples.length < MIN_SAMPLES || req.tuning === 'off') return undefined
+  const estimate = estimateTuning(req.samples)
+  const applied = typeof req.tuning === 'number' ? req.tuning : tuningCorrection(estimate)
+  return { cents: estimate.cents, confidence: Math.round(estimate.confidence * 100) / 100, applied }
+}
+
+/** Re-posts the latest progress: a chunk can take a while on a slow CPU and the client treats silence as a crash. */
+let heartbeat: () => void = () => {}
+
+async function runPiano(req: TranscribeRequest, tuning: TuningInfo | undefined, progress: Progress): Promise<JobResult> {
+  const loadedAt = performance.now()
+  progress(0.1, 'analyzing')
+  let raw: RawActivations | undefined
+  const onRaw = req.debugRaw ? (r: RawActivations) => (raw = r) : undefined
+  const notes = await piano.transcribe(req.samples, tuning?.applied ?? 0, pianoDecoderParams(req.opts), (p) => progress(0.1 + 0.8 * p, 'analyzing'), onRaw, heartbeat)
+  return { notes, raw, loadedAt, inferredAt: performance.now() }
+}
+
+async function runBasicPitch(req: TranscribeRequest, tuning: TuningInfo | undefined, progress: Progress): Promise<JobResult & { model: LoadedModel }> {
+  const { samples, opts } = req
   let model = await loadModel(req.modelUrl, (fraction) => progress(0.08 * fraction, 'loading-model'), req.backend)
-  const t1 = performance.now()
+  const loadedAt = performance.now()
   progress(0.1, 'analyzing')
 
   // Detuned or sped-up audio: move it back onto the semitone grid before inference (see tuning.ts).
   let input = samples
   let timeScale = 1
-  let tuning: TuningInfo | undefined
-  if (samples.length >= MIN_SAMPLES && req.tuning !== 'off') {
-    const estimate = estimateTuning(samples)
-    const applied = typeof req.tuning === 'number' ? req.tuning : tuningCorrection(estimate)
-    tuning = { cents: estimate.cents, confidence: Math.round(estimate.confidence * 100) / 100, applied }
-    if (applied) {
-      input = retune(samples, applied)
-      timeScale = retuneFactor(applied)
-    }
+  if (tuning?.applied) {
+    input = retune(samples, tuning.applied)
+    timeScale = retuneFactor(tuning.applied)
   }
 
   let activations: Activations = { frames: [], onsets: [] }
@@ -229,21 +269,89 @@ async function runTranscription(req: Extract<WorkerRequest, { type: 'transcribe'
       activations = await infer(model, input, onProgress)
     }
   }
-  const t2 = performance.now()
+  const inferredAt = performance.now()
   progress(0.9, 'extracting-notes')
 
   const { frames, onsets } = activations
   const raw: RawActivations | undefined = req.debugRaw
-    ? { nFrames: frames.length, frames: flatten(frames), onsets: flatten(onsets), timeScale }
+    ? { nFrames: frames.length, frames: flatten(frames), onsets: flatten(onsets), timeScale, model: 'fast' }
     : undefined
 
   // Times back in input seconds, then loudness-based velocities from the (untouched) input samples.
   const decoded = scaleNoteTimes(decodeNotes(frames, onsets, decoderParams(opts)), timeScale)
   const offset = tuning && tuning.confidence >= TUNING_MIN_CONFIDENCE ? tuning.cents : 0
   const notes = withVelocities(decoded, samples, MODEL_SAMPLE_RATE, offset)
+  return { notes, raw, loadedAt, inferredAt, model }
+}
+
+function memoryInfo() {
+  const m = tf.memory() as tf.MemoryInfo & { numBytesInGPUAllocated?: number }
+  return { tensors: m.numTensors, bytes: m.numBytes, gpuAllocated: m.numBytesInGPUAllocated }
+}
+
+function modelInfo(requested: TranscriptionModel, model: ActiveModel, fallback?: PianoFallback): TranscriptionInfo {
+  return { requested, model, backend: backend ?? 'cpu', ...(fallback ? { fallback } : {}) }
+}
+
+async function runTranscription(req: TranscribeRequest) {
+  const { id } = req
+  const requested: TranscriptionModel = req.opts.model ?? 'auto'
+  let lastFraction = 0
+  const progress: Progress = (fraction, stage) => {
+    lastFraction = Math.max(lastFraction, Math.min(1, fraction))
+    post({ type: 'progress', id, fraction: lastFraction, stage })
+  }
+
+  const t0 = performance.now()
+  let stage: 'loading-model' | 'analyzing' | 'extracting-notes' = 'loading-model'
+  let lastBeat = 0
+  heartbeat = () => {
+    const now = performance.now()
+    if (now - lastBeat < 2000) return
+    lastBeat = now
+    post({ type: 'progress', id, fraction: lastFraction, stage })
+  }
+  const tracked: Progress = (fraction, s) => {
+    stage = s
+    progress(fraction, s)
+  }
+  tracked(0, 'loading-model')
+  let fallback: PianoFallback | undefined
+  let result: JobResult | null = null
+  if (requested !== 'fast' && req.samples.length >= MIN_SAMPLES) {
+    try {
+      await ensureBackend(req.backend)
+      const reason = await piano.prepare(requested, req.pianoUrl, renderer, (f) => tracked(DOWNLOAD_SHARE * f, 'loading-model'), heartbeat)
+      if (reason) fallback = reason
+    } catch (err) {
+      console.warn('[Pauta] piano model unavailable', err)
+      fallback = 'load-failed'
+    }
+  }
+  const tuning = measureTuning(req)
+  if (requested !== 'fast' && !fallback && piano.ready) {
+    post({ type: 'model', id, info: modelInfo(requested, 'piano') })
+    try {
+      result = await runPiano(req, tuning, tracked)
+    } catch (err) {
+      // Context loss, out of memory...: this job (and later 'auto' jobs) use Basic Pitch.
+      console.warn('[Pauta] piano model failed, using Basic Pitch', err)
+      piano.markBroken()
+      fallback = 'run-failed'
+    }
+  }
+  let ran: ActiveModel = 'piano'
+  if (!result) {
+    ran = 'fast'
+    post({ type: 'model', id, info: modelInfo(requested, 'fast', requested === 'fast' ? undefined : fallback) })
+    result = await runBasicPitch(req, tuning, progress)
+  }
+  progress(0.9, 'extracting-notes')
   const t3 = performance.now()
   progress(1, 'extracting-notes')
 
+  const { notes, raw } = result
+  const transfer: Transferable[] = raw ? [raw.frames.buffer, raw.onsets.buffer, ...(raw.velocities ? [raw.velocities.buffer] : [])] : []
   post(
     {
       type: 'result',
@@ -251,19 +359,35 @@ async function runTranscription(req: Extract<WorkerRequest, { type: 'transcribe'
       notes,
       backend: backend ?? 'cpu',
       renderer,
-      timings: { loadMs: Math.round(t1 - t0), inferenceMs: Math.round(t2 - t1), decodeMs: Math.round(t3 - t2) },
+      timings: { loadMs: Math.round(result.loadedAt - t0), inferenceMs: Math.round(result.inferredAt - result.loadedAt), decodeMs: Math.round(t3 - result.inferredAt) },
       raw,
       tuning,
+      info: modelInfo(requested, ran, ran === 'fast' && requested !== 'fast' ? fallback : undefined),
+      memory: memoryInfo(),
     },
-    raw ? [raw.frames.buffer, raw.onsets.buffer] : [],
+    transfer,
   )
+}
+
+/** Preload: the piano model when it is cached and allowed ('auto' / 'piano'), otherwise Basic Pitch. Never downloads the checkpoint. */
+async function preload(req: Extract<WorkerRequest, { type: 'preload' }>): Promise<ActiveModel> {
+  const requested = req.model ?? 'auto'
+  if (requested !== 'fast') {
+    await ensureBackend(req.backend)
+    if (await isModelCached(req.pianoUrl)) {
+      const reason = await piano.prepare(requested, req.pianoUrl, renderer).catch(() => 'load-failed' as const)
+      if (!reason) return 'piano'
+    }
+  }
+  await loadModel(req.modelUrl, undefined, req.backend)
+  return 'fast'
 }
 
 async function handle(req: WorkerRequest) {
   try {
     if (req.type === 'preload') {
-      await loadModel(req.modelUrl, undefined, req.backend)
-      post({ type: 'ready', id: req.id, backend: backend ?? 'cpu', renderer })
+      const model = await preload(req)
+      post({ type: 'ready', id: req.id, backend: backend ?? 'cpu', renderer, model })
     } else if (req.type === 'transcribe') {
       await runTranscription(req)
     }

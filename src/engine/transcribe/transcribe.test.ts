@@ -128,3 +128,37 @@ describe('bundle hygiene', () => {
     expect(source).toContain("new Worker(new URL('./worker.ts', import.meta.url), { type: 'module'")
   })
 })
+
+describe('piano model (Onsets and Frames) decoder settings', () => {
+  it('maps sensitivity to the onset threshold (0.35 at the default) and keeps frames at 0.5', async () => {
+    const { pianoDecoderParams, PIANO_ONSET_ANCHORS, PIANO_FRAME_THRESHOLD } = await import('./params')
+    expect(pianoDecoderParams({ sensitivity: 0.5, minNoteMs: 90 }).onsetThreshold).toBeCloseTo(0.35)
+    expect(pianoDecoderParams({ sensitivity: 0, minNoteMs: 90 }).onsetThreshold).toBeCloseTo(PIANO_ONSET_ANCHORS[0])
+    expect(pianoDecoderParams({ sensitivity: 1, minNoteMs: 90 }).onsetThreshold).toBeCloseTo(PIANO_ONSET_ANCHORS[2])
+    let prev = 1
+    for (let s = 0; s <= 1.0001; s += 0.1) {
+      const p = pianoDecoderParams({ sensitivity: s, minNoteMs: 90 })
+      expect(p.onsetThreshold).toBeLessThanOrEqual(prev)
+      expect(p.frameThreshold).toBe(PIANO_FRAME_THRESHOLD)
+      prev = p.onsetThreshold
+    }
+  })
+
+  it('drops notes shorter than minNoteMs', async () => {
+    const { pianoDecoderParams } = await import('./params')
+    expect(pianoDecoderParams({ sensitivity: 0.5, minNoteMs: 90 }).minDuration).toBeCloseTo(0.09)
+    expect(pianoDecoderParams({ sensitivity: 0.5, minNoteMs: Number.NaN }).minDuration).toBeCloseTo(0.09)
+    expect(pianoDecoderParams({ sensitivity: 0.5, minNoteMs: -5 }).minDuration).toBe(0)
+  })
+
+  it('defaults to the automatic model choice, as Settings', () => {
+    expect(DEFAULT_SETTINGS.transcriptionModel).toBe('auto')
+  })
+
+  it('keeps tfjs out of the client: the model folder URL is resolved there, the code only in the worker', () => {
+    const source = readFileSync(new URL('./index.ts', import.meta.url), 'utf8')
+    expect(source).toContain("new URL('models/onsets-frames/', document.baseURI)")
+    expect(source).not.toMatch(/from '\.\/oaf\//)
+    expect(source).not.toMatch(/@tensorflow/)
+  })
+})

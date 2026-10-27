@@ -1,9 +1,10 @@
-// Owner: engine-audio. Public API — Basic Pitch running in a Web Worker.
+// Owner: engine-audio / piano-model. Public API — transcription in a Web Worker: the piano model (Magenta's Onsets and
+// Frames, src/engine/transcribe/oaf/) with Basic Pitch as the fast fallback.
 // This file must never import tfjs / basic-pitch (only worker.ts does), so the main bundle stays lean.
-import type { NoteEvent } from '../../types'
-import type { RawActivations, TranscriberBackend, TuningInfo, WorkerRequest, WorkerResponse } from './protocol'
+import type { NoteEvent, TranscriptionModel } from '../../types'
+import type { RawActivations, TranscriberBackend, TranscriptionInfo, TuningInfo, WorkerRequest, WorkerResponse } from './protocol'
 
-export type { TranscriberBackend, TuningInfo } from './protocol'
+export type { ActiveModel, PianoFallback, TranscriberBackend, TranscriptionInfo, TuningInfo } from './protocol'
 
 export interface TranscribeOptions {
   /**
@@ -13,6 +14,12 @@ export interface TranscribeOptions {
   sensitivity: number
   /** Shortest note to keep, milliseconds (90 by default; 60–110 is the sweet spot, the settings slider allows 40–250). */
   minNoteMs: number
+  /**
+   * Settings.transcriptionModel. 'auto' (default): the piano model when the device can run it (WebGL 2 and a speed
+   * probe of at least real time; its ~16 MB checkpoint downloads on first use, then works offline), else Basic Pitch.
+   * 'piano' forces the piano model (Basic Pitch only if it fails); 'fast' always uses Basic Pitch.
+   */
+  model?: TranscriptionModel
 }
 
 /** Calibrated defaults (the same values as DEFAULT_SETTINGS.sensitivity / minNoteMs). */
@@ -24,6 +31,12 @@ export interface TranscribeJob {
   promise: Promise<NoteEvent[]>
   /** Aborts the job (terminates the worker); the promise rejects with an AbortError. */
   cancel(): void
+  /**
+   * Which model transcribes this job: resolves as soon as the worker has chosen (before inference; a later fallback
+   * during inference is reported by getLastTranscriptionInfo() and TranscribeDetails). Never rejects: it stays
+   * pending when the job fails or is cancelled before a model was chosen.
+   */
+  model?: Promise<TranscriptionInfo>
 }
 
 const START_ERROR = 'No se pudo iniciar la transcripción en este navegador.'
@@ -36,6 +49,7 @@ interface PendingJob {
   onProgress?: (fraction: number, stage: TranscribeStage) => void
   /** Test harness hook (raw activations + timings). */
   onDetails?: (details: TranscribeDetails) => void
+  onModel?: (info: TranscriptionInfo) => void
 }
 
 export interface TranscribeDetails {
@@ -45,12 +59,17 @@ export interface TranscribeDetails {
   raw?: RawActivations
   /** Tuning offset detected in the input and the correction applied before inference. */
   tuning?: TuningInfo
+  /** Model that produced the notes (and why the piano model was skipped, if it was). */
+  info?: TranscriptionInfo
+  /** tfjs memory after the job (diagnostics). */
+  memory?: { tensors: number; bytes: number; gpuAllocated?: number }
 }
 
 let worker: Worker | null = null
 let preloadPromise: Promise<void> | null = null
 let backend: TranscriberBackend | null = null
 let modelReady = false
+let lastInfo: TranscriptionInfo | null = null
 let nextId = 1
 const jobs = new Map<number, PendingJob>()
 
@@ -83,9 +102,14 @@ function stopWatchdog() {
   watchdog = undefined
 }
 
-/** Model URL resolved against the document (base is './', so worker-relative URLs would break). */
+/** Model URLs resolved against the document (base is './', so worker-relative URLs would break). */
 function modelUrl(): string {
   return new URL('models/basic-pitch/model.json', document.baseURI).href
+}
+
+/** Folder of the piano model checkpoint (public/models/onsets-frames/). */
+function pianoUrl(): string {
+  return new URL('models/onsets-frames/', document.baseURI).href
 }
 
 function namedError(name: string, message: string): Error {
@@ -142,11 +166,17 @@ function handleMessage(msg: WorkerResponse) {
       jobs.delete(msg.id)
       job.resolve(undefined)
       break
+    case 'model':
+      lastInfo = msg.info
+      job.onModel?.(msg.info)
+      break
     case 'result':
       backend = msg.backend
       modelReady = true
+      lastInfo = msg.info
       jobs.delete(msg.id)
-      job.onDetails?.({ backend: msg.backend, renderer: msg.renderer, timings: msg.timings, raw: msg.raw, tuning: msg.tuning })
+      job.onModel?.(msg.info)
+      job.onDetails?.({ backend: msg.backend, renderer: msg.renderer, timings: msg.timings, raw: msg.raw, tuning: msg.tuning, info: msg.info, memory: msg.memory })
       job.resolve(msg.notes)
       break
     case 'error':
@@ -197,6 +227,8 @@ export function startTranscription(
 ): TranscribeJob {
   const id = nextId++
   let settled = false
+  let chosen: ((info: TranscriptionInfo) => void) | null = null
+  const model = new Promise<TranscriptionInfo>((resolve) => (chosen = resolve))
   const promise = new Promise<NoteEvent[]>((resolve, reject) => {
     send(
       id,
@@ -212,12 +244,24 @@ export function startTranscription(
         },
         onProgress,
         onDetails: extra?.onDetails,
+        onModel: (info) => chosen?.(info),
       },
-      { type: 'transcribe', id, modelUrl: modelUrl(), samples, opts, debugRaw: extra?.debugRaw, backend: extra?.backend, tuning: extra?.tuning },
+      {
+        type: 'transcribe',
+        id,
+        modelUrl: modelUrl(),
+        pianoUrl: pianoUrl(),
+        samples,
+        opts,
+        debugRaw: extra?.debugRaw,
+        backend: extra?.backend,
+        tuning: extra?.tuning,
+      },
     )
   })
   return {
     promise,
+    model,
     cancel() {
       if (settled || !jobs.has(id)) return
       shutdown(abortError())
@@ -226,7 +270,8 @@ export function startTranscription(
 }
 
 /**
- * Transcribes mono MODEL_SAMPLE_RATE samples (see engine/audio toModelInput) into note events.
+ * Transcribes mono MODEL_SAMPLE_RATE samples (see engine/audio toModelInput) into note events with the model chosen
+ * by opts.model (default 'auto': the piano model when the device can run it, otherwise Basic Pitch).
  * `onProgress` receives monotonic 0..1 overall progress and the current stage:
  * 'loading-model' 0–0.1 (model download/warm-up; instant once preloaded), 'analyzing' 0.1–0.9, 'extracting-notes' 0.9–1.
  * Resolves NoteEvent[] sorted by start (piano range, velocity 0..1); [] when nothing was detected.
@@ -243,15 +288,17 @@ export function transcribe(
 }
 
 /**
- * Warms up the worker and loads the model in the background (call when the Home screen mounts).
+ * Warms up the worker and loads a model in the background (call when the Home screen mounts, with
+ * Settings.transcriptionModel): the piano model when its checkpoint is already cached (and 'auto' allows it on this
+ * device), otherwise Basic Pitch. It never downloads the piano checkpoint (that happens on first use).
  * Idempotent. Never rejects: on failure it resolves and transcribe() reports the error later.
  */
-export function preloadModel(): Promise<void> {
+export function preloadModel(model: TranscriptionModel = 'auto'): Promise<void> {
   if (modelReady && worker) return Promise.resolve()
   if (preloadPromise) return preloadPromise
   const id = nextId++
   const promise = new Promise<void>((resolve) => {
-    send(id, { kind: 'preload', resolve: () => resolve(), reject: () => resolve() }, { type: 'preload', id, modelUrl: modelUrl() })
+    send(id, { kind: 'preload', resolve: () => resolve(), reject: () => resolve() }, { type: 'preload', id, modelUrl: modelUrl(), pianoUrl: pianoUrl(), model })
   })
   preloadPromise = promise
   promise.then(() => {
@@ -263,6 +310,11 @@ export function preloadModel(): Promise<void> {
 /** Backend used by the worker ('webgl' | 'cpu'), or null before the model has loaded. */
 export function getTranscriberBackend(): TranscriberBackend | null {
   return backend
+}
+
+/** Model, backend and fallback reason of the latest transcription (null before the first one). */
+export function getLastTranscriptionInfo(): TranscriptionInfo | null {
+  return lastInfo
 }
 
 /** True once the worker has the model loaded and warmed up. */

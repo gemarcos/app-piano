@@ -160,7 +160,8 @@ export function estimateTuning(samples: Float32Array, options: TuningOptions = {
 
 const HALF_TAPS = 12
 const PHASES = 256
-let kernelCache: { cutoff: number; table: Float32Array } | null = null
+/** Interpolation tables by cutoff (retune and the piano model's 22.05 -> 16 kHz resampling use different ones). */
+const kernelCache = new Map<number, Float32Array>()
 
 function besselI0(x: number): number {
   let sum = 1
@@ -174,7 +175,9 @@ function besselI0(x: number): number {
 }
 
 function kernel(cutoff: number): Float32Array {
-  if (kernelCache && Math.abs(kernelCache.cutoff - cutoff) < 1e-6) return kernelCache.table
+  const key = Math.round(cutoff * 1e6) / 1e6
+  const cached = kernelCache.get(key)
+  if (cached) return cached
   const width = 2 * HALF_TAPS
   const table = new Float32Array((PHASES + 1) * width)
   const beta = 7.5
@@ -189,7 +192,8 @@ function kernel(cutoff: number): Float32Array {
       table[p * width + j] = cutoff * s * w
     }
   }
-  kernelCache = { cutoff, table }
+  if (kernelCache.size >= 4) kernelCache.clear()
+  kernelCache.set(key, table)
   return table
 }
 
@@ -203,8 +207,16 @@ export function retuneFactor(cents: number): number {
  * 1 / retuneFactor(cents): a note at t seconds of the result was at t * retuneFactor(cents) in the input.
  */
 export function retune(samples: Float32Array, cents: number): Float32Array {
-  const step = retuneFactor(cents)
-  if (Math.abs(step - 1) < 1e-6) return samples.slice()
+  return resampleBy(samples, retuneFactor(cents))
+}
+
+/**
+ * Band-limited resampling that reads `step` input samples per output sample (Kaiser-windowed sinc, cutoff at 95 % of
+ * the lower Nyquist rate): output sample n is the input at position n * step. 22 050 -> 16 000 Hz is
+ * step = 22050 / 16000; multiplying by retuneFactor(cents) also compensates the tuning in the same pass.
+ */
+export function resampleBy(samples: Float32Array, step: number): Float32Array {
+  if (!(step > 0) || Math.abs(step - 1) < 1e-6) return samples.slice()
   const table = kernel(Math.min(1, 1 / step) * 0.95)
   const width = 2 * HALF_TAPS
   const out = new Float32Array(Math.floor(samples.length / step))

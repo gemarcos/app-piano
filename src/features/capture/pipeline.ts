@@ -1,5 +1,5 @@
 // Owner: capture. Audio -> notes -> score -> library item.
-// toModelInput -> transcribe (Basic Pitch worker) -> analyzeNotes -> defaultParams -> buildScore -> summarizeScore
+// toModelInput -> transcribe (worker: piano model or Basic Pitch) -> analyzeNotes -> defaultParams -> buildScore -> summarizeScore
 // -> optional audio -> createScore. The transcriber is imported ONLY through its index.ts (tfjs stays in the worker chunk).
 import { encodeWav, MODEL_SAMPLE_RATE, toModelInput, type DecodedMedia } from '../../engine/audio'
 import { transcribe } from '../../engine/transcribe'
@@ -25,7 +25,9 @@ export interface PipelineInput {
   title?: string
   /** Stored as sourceName (default: the imported file name; e.g. the shared link of a take). */
   sourceName?: string
-  settings: Pick<Settings, 'sensitivity' | 'minNoteMs' | 'quantize' | 'splitPoint' | 'defaultDifficulty' | 'keepOriginalAudio'>
+  /** transcriptionModel is optional (default 'auto'). */
+  settings: Pick<Settings, 'sensitivity' | 'minNoteMs' | 'quantize' | 'splitPoint' | 'defaultDifficulty' | 'keepOriginalAudio'> &
+    Partial<Pick<Settings, 'transcriptionModel'>>
 }
 
 export type PipelineResult = { status: 'done'; doc: ScoreDoc } | { status: 'empty' }
@@ -93,7 +95,7 @@ async function run(input: PipelineInput, signal: AbortSignal, report: PipelinePr
   }
   throwIfAborted(signal)
 
-  const job = transcribe(samples, { sensitivity: settings.sensitivity, minNoteMs: settings.minNoteMs }, (fraction, stage) =>
+  const job = transcribe(samples, { sensitivity: settings.sensitivity, minNoteMs: settings.minNoteMs, model: settings.transcriptionModel }, (fraction, stage) =>
     progress(overallProgress(fraction), stageFor(stage)),
   )
   const abort = () => job.cancel()

@@ -14,8 +14,9 @@ import {
 import { startTranscription, type TranscribeDetails, type TranscriberBackend, type TranscribeStage } from '../../src/engine/transcribe'
 import type { RawActivations } from '../../src/engine/transcribe/protocol'
 import { decodeNotes } from '../../src/engine/transcribe/decode'
-import { decoderParams, type DecoderParams } from '../../src/engine/transcribe/params'
-import type { NoteEvent } from '../../src/types'
+import { decoderParams, pianoDecoderParams, type DecoderParams } from '../../src/engine/transcribe/params'
+import { decodeActivations } from '../../src/engine/transcribe/oaf/decode'
+import type { NoteEvent, TranscriptionModel } from '../../src/types'
 import { evaluateDetailed, evaluateNotes, type DetailedMetrics, type Metrics, type TruthNote } from './metrics'
 
 const FIXTURES = '/test/fixtures/'
@@ -31,6 +32,10 @@ export interface RunOptions {
   tolerance?: number
   /** Tuning compensation: 'auto' (default, as shipped), 'off', or a forced correction in cents. */
   tuning?: 'auto' | 'off' | number
+  /** Settings.transcriptionModel: 'auto' (default), 'piano' (Onsets and Frames) or 'fast' (Basic Pitch). */
+  model?: TranscriptionModel
+  /** Extra onset tolerances (seconds) to score the same transcription at (RunResult.byTolerance). */
+  tolerances?: number[]
 }
 
 export interface RunResult {
@@ -54,6 +59,11 @@ export interface RunResult {
   /** Ground-truth metadata of the realistic benchmark. */
   info?: { condition?: string; transpose?: number; residualCents?: number; description?: string }
   tuning?: { cents: number; confidence: number; applied: number }
+  /** Model that ran ('piano' | 'fast') and why the piano model was skipped, if it was. */
+  model?: string
+  fallback?: string
+  /** Detailed metrics at each RunOptions.tolerances value (key: tolerance in ms). */
+  byTolerance?: Record<string, DetailedMetrics>
 }
 
 interface Truth {
@@ -67,6 +77,8 @@ interface Truth {
 }
 
 const rawStore = new Map<string, { raw: RawActivations; frames: number[][]; onsets: number[][] }>()
+/** Piano-model activations of the latest run of each fixture (for --sweep-piano). */
+const pianoStore = new Map<string, RawActivations>()
 
 const scaled = (notes: NoteEvent[], scale: number) =>
   scale === 1 ? notes : notes.map((n) => ({ ...n, start: n.start * scale, duration: n.duration * scale }))
@@ -110,6 +122,7 @@ async function transcribeSamples(
   debugRaw: boolean,
   backend?: TranscriberBackend,
   tuning?: 'auto' | 'off' | number,
+  model?: TranscriptionModel,
 ) {
   const stages: Partial<Record<TranscribeStage, [number, number]>> = {}
   let last = -1
@@ -118,7 +131,7 @@ async function transcribeSamples(
   const t0 = performance.now()
   const job = startTranscription(
     samples,
-    { sensitivity, minNoteMs },
+    { sensitivity, minNoteMs, model },
     (fraction, stage) => {
       if (fraction < last) monotonic = false
       last = fraction
@@ -138,13 +151,15 @@ async function run(fixture: string, options: RunOptions = {}): Promise<RunResult
   const { media, samples, fetchMs, decodeMs, resampleMs } = await prepare(fixture)
   let peak = 0
   for (const v of samples) peak = Math.max(peak, Math.abs(v))
-  const t = await transcribeSamples(samples, sensitivity, minNoteMs, Boolean(options.raw), options.backend, options.tuning)
+  const t = await transcribeSamples(samples, sensitivity, minNoteMs, Boolean(options.raw), options.backend, options.tuning, options.model)
   if (t.details?.raw) {
     const raw = t.details.raw
-    rawStore.set(fixture, { raw, frames: toRows(raw.frames, raw.nFrames), onsets: toRows(raw.onsets, raw.nFrames) })
+    if (raw.model === 'piano') pianoStore.set(fixture, raw)
+    else rawStore.set(fixture, { raw, frames: toRows(raw.frames, raw.nFrames), onsets: toRows(raw.onsets, raw.nFrames) })
   }
   const truth = await loadTruth(fixture)
-  const realBenchmark = fixture.startsWith('real/')
+  // Realistic benchmark and local real recordings (test/fixtures/local, git-ignored): detailed metrics at +-50 ms.
+  const realBenchmark = fixture.startsWith('real/') || fixture.startsWith('local/')
   const tolerance = options.tolerance ?? (realBenchmark ? 0.05 : 0.06)
   const result: RunResult = {
     fixture,
@@ -171,11 +186,20 @@ async function run(fixture: string, options: RunOptions = {}): Promise<RunResult
     progressMonotonic: t.monotonic,
     metrics: truth ? evaluateNotes(t.notes, truth.notes, tolerance) : null,
     tuning: t.details?.tuning,
+    model: t.details?.info?.model,
+    fallback: t.details?.info?.fallback,
   }
   if (truth && realBenchmark) {
     const detailed = evaluateDetailed(t.notes, truth.notes, tolerance)
     result.detailed = { ...detailed, falsePositives: detailed.falsePositives.slice(0, 40), falseNegatives: detailed.falseNegatives.slice(0, 40) }
     result.info = { condition: truth.condition, transpose: truth.transpose, residualCents: truth.residualCents, description: truth.description }
+  }
+  if (truth && options.tolerances?.length) {
+    result.byTolerance = {}
+    for (const tol of options.tolerances) {
+      const d = evaluateDetailed(t.notes, truth.notes, tol)
+      result.byTolerance[String(Math.round(tol * 1000))] = { ...d, falsePositives: [], falseNegatives: [] }
+    }
   }
   return result
 }
@@ -189,6 +213,8 @@ export interface SweepGrid {
   energyTolerance?: number[]
   inferOnsets?: boolean[]
   minNoteMs?: number[]
+  /** Onset tolerance, seconds (default 0.05 for real/ and local/, else 0.06). */
+  tolerance?: number
 }
 
 export interface SweepRow {
@@ -211,8 +237,9 @@ async function sweep(fixtures: string[], grid: SweepGrid): Promise<SweepRow[]> {
     fixtures.forEach((f, i) => {
       const cached = rawStore.get(f)!
       const notes = scaled(decodeNotes(cached.frames, cached.onsets, params), cached.raw.timeScale ?? 1)
-      const m = evaluateNotes(notes, truths[i]?.notes ?? [], f.startsWith('real/') ? 0.05 : 0.06)
-      if (f.startsWith('real/')) (row.durationErrors ??= {})[f] = evaluateDetailed(notes, truths[i]?.notes ?? []).breakdown.durationErrors
+      const real = f.startsWith('real/') || f.startsWith('local/')
+      const m = evaluateNotes(notes, truths[i]?.notes ?? [], grid.tolerance ?? (real ? 0.05 : 0.06))
+      if (real) (row.durationErrors ??= {})[f] = evaluateDetailed(notes, truths[i]?.notes ?? []).breakdown.durationErrors
       row.f1[f] = m.f1
       row.precision[f] = m.precision
       row.recall[f] = m.recall
@@ -237,6 +264,50 @@ async function sweep(fixtures: string[], grid: SweepGrid): Promise<SweepRow[]> {
   return rows
 }
 
+export interface PianoSweepGrid {
+  onset: number[]
+  frame: number[]
+  /** Minimum note durations, seconds. */
+  minDuration: number[]
+  /** Onset shifts, seconds. */
+  shift?: number[]
+  /** Onset tolerance, seconds (default 0.05 for real/ and local/, else 0.06). */
+  tolerance?: number
+}
+
+/** Decodes cached piano-model activations with every combination (run the fixtures with { raw: true, model: 'piano' } first). */
+async function sweepPiano(fixtures: string[], grid: PianoSweepGrid) {
+  const truths = await Promise.all(fixtures.map(loadTruth))
+  const rows: { params: { onset: number; frame: number; minDuration: number; shift: number }; f1: Record<string, number>; meanF1: number; durationErrors: number }[] = []
+  for (const onset of grid.onset)
+    for (const frame of grid.frame)
+      for (const minDuration of grid.minDuration)
+        for (const shift of grid.shift ?? [0.015]) {
+          const f1: Record<string, number> = {}
+          let durationErrors = 0
+          fixtures.forEach((f, i) => {
+            const raw = pianoStore.get(f)
+            if (!raw || !truths[i]) return
+            const notes = decodeActivations(
+              { frames: raw.nFrames, onset: raw.onsets, frame: raw.frames, velocity: raw.velocities ?? new Float32Array(raw.onsets.length) },
+              { onsetThreshold: onset, frameThreshold: frame, minDuration, timeScale: raw.timeScale, onsetShift: shift },
+            )
+            const real = f.startsWith('real/') || f.startsWith('local/')
+            const tol = grid.tolerance ?? (real ? 0.05 : 0.06)
+            f1[f] = evaluateNotes(notes, truths[i]!.notes, tol).f1
+            if (real) durationErrors += evaluateDetailed(notes, truths[i]!.notes, tol).breakdown.durationErrors
+          })
+          const values = Object.values(f1)
+          rows.push({ params: { onset, frame, minDuration, shift }, f1, meanF1: values.reduce((a, b) => a + b, 0) / Math.max(1, values.length), durationErrors })
+        }
+  return rows
+}
+
+/** The shipped piano decoder settings for a sensitivity / minNoteMs (sanity check of the mapping). */
+function pianoParams(sensitivity: number, minNoteMs: number) {
+  return pianoDecoderParams({ sensitivity, minNoteMs })
+}
+
 /** Cached activations of a fixture run with { raw: true }, as base64 Float32 rows [frames x 88] (calibration dumps). */
 function rawDump(fixture: string) {
   const cached = rawStore.get(fixture)
@@ -256,10 +327,13 @@ async function perf(fixture: string, seconds: number, options: RunOptions = {}) 
   const total = Math.round(seconds * MODEL_SAMPLE_RATE)
   const tiled = new Float32Array(total)
   for (let i = 0; i < total; i += samples.length) tiled.set(samples.subarray(0, Math.min(samples.length, total - i)), i)
-  const t = await transcribeSamples(tiled, options.sensitivity ?? 0.5, options.minNoteMs ?? 90, false, options.backend)
+  const t = await transcribeSamples(tiled, options.sensitivity ?? 0.5, options.minNoteMs ?? 90, false, options.backend, undefined, options.model)
   return {
     seconds,
     notes: t.notes.length,
+    model: t.details?.info?.model,
+    fallback: t.details?.info?.fallback,
+    memory: t.details?.memory,
     backend: t.details?.backend,
     renderer: t.details?.renderer,
     transcribeMs: Math.round(t.transcribeMs),
@@ -342,6 +416,8 @@ declare global {
     __error?: string
     __run?: typeof run
     __sweep?: typeof sweep
+    __sweepPiano?: typeof sweepPiano
+    __pianoParams?: typeof pianoParams
     __perf?: typeof perf
     __raw?: typeof rawDump
   }
@@ -349,6 +425,8 @@ declare global {
 
 window.__run = run
 window.__sweep = sweep
+window.__sweepPiano = sweepPiano
+window.__pianoParams = pianoParams
 window.__perf = perf
 window.__raw = rawDump
 window.__record = record

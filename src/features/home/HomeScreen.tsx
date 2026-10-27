@@ -6,6 +6,7 @@ import { motion } from 'motion/react'
 import { Monitor02, Upload01 } from '@untitled-ui/icons-react'
 import { DECODE_ERROR_MESSAGE, decodeMediaFile, isMicSupported, isTabCaptureSupported } from '../../engine/audio'
 import { preloadModel } from '../../engine/transcribe'
+import { getSettings } from '../../state/settings'
 import { useAllScores } from '../../data/db'
 import { DEMOS_SEEDED_KEY } from '../../data/seed'
 import type { ScoreDoc } from '../../types'
@@ -68,8 +69,8 @@ export function HomeScreen() {
     }
   }, [])
 
-  // Warm the transcriber up while the user decides (idempotent, never rejects).
-  useEffect(() => whenIdle(() => void preloadModel()), [])
+  // Warm the chosen transcriber up while the user decides (idempotent, never rejects, never downloads the piano model).
+  useEffect(() => whenIdle(() => void preloadModel(getSettings().transcriptionModel)), [])
 
   const recents = useMemo(
     () => (docs ?? []).slice().sort((a, b) => lastTouched(b) - lastTouched(a)).slice(0, MAX_RECENTS),

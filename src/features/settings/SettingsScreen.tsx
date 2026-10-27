@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { Monitor01, Moon01, Sun } from '@untitled-ui/icons-react'
 import { useSettings } from '../../state/settings'
-import type { Difficulty, NoteNaming, QuantizeGrid, ThemePreference } from '../../types'
+import type { Difficulty, NoteNaming, QuantizeGrid, ThemePreference, TranscriptionModel } from '../../types'
 import { pitchName } from '../../engine/score'
 import {
   ConfirmDialog,
@@ -51,6 +51,13 @@ const DIFFICULTIES: SegmentedOption<Difficulty>[] = [
   { value: 'original', label: 'Original' },
   { value: 'intermedio', label: 'Intermedio' },
   { value: 'facil', label: 'Fácil' },
+]
+
+/** Settings.transcriptionModel (owner: piano-model): Onsets and Frames when the device can run it, or Basic Pitch. */
+const MODELS: SegmentedOption<TranscriptionModel>[] = [
+  { value: 'auto', label: 'Auto' },
+  { value: 'piano', label: 'Piano' },
+  { value: 'fast', label: 'Rápido' },
 ]
 
 const RECORD_LIMITS: SegmentedOption<number>[] = [
@@ -130,9 +137,15 @@ function TranscriptionGroup() {
   const splitPoint = useSettings((s) => s.splitPoint)
   const naming = useSettings((s) => s.noteNaming)
   const difficulty = useSettings((s) => s.defaultDifficulty)
+  const model = useSettings((s) => s.transcriptionModel)
   const set = useSettings((s) => s.set)
   return (
     <SettingsGroup title="Transcripción" footer="Se aplica a las próximas transcripciones.">
+      <ListRow title="Modelo" subtitle="Piano es más preciso">
+        <Below>
+          <Segmented full options={MODELS} value={model} onChange={(v) => set('transcriptionModel', v)} ariaLabel="Modelo de transcripción" />
+        </Below>
+      </ListRow>
       <ListRow title="Sensibilidad" subtitle="Más alta, más notas" trailing={<span className="tabular">{percent(sensitivity)}</span>}>
         <Slider
           value={sensitivity}
