@@ -21,6 +21,10 @@ export interface PipelineInput {
   blob?: Blob | null
   /** Imported file name (the title is the name without extension). */
   name?: string
+  /** Title of the new item (default: the file name without extension, or defaultTitle('Grabación')). */
+  title?: string
+  /** Stored as sourceName (default: the imported file name; e.g. the shared link of a take). */
+  sourceName?: string
   settings: Pick<Settings, 'sensitivity' | 'minNoteMs' | 'quantize' | 'splitPoint' | 'defaultDifficulty' | 'keepOriginalAudio'>
 }
 
@@ -105,7 +109,7 @@ async function run(input: PipelineInput, signal: AbortSignal, report: PipelinePr
   if (!notes.length) return { status: 'empty' }
 
   const fromFile = input.source === 'file'
-  const title = (fromFile ? titleFromFileName(input.name || decoded.name) : '') || defaultTitle('Grabación')
+  const title = input.title?.trim() || (fromFile ? titleFromFileName(input.name || decoded.name) : '') || defaultTitle('Grabación')
   const analysis = analyzeNotes(notes)
   const params = defaultParams(analysis, settings)
   const score = buildScore(notes, params, analysis, title)
@@ -124,7 +128,7 @@ async function run(input: PipelineInput, signal: AbortSignal, report: PipelinePr
       id,
       title,
       source: input.source,
-      sourceName: fromFile ? input.name || decoded.name : undefined,
+      sourceName: input.sourceName || (fromFile ? input.name || decoded.name : undefined),
       sourceKind: fromFile ? decoded.kind : 'audio',
       durationSec: Math.max(0, range.end - range.start),
       coverId: pickCoverId(id, recentCovers),

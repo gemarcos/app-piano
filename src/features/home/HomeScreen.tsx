@@ -13,6 +13,7 @@ import { Button, Page, TopBar, Vinyl, ease, fadeUp, useToast } from '../../ui'
 import { defaultSelection } from '../capture/selection'
 import { useCaptureStore } from '../capture/store'
 import { rememberHeroVinyl, useViewportSize, whenIdle } from '../capture/util'
+import { LinkPill } from '../share/LinkPill'
 import { Recents } from './Recents'
 import './HomeScreen.css'
 
@@ -139,6 +140,7 @@ export function HomeScreen() {
           <Button variant="secondary" icon={Upload01} loading={decoding} onClick={() => fileInput.current?.click()}>
             Archivo
           </Button>
+          <LinkPill disabled={decoding} />
           {tabSupported && (
             <Button variant="secondary" icon={Monitor02} disabled={decoding} onClick={listenTab}>
               Pestaña

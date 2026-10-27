@@ -1,0 +1,285 @@
+/* Owner: share. Enlace: the official player card, the video title, the live meter and one clear action.
+   Same calm language as Escuchar (capture/RecordScreen.css): centered stage, tabular timer, round stop. */
+
+.share-link__stage {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-5);
+  padding-block: var(--s-2) var(--s-4);
+}
+
+/* ---------- Player card ---------- */
+
+.share-player {
+  position: relative;
+  flex: none;
+  max-width: 100%;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-md);
+  /* Clips the iframe to the rounded corners (Safari) */
+  isolation: isolate;
+  transform: translateZ(0);
+}
+
+.share-player__loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+
+.share-player__frame {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease);
+}
+
+.share-player__frame.is-shown {
+  opacity: 1;
+}
+
+.share-player__frame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* ---------- When the video cannot play here ---------- */
+
+.share-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-8) var(--s-6) var(--s-6);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+}
+
+.share-block__icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: var(--s-2);
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+
+.share-block__title {
+  max-width: 280px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  line-height: 1.35;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.share-block__hint {
+  max-width: 290px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--ink-2);
+  text-wrap: balance;
+}
+
+.share-block__retry {
+  margin-top: var(--s-3);
+}
+
+/* ---------- Title, platform, hint ---------- */
+
+.share-link__info {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.share-link__title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.share-link__meta {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.share-link__nudge {
+  min-height: 1.4em;
+  margin-top: var(--s-1);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.share-link__nudge.is-on {
+  opacity: 1;
+}
+
+/* ---------- Live meter (while listening) or the microphone message ---------- */
+
+.share-link__live {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-height: 96px;
+}
+
+.share-meter,
+.share-link__message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.share-meter {
+  gap: var(--s-3);
+}
+
+.share-meter__bars {
+  color: var(--ink-2);
+}
+
+.share-meter__time {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  line-height: 1;
+}
+
+.share-meter__elapsed {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.share-meter__max {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.share-meter__dot {
+  align-self: center;
+  width: 8px;
+  height: 8px;
+  margin-right: 2px;
+  border-radius: 50%;
+  background: var(--line-strong);
+  transition: background-color var(--dur) var(--ease);
+}
+
+.share-meter__dot.is-on {
+  background: var(--recording);
+  animation: share-breathe 1.6s var(--ease) infinite;
+}
+
+@keyframes share-breathe {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+:root[data-reduce-motion] .share-meter__dot.is-on {
+  animation: none;
+}
+
+.share-link__message {
+  justify-content: center;
+  gap: var(--s-4);
+  max-width: 300px;
+  text-align: center;
+}
+
+.share-link__message p {
+  font-size: var(--fs-body);
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--ink-2);
+  text-wrap: balance;
+}
+
+/* ---------- One clear action ---------- */
+
+.share-link__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  min-height: 76px;
+  padding-bottom: var(--s-6);
+}
+
+.share-link__stop {
+  color: var(--ink);
+}
+
+/* The Untitled "Stop" glyph is an outlined rounded square: fill it for a solid stop sign. */
+.share-link__stop .ui-icon path {
+  fill: currentColor;
+}
+
+/* Short phones: a little less air between the pieces. */
+@media (max-height: 700px) {
+  .share-link__stage {
+    gap: var(--s-4);
+  }
+
+  .share-link__live {
+    min-height: 84px;
+  }
+
+  .share-meter__elapsed {
+    font-size: 28px;
+  }
+}
+
+/* ---------- #/shared (intake) ---------- */
+
+.share-intake__stage {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  color: var(--ink-3);
+}
+
+.share-intake__label {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--ink-2);
+}

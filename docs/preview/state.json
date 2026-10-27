@@ -1,7 +1,7 @@
 {
   "project": "Pauta",
-  "nextBoard": 9,
-  "nextMotion": 8,
+  "nextBoard": 11,
+  "nextMotion": 9,
   "seen": {
     "assets-board-dark.png": 1793101996952,
     "assets-board.png": 1793101996952,
@@ -83,7 +83,63 @@
     "capture-record-dark.png": 1793110257828,
     "capture-record-denied-dark.png": 1793110268418,
     "capture-record-denied.png": 1793110263051,
-    "capture-record.png": 1793110248968
+    "capture-record.png": 1793110248968,
+    "final-about-dark.png": 1793113645556,
+    "final-about.png": 1793113611392,
+    "final-home-dark.png": 1793113616358,
+    "final-home.png": 1793113580960,
+    "final-import-dark.png": 1793113623845,
+    "final-import.png": 1793113588629,
+    "final-library-grid-dark.png": 1793113630590,
+    "final-library-grid.png": 1793113596417,
+    "final-library-list-dark.png": 1793113628946,
+    "final-library-list.png": 1793113594782,
+    "final-processing-dark.png": 1793113625092,
+    "final-processing.png": 1793113590182,
+    "final-record-dark.png": 1793113620698,
+    "final-record.png": 1793113585013,
+    "final-settings-dark.png": 1793113643772,
+    "final-settings.png": 1793113609610,
+    "final-viewer-dark.png": 1793113633051,
+    "final-viewer-filtros-dark.png": 1793113641500,
+    "final-viewer-filtros.png": 1793113607311,
+    "final-viewer-partitura-dark.png": 1793113640646,
+    "final-viewer-partitura.png": 1793113606469,
+    "final-viewer-playing-dark.png": 1793113637615,
+    "final-viewer-playing.png": 1793113603454,
+    "final-viewer-reproduccion-dark.png": 1793113639792,
+    "final-viewer-reproduccion.png": 1793113605626,
+    "final-viewer.png": 1793113598909,
+    "share-enlace.png": 1793118197424,
+    "share-home.png": 1793118195556,
+    "share-import.png": 1793118207931,
+    "share-link-noembed.png": 1793118209742,
+    "share-link-recording.png": 1793118205753,
+    "share-link-short.png": 1793118211248,
+    "share-link-unsupported.png": 1793118212669,
+    "share-link-youtube.png": 1793118201005,
+    "share-enlace-dark.png": 1793118222249,
+    "share-home-dark.png": 1793118221128,
+    "share-import-dark.png": 1793118233095,
+    "share-link-denied-dark.png": 1793118244267,
+    "share-link-denied.png": 1793118217751,
+    "share-link-noembed-dark.png": 1793118235034,
+    "share-link-recording-dark.png": 1793118230352,
+    "share-link-short-dark.png": 1793118236837,
+    "share-link-unsupported-dark.png": 1793118238791,
+    "share-link-youtube-dark.png": 1793118225579,
+    "sound-creditos-dark.png": 1793118451633,
+    "sound-creditos.png": 1793118447061,
+    "sound-pedal-ajustes-dark.png": 1793118407967,
+    "sound-pedal-ajustes.png": 1793118398935,
+    "sound-pedal-visor-dark.png": 1793118403438,
+    "sound-pedal-visor.png": 1793118395057,
+    "score-quality-balada-dark.png": 1793118631440,
+    "score-quality-balada.png": 1793118628701,
+    "score-quality-liebestraum-dark.png": 1793118637029,
+    "score-quality-liebestraum.png": 1793118634268,
+    "score-quality-preludio-dark.png": 1793118735019,
+    "score-quality-preludio.png": 1793118731923
   },
   "reportsSeen": {
     "assets.json": 1793101996926,
@@ -93,9 +149,12 @@
     "engine-score.json": 1793106375753,
     "library.json": 1793110000376,
     "capture.json": 1793110652228,
-    "viewer.json": 1793111255870
+    "viewer.json": 1793111255870,
+    "integration.json": 1793114571751,
+    "score-accuracy.json": 1793116552182,
+    "share.json": 1793118778760
   },
-  "journalSeen": 16,
+  "journalSeen": 22,
   "deliveries": [
     {
       "when": "earlier",
@@ -206,9 +265,47 @@
         "capture-home-empty.png",
         "capture-import-dark.png"
       ]
+    },
+    {
+      "when": "2026-10-27 16:30",
+      "files": [
+        "docs/preview/09-resumen-integracion.jpg",
+        "docs/preview/motion-08-recorrido-completo.mp4",
+        "docs/preview/motion-08-recorrido-completo-dark.mp4"
+      ],
+      "caption": "Resumen de la integración: toda la app conectada y probada de principio a fin, en claro y oscuro. Vídeos del recorrido completo, de escuchar a la partitura (sin sonido).",
+      "sources": [
+        "final-home.png",
+        "final-record-dark.png",
+        "final-import.png",
+        "final-processing-dark.png",
+        "final-library-list.png",
+        "final-library-grid-dark.png",
+        "final-viewer-playing.png",
+        "final-viewer-partitura-dark.png",
+        "final-viewer-filtros.png",
+        "final-settings-dark.png",
+        "final-about.png",
+        "integration.json e2e 15/15"
+      ]
+    },
+    {
+      "when": "2026-10-27 17:18",
+      "files": [
+        "docs/preview/10-avance.jpg"
+      ],
+      "caption": "Avance 10: ya está «Compartir con Pauta»: un enlace de YouTube o TikTok se abre con su reproductor oficial y Pauta lo escucha; los archivos compartidos van directos a recortar.",
+      "sources": [
+        "share-home.png",
+        "share-enlace-dark.png",
+        "share-link-youtube-dark.png",
+        "share-link-recording.png",
+        "share-import.png",
+        "share-link-short-dark.png"
+      ]
     }
   ],
-  "updatedAt": "2026-10-27T14:37:04.710Z",
+  "updatedAt": "2026-10-27T18:03:20.415Z",
   "shown": [
     "audio-calibration-stat",
     "capture-home",
@@ -220,7 +317,9 @@
     "capture-record",
     "capture-record-denied",
     "engine-score-demos",
+    "full-flow-video",
     "home-to-listen-video",
+    "integration-summary",
     "library-actions",
     "library-empty",
     "library-filters",
@@ -233,6 +332,12 @@
     "settings-about-transition-video",
     "settings-clear-confirm",
     "settings-main",
+    "share-enlace",
+    "share-home",
+    "share-import",
+    "share-link-recording",
+    "share-link-short",
+    "share-link-youtube",
     "theme-switch-video",
     "viewer-actions",
     "viewer-bucle-ab",
@@ -243,10 +348,12 @@
     "viewer-settings-tabs-video"
   ],
   "notes": "Videos: record from a production build of the current code in the liaison temp dist (node node_modules/vite/bin/vite.js build --outDir <temp>/dist) served by preview.mjs on 5190; the dev server drops frames on page transitions. Next ideas: library/viewer/capture screens as they appear; sheets and cover->viewer transitions as videos.",
-  "tooling": "Liaison temp scripts: scan.mjs, diff.py, board.mjs (spec JSON), rec.mjs (scenario JSON), preview.mjs (vite preview of temp build on 5190), strip.py.",
+  "tooling": "Liaison temp scripts: scan.mjs, diff.py, board.mjs (spec JSON; tiles: image, stat, audio{src,label,note,accent}, video{src,mode,badge} poster+play badge, checks{value,label,items,caption}; spec.title overrides 'Avance N'), rec.mjs (scenario JSON; steps wait/tap/tapText/eval/scrollTo/mark/waitFor/waitHash/speed/badge; fakeAudio), preview.mjs (vite preview of temp build on 5190), strip.py, sheet.py (contact sheet), cap.mjs (capture set: node cap.mjs <outDir> [names]), wait.mjs, waitj.mjs (journal waiter).",
   "notShownYet": [
-    "viewer-top(-dark) (same as viewer-playing, skip)",
-    "engine-score preludio re-render (14:01)"
+    "share-link-denied(-dark)",
+    "share-link-noembed(-dark)",
+    "share-link-unsupported(-dark)",
+    "viewer-top(-dark) (same as viewer-playing, skip)"
   ],
   "nextIdeas": "Phase C integration: final-*.png -> \"Resumen final\" board before stopping when integration finishes. Possible videos: viewer settings sheet tabs, library long-press action sheet, processing ring. Always record videos from a fresh production build in the liaison temp dist (preview.mjs on 5190).",
   "observations": "Page transitions use AnimatePresence mode=\"wait\": ~100-200 ms of empty background between screens (fade-through). List->grid switch in Biblioteca re-mounts the list: ~200 ms empty, then tiles pop in (headless capture).",
@@ -258,6 +365,38 @@
     "knownIssuesNotNews": [
       "blank moment between screens on page transitions",
       "~0.2 s gap when switching library list->grid"
+    ],
+    "integrationDone": "2026-10-27 16:24:30",
+    "phaseQ": {
+      "started": "16:15:25",
+      "agents": [
+        "piano-sound",
+        "audio-accuracy",
+        "score-accuracy"
+      ],
+      "evidence": "docs/screenshots/sound-<demo>-antes.mp3 / -ahora.mp3, sound-visor.mp4 / sound-visor-dark.mp4 (WITH audio, keep AAC), score-quality-*.png (before/after, light+dark), stat from docs/agents/reports/audio-accuracy.json",
+      "deliver": "one quality board + audio files + videos with sound; caption must say plainly the files have sound"
+    },
+    "shareAgent": "after phase C: Compartir con Pauta (Web Share Target, official embeds + mic). Show its new screen when it lands.",
+    "interrupted": "API usage limit ~17:33 -> resumed 19:02 (lead journal event resumed-after-limit). Active-time budget: 2.5 h minus ~2 h used => stop ~19:30 unless evidence delivery in progress.",
+    "qualityEvidenceSoFar": [
+      "score-quality-balada(-dark).png",
+      "score-quality-liebestraum(-dark).png",
+      "score-quality-preludio(-dark).png",
+      "sound-visor-dark.mp4 (h264 yuvj420p + AAC 44.1k stereo, 18.1 s, mean -21 dB)",
+      "sound-pedal-visor(-dark).png",
+      "sound-pedal-ajustes(-dark).png",
+      "sound-creditos(-dark).png"
+    ],
+    "qualityEvidenceMissing": [
+      "sound-<demo>-antes.mp3 / -ahora.mp3",
+      "sound-visor.mp4 (light)",
+      "docs/agents/reports/audio-accuracy.json (before/after accuracy)",
+      "score-accuracy final report"
     ]
+  },
+  "captureSets": {
+    "B": "liaison/caps/B (15:28 build, end of phase B)",
+    "C": "liaison/caps/C (16:25 build, end of phase C; identical to B except live waveform)"
   }
 }

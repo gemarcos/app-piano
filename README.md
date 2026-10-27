@@ -96,6 +96,7 @@ Más detalle: `docs/BRIEF.md` (producto, diseño, contratos y propiedad de cada 
 | `node scripts/serve.mjs start\|stop\|status <puerto> [--preview]` | Arranca en segundo plano un servidor de Vite propio (con `--preview`, el build de `dist/`) en `127.0.0.1:<puerto>` y lo para después. Solo detiene el proceso Node que escucha en ese puerto. |
 | `node scripts/e2e.mjs` | Prueba completa de la app en Chrome sin interfaz, con un perfil limpio (ver abajo). |
 | `node scripts/e2e-capture.mjs [--url …] [--preview]` | Solo el flujo de captura: importar `scale.wav` y `scale.mp4`, grabar con micrófono simulado, toma demasiado corta y cancelar el procesado. |
+| `node scripts/e2e-share.mjs [--url …] [--shots]` | Solo «Compartir con Pauta», sobre el build de producción (con service worker): archivo compartido hasta Recortar, enlace de YouTube con su reproductor oficial, avisos y una toma con micrófono simulado. `scripts/e2e.mjs` incluye además las comprobaciones j1 y j2. |
 | `node scripts/fixtures/check-transcription.mjs` | Pasa todos los audios de `test/fixtures/` por la transcripción real y muestra precisión, exhaustividad y F1 por archivo, tiempos y backend (`--sensitivity`, `--min-note-ms`, `--gpu`, `--swiftshader`, `--backend cpu`, `--sweep-sensitivity`, `--perf N`, `--mic`, `--only`, `--verbose`). Falla si `scale.wav` baja de F1 0,9. |
 | `node scripts/fixtures/check-bundle.mjs` | Build de prueba en una carpeta temporal que comprueba que el worker es un chunk propio y que TensorFlow.js y Basic Pitch no aparecen en ningún otro. |
 | `node scripts/shot.mjs <url> <out.png> [--dark]` | Captura móvil (390×844 @2x) y muestra los errores de consola. |
@@ -121,8 +122,10 @@ Está escrito para Windows, Linux y macOS (rutas con `path.join`, Chrome localiz
 - **Polifonía densa.** En acordes de piano real aparecen fantasmas de octava y notas internas tapadas (F1 de 0,76 a 0,80 en las pruebas, frente a 1,00 en una escala).
 - **Una sola voz por pentagrama** y reparto de manos por un punto de división (ajustable). Las texturas a varias voces se simplifican.
 - **Tempo**: en algunas texturas se detecta el doble o la mitad; se corrige con «Tempo base». El 6/8 solo se elige a mano.
-- **No importa enlaces de YouTube** ni de otras webs: hay que importar un archivo de audio o de vídeo propio (respetando sus derechos).
-- La **captura de pestaña** solo existe en Chrome y Edge de escritorio. El **micrófono** necesita HTTPS (o `localhost`).
+- **Enlaces de YouTube y TikTok: Pauta nunca descarga el vídeo.** Lo abre con el reproductor oficial de la plataforma y lo escucha por el micrófono mientras suena, así que la calidad depende del altavoz y del micrófono (un archivo de audio o de vídeo da mejor resultado) y hace falta conexión. Los vídeos con la inserción desactivada por su autor no se reproducen dentro de Pauta: la app propone ponerlos en otro dispositivo cerca y tocar «Escuchar».
+- **TikTok comparte enlaces cortos** (`vm.tiktok.com`): Pauta intenta resolverlos con el oEmbed oficial de TikTok, que a menudo limita las peticiones; si no se puede, pide guardar el vídeo desde TikTok y abrirlo con «Archivo». En Europa, el reproductor de TikTok muestra antes su propio aviso de cookies.
+- **«Compartir con Pauta» desde la hoja de compartir solo existe en Android**, con la app instalada desde una dirección HTTPS en Chrome. En iPhone (una PWA no puede recibir contenido compartido; hará falta la app nativa con una extensión de compartir) y en el ordenador, el enlace se pega con «Enlace» en Inicio.
+- La **captura de pestaña** solo existe en Chrome y Edge de escritorio. En la pantalla de un enlace, «Pestaña» captura otra pestaña (por ejemplo, el vídeo abierto en YouTube) o la pantalla con su audio: Chrome todavía no ofrece la propia pestaña de Pauta. El **micrófono** necesita HTTPS (o `localhost`).
 - La **primera transcripción** tarda algo más porque carga y prepara el modelo (de 4 a 10 s en un ordenador; más en móviles).
 - Piezas muy largas a velocidad lenta ocupan bastante memoria al reproducirse (el audio se genera entero).
 - Probada en Chrome de escritorio con emulación móvil; falta probarla en dispositivos iOS reales.

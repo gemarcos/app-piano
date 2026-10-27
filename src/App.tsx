@@ -12,6 +12,8 @@ import { LibraryScreen } from './features/library/LibraryScreen'
 import { ViewerScreen } from './features/viewer/ViewerScreen'
 import { SettingsScreen } from './features/settings/SettingsScreen'
 import { AboutScreen } from './features/settings/AboutScreen'
+import { SharedScreen } from './features/share/SharedScreen'
+import { LinkScreen } from './features/share/LinkScreen'
 
 const TAB_PATHS = new Set(['/', '/library', '/settings'])
 
@@ -55,6 +57,8 @@ function AppRoutes() {
           <Route path="/import" element={<ImportScreen />} />
           <Route path="/processing" element={<ProcessingScreen />} />
           <Route path="/score/:id" element={<ViewerScreen />} />
+          <Route path="/shared" element={<SharedScreen />} />
+          <Route path="/link" element={<LinkScreen />} />
           {KitGallery && (
             <Route
               path="/__kit"

@@ -17,13 +17,13 @@ import './ProcessingScreen.css'
 const SUCCESS_BEAT_MS = 700
 const NBSP = ' '
 
-type Input = Omit<PipelineInput, 'settings'>
+type Input = Omit<PipelineInput, 'settings'> & { retryBack?: boolean }
 
 /** Snapshot of the capture store, taken once: later store changes never redirect a running job. */
 function readInput(): Input | null {
-  const { source, decoded, range, blob, name } = getCapture()
+  const { source, decoded, range, blob, name, meta } = getCapture()
   if (!source || !decoded || !range || !(range.end > range.start)) return null
-  return { source, decoded, range, blob, name }
+  return { source, decoded, range, blob, name, title: meta?.title, sourceName: meta?.sourceName, retryBack: meta?.retryBack }
 }
 
 export function ProcessingScreen() {
@@ -108,9 +108,9 @@ function ProcessingView({ input }: { input: Input }) {
     goBack()
   }
 
-  /** "Reintentar" after no notes: back to where the audio came from (another segment, another take). */
+  /** "Reintentar" after no notes: back to where the audio came from (another segment, another take, the link). */
   const retryCapture = () => {
-    if (input.source === 'file') goBack()
+    if (input.source === 'file' || input.retryBack) goBack()
     else navigate('/listen?mode=' + input.source, { replace: true })
   }
 

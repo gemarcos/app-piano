@@ -8,6 +8,9 @@
 //   d) Home file input <- test/fixtures/scale.wav, then scale.mp4 -> Import -> Transcribir -> viewer with notes
 //   e) fake microphone (melody-bass.wav) -> record ~6 s -> stop -> viewer with notes
 //   f) Settings: dark theme applies app-wide; 'Exportar copia' downloads a JSON backup of the whole library
+//   j) "Compartir con Pauta": a multipart POST to ./share-target with scale.wav reaches Import, and a shared text
+//      with a YouTube link opens the player screen (/link) (production build only: the service worker handles it;
+//      the full share suite is scripts/e2e-share.mjs)
 //   plus the capture edge cases of scripts/e2e-capture.mjs (too-short take, cancel during processing), an offline
 //   check (service worker active -> server stopped -> reload, play a demo, transcribe scale.wav) and a final check
 //   that the run produced no console errors, page errors or failed requests.
@@ -16,7 +19,7 @@
 //   stops it at the end; dist/ is built first when missing (--build forces a fresh build). With --url, a server
 //   already answering there is used as is (dev or preview). --dev serves the dev server instead of dist/.
 //   Every run uses a fresh Chrome profile and download folder under <os tmpdir>/pauta/e2e/ (--keep keeps them).
-//   --only runs a subset of the checks by id (a, b, c, c1, d, e, f, g, i, h); later checks assume the earlier ones ran.
+//   --only runs a subset of the checks by id (a, b, c, c1, d, e, f, g, j, i, h); later checks assume the earlier ones ran.
 // Exit code 0 when no check fails (the offline check is skipped against a dev server), 1 otherwise.
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
@@ -38,7 +41,9 @@ import {
   setBase,
   sleep,
   tooShort,
+  FIXTURES,
 } from './e2e-capture.mjs'
+import { YT_ID, YT_LINK, postShare, serviceWorkerReady, waitLinkState } from './e2e-share.mjs'
 
 const argv = process.argv.slice(2)
 const option = (name, fallback) => {
@@ -119,7 +124,9 @@ await cdp.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath:
 const problems = []
 const origin = new URL(BASE).origin
 page.on('console', (m) => {
-  if (m.type() === 'error') problems.push(`[console.error] ${m.text()}`)
+  // The source URL tells the app's own errors from a third-party embed's (see the share link check).
+  const where = m.location()?.url
+  if (m.type() === 'error') problems.push(`[console.error] ${m.text()}${where ? ` @ ${where}` : ''}`)
 })
 page.on('pageerror', (e) => problems.push(`[pageerror] ${e.message}`))
 page.on('requestfailed', (r) => {
@@ -432,6 +439,50 @@ async function settingsBackup() {
   return `${file.name}, ${(file.bytes / 1024).toFixed(0)} KB, ${data.scores.length} items (= library); toast "${toast}"`
 }
 
+/**
+ * "Compartir con Pauta", file: a real multipart POST to ./share-target (what Android's share sheet sends) is answered
+ * by the service worker, which keeps the file and opens #/shared; the app takes it straight to Import.
+ */
+async function shareFile() {
+  if (DEV) return { skip: 'the dev server has no service worker (the share target lives there)' }
+  if (!(await serviceWorkerReady(page))) throw new Error('no active service worker controls the page')
+  await postShare(page, { file: path.join(FIXTURES, 'scale.wav') })
+  await hashIs(page, /^#\/import$/, 20_000)
+  const name = await page.waitForFunction(() => document.querySelector('.cap-import__name')?.textContent ?? null, { timeout: 10_000 }).then((h) => h.jsonValue())
+  if (name !== 'scale.wav') throw new Error(`Import shows "${name}"`)
+  return 'multipart POST to ./share-target -> service worker -> #/shared -> #/import with "scale.wav"'
+}
+
+/**
+ * "Compartir con Pauta", link: YouTube shares a text with the link; the app opens the player screen with the
+ * official embed. The embed is third-party: its network or console noise is reported here, not by the final check.
+ */
+async function shareLink() {
+  if (DEV) return { skip: 'the dev server has no service worker (the share target lives there)' }
+  const start = problems.length
+  let ignored = 0
+  try {
+    await postShare(page, { title: 'Mira "Me at the zoo" en YouTube', text: `https://youtu.be/${YT_ID}?si=e2e` })
+    await hashIs(page, /^#\/link\?url=/, 20_000)
+    const opened = decodeURIComponent((await currentHash(page)).split('url=')[1] ?? '')
+    if (opened !== YT_LINK) throw new Error(`opened ${opened}`)
+    const seen = await waitLinkState(page, ['ready', 'not-embeddable', 'offline', 'failed'], 30_000)
+    const what = seen.state === 'ready' ? 'official embed on screen' : seen.state === 'not-embeddable' ? 'not-embeddable message' : `"${seen.state}" message (network)`
+    return `#/link?url=${opened}: ${what}`
+  } finally {
+    // Leave, and wait until the screen (and the embed iframe) is really gone: the page exit animation keeps it
+    // mounted for a moment, and its late requests would land in the next check.
+    await goHash('#/').catch(() => {})
+    await page.waitForFunction(() => !document.querySelector('.share-link__stage iframe'), { timeout: 5000, polling: 50 }).catch(() => {})
+    await sleep(800)
+    const added = problems.splice(start)
+    const ours = added.filter((p) => p.startsWith('[pageerror]') || p.includes(` @ ${origin}`) || p.startsWith(`[requestfailed] ${origin}`) || (p.startsWith('[http') && p.includes(origin)))
+    ignored = added.length - ours.length
+    problems.push(...ours)
+    if (ignored) console.log(`     (${ignored} third-party messages from the embed ignored)`)
+  }
+}
+
 /** Problems logged while the app ran offline: reported by the offline check, not by the final one. */
 let offlineWindow = null
 
@@ -545,6 +596,9 @@ try {
 
   await step('g1', 'Capture: a too-short take is refused', () => tooShort(page))
   await step('g2', 'Capture: cancel during processing saves nothing', () => cancelProcessing(page))
+
+  await step('j1', 'Share target: a POSTed audio file opens Import', shareFile)
+  await step('j2', 'Share target: a shared YouTube link opens the player', shareLink)
 
   await step('i', 'Offline after the first load: library, playback, transcription', offline)
 

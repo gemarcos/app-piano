@@ -11,6 +11,16 @@ export interface CaptureRange {
   end: number
 }
 
+/** Library details decided before Processing (a take from a shared link: its title and the link). */
+export interface CaptureMeta {
+  /** Title of the new item (default: the file name, or 'Grabación <fecha>'). */
+  title?: string
+  /** Stored as the item's sourceName (default: the imported file name). */
+  sourceName?: string
+  /** "Reintentar" after no notes goes back in history to the screen that made the take, not to a new take on /listen. */
+  retryBack?: boolean
+}
+
 export interface CaptureState {
   source: CaptureSource | null
   /** The imported file, or the recording (mic/tab, only when settings.keepOriginalAudio). */
@@ -22,8 +32,10 @@ export interface CaptureState {
   decoded: DecodedMedia | null
   /** Part of `decoded` to transcribe. */
   range: CaptureRange | null
+  /** Set by recordings that know more about themselves (share flow); null otherwise. */
+  meta: CaptureMeta | null
   setFile: (file: Blob, decoded: DecodedMedia, range: CaptureRange) => void
-  setRecording: (source: 'mic' | 'tab', decoded: DecodedMedia, blob: Blob | null) => void
+  setRecording: (source: 'mic' | 'tab', decoded: DecodedMedia, blob: Blob | null, meta?: CaptureMeta) => void
   setRange: (range: CaptureRange) => void
   reset: () => void
 }
@@ -36,13 +48,14 @@ const EMPTY = {
   kind: 'audio',
   decoded: null,
   range: null,
+  meta: null,
 } as const satisfies Partial<CaptureState>
 
 export const useCaptureStore = create<CaptureState>()((set) => ({
   ...EMPTY,
   setFile: (file, decoded, range) =>
-    set({ source: 'file', blob: file, name: decoded.name, mime: decoded.mime, kind: decoded.kind, decoded, range }),
-  setRecording: (source, decoded, blob) =>
+    set({ source: 'file', blob: file, name: decoded.name, mime: decoded.mime, kind: decoded.kind, decoded, range, meta: null }),
+  setRecording: (source, decoded, blob, meta) =>
     set({
       source,
       blob,
@@ -51,6 +64,7 @@ export const useCaptureStore = create<CaptureState>()((set) => ({
       kind: 'audio',
       decoded,
       range: { start: 0, end: decoded.duration },
+      meta: meta ?? null,
     }),
   setRange: (range) => set({ range }),
   reset: () => set({ ...EMPTY }),

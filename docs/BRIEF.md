@@ -99,6 +99,8 @@ Routes (HashRouter, defined in `App.tsx`; do not rename):
 | `/import` | `ImportScreen` (trim selected file) | no |
 | `/processing` | `ProcessingScreen` | no |
 | `/score/:id` | `ViewerScreen` | no |
+| `/shared` | `SharedScreen` (entrada de «Compartir con Pauta»: archivo -> `/import`, enlace -> `/link`) | no |
+| `/link` | `LinkScreen` (`?url=`: reproductor oficial de YouTube/TikTok y escucha) | no |
 
 The **public APIs** of each module are declared (with doc comments) in:
 - `src/types.ts`
@@ -125,6 +127,7 @@ Owners implement behind those signatures. You may ADD exports and optional field
 | library | library | `src/features/library/**`, `src/data/seed.ts` |
 | viewer | viewer | `src/features/viewer/**` |
 | settings | settings | `src/features/settings/**` |
+| share | share | `src/features/share/**`, `public/share-target-sw.js`, `scripts/e2e-share.mjs` |
 
 Never edit files you don't own. If you need a change in someone else's module, work around it locally and list the request in your final report.
 
