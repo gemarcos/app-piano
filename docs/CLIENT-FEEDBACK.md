@@ -4,6 +4,27 @@ Feedback from the client, relayed during development. Newest first. Every agent:
 
 <!-- entries: "## YYYY-MM-DD HH:MM — area" followed by the request -->
 
+## 2026-10-27 19:55 — real recording: Liebestraum still read badly; fewer agents
+
+The client gave a real recording (test/fixtures/local/liebestraum-abydos.mp3, Pixabay license: local only, never commit) that starts right after the first cadenza of Liebestraum No. 3: notes in the low register sound diffuse and are missed, and the rhythm comes out very badly. Plan: piano-model builds a public-domain reference of that section, aligns it to the recording (DTW), compares Basic Pitch vs Onsets and Frames, tunes and compares again; then score-accuracy (resumed, not a new agent) tunes the rhythm on the aligned beats. The client also asked to LIMIT the number of agents: no agent idling for hours, at most two working at once, previews prepared by the lead.
+
+Client's words:
+> «Parece que a veces sigue leyendo muy mal las notas. En el caso de liebestraum creo que las notas se escuchan bajas y difunidas y no lo pilla nada bien. El ritmo lo pilla horrible. Para ayudarte te paso el .mp3 con la pieza. Busca algún Para que te guies, este .mp3 empieza directamente despues de la primera cadenza de liebestraum. Puedes buscar su partitura y comparar las notas recibidas al escuchar la pieza. Entonces afinar para que suene mejor y volver a comparar. limita el numero de agentes porque parece que hay agentes que hacen poco y no tienen que estar activos durante horas.»
+
+## 2026-10-27 19:40 — playback sound: keep the previous piano, the new one sounds dull
+
+The client tried the beta with the new renderer and asked why the previous piano sound was removed: they asked for a grand-piano tone with sustain so it sounds BETTER. The lead measured the new render as much darker than the old one (spectral centroid 761 Hz vs 1412 Hz, rolloff 1418 Hz vs 2858 Hz). Assigned to piano-sound: fix the darkening (mezzo/forte keep the samples' natural brightness) and keep BOTH sounds selectable ("Piano de cola" default, "Piano clásico" = previous samples), with pedal and release for both; re-render the before/after audio.
+
+Client's words:
+> «Por que has quitado el otro sonido de piano? te he pedido un sonido de piano de cola y tener en cuenta el sustain para que suene mejor»
+
+## 2026-10-27 19:30 — transcription model (client decision)
+
+Integrate Magenta's Onsets and Frames as the piano model (realistic benchmark F1 0.940 vs 0.873 for the improved Basic Pitch; arpeggios 94 % vs 81 %), with Basic Pitch kept as the fallback for slow devices. Told to the client: about +15 MB downloaded once (then offline), about 5x slower, and both models' weights were trained on MAESTRO (non-commercial dataset). Assigned to the piano-model agent (prompt PIANO_MODEL).
+
+Client's words:
+> «Sí, integra el modelo especializado en piano (Onsets and Frames), con el actual como alternativa para móviles lentos.»
+
 ## 2026-10-27 16:45 — transcription: solo piano only, arpeggios missing
 
 The client only transcribes SOLO PIANO videos (no voice, no drums). With Liszt's Liebestraum No. 3 (public-domain composition: may be encoded from a public-domain edition for tests) the result was again very poor: many wrong notes and pedalled arpeggios missing from the score. Assigned: score-accuracy (fast notes merged into chords by quantization and then cut by the polyphony cap; one voice per staff chopping the melody: add a second voice per staff; arpeggios crossing the split point) and audio-accuracy (Liebestraum-style benchmark, arpeggio recall, piano-specific model comparison as the main track).

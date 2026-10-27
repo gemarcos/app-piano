@@ -86,6 +86,7 @@ Las fases y los prompts completos de cada agente están en `docs/agents/pauta-bu
 
 - Escribe en español y sigue el trabajo desde el móvil (Remote Control). Quiere **ver el avance**: tableros de imágenes en claro y oscuro, y vídeos cortos de las animaciones.
 - **Agente de enlace**: relanzarlo con el prompt de `docs/agents/client-liaison.md`. Hace un tablero cada 8–10 minutos si hay novedades. Si el agente no puede usar `SendUserFile`, te los pasa con `SendMessage` a «main». Revisa cada imagen antes de enviarla.
+  - **Desde el 2026-10-27 (19:55) el cliente pidió limitar los agentes**: como mucho dos trabajando a la vez, ninguno esperando durante horas. No dejes al agente de enlace en marcha esperando: prepara tú las vistas previas cuando haya algo nuevo, o lánzalo solo para una entrega concreta. Para seguir un trabajo, reanuda el agente que ya tiene el contexto (`SendMessage`) en vez de crear otro.
 - **Sus comentarios** van a `docs/CLIENT-FEEDBACK.md` (lo más nuevo arriba). Todos los agentes lo leen al empezar y antes de terminar.
 - Reglas que pidió expresamente:
   - motion design con la librería `motion`;

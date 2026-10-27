@@ -7,6 +7,7 @@ import {
   abTap,
   balancedPerLine,
   buildTimeline,
+  buildTracks,
   clampPitches,
   clampRange,
   eventIndexAt,
@@ -19,6 +20,7 @@ import {
   previousMeasureTime,
   scoreForHands,
   scoreSeconds,
+  trackOf,
 } from './timeline'
 
 const settings = { quantize: 16 as const, splitPoint: 60, defaultDifficulty: 'original' as const }
@@ -57,6 +59,30 @@ describe('timeline', () => {
     expect(eventIndexAt(left, 15)).toBe(0)
     expect(eventIndexAt(right, -1)).toBe(-1)
     expect(eventIndexAt(right, score.measureCount * score.ticksPerMeasure)).toBe(-1)
+  })
+})
+
+describe('tracks (staff x voice)', () => {
+  it('keeps both staves as tracks 0 and 1 and adds each second voice as a tiling track', () => {
+    const score = demoScore('preludio-do')
+    const tracks = buildTracks(score)
+    const [right, left] = buildTimeline(score)
+    expect(tracks).toHaveLength(4)
+    expect(tracks[trackOf(0, 1)]).toEqual(right)
+    expect(tracks[trackOf(1, 1)]).toEqual(left)
+    const total = score.measureCount * score.ticksPerMeasure
+    for (const s of [0, 1] as const) {
+      const v2 = tracks[trackOf(s, 2)]
+      if (!score.staves[s].voice2?.length) {
+        expect(v2).toEqual([])
+        continue
+      }
+      expect(v2[0].start).toBe(0)
+      for (let i = 1; i < v2.length; i++) expect(v2[i].start).toBe(v2[i - 1].end)
+      expect(v2[v2.length - 1].end).toBe(total)
+    }
+    // The prelude's held notes under the broken chords make a second voice somewhere.
+    expect(tracks[2].length + tracks[3].length).toBeGreaterThan(0)
   })
 })
 

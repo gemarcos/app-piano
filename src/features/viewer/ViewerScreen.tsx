@@ -6,13 +6,14 @@ import { DotsHorizontal, Heart } from '@untitled-ui/icons-react'
 import type { ScoreDoc } from '../../types'
 import { getAudio, updateScore, useScoreDoc } from '../../data/db'
 import { useSettings } from '../../state/settings'
-import { keyName, scoreToAbc, secondsToTick, tickToSeconds } from '../../engine/score'
-import { SOUNDFONT_PITCH_RANGE } from '../../assets/images'
+import { keyName, secondsToTick, sourceSecondsAt, tickAtSourceSeconds, tickToSeconds } from '../../engine/score'
 import { BackButton, Button, EmptyState, IconButton, Page, TopBar, cx, useReducedMotionPref, useToast } from '../../ui'
 import { useLiveScore, useDebounced } from './useLiveScore'
 import { useViewState } from './viewState'
 import type { PlayerSpec } from './player'
 import { useScorePlayer } from './usePlayer'
+import { noteDynamics, pedalSeconds, planVoices, playNotes, voicesKey } from './pianoPlan'
+import { setPianoSound, usePianoSound } from './pianoSound'
 import { ScorePaper, type PaperHandle } from './ScorePaper'
 import { PlayerBar } from './PlayerBar'
 import { SettingsSheet, type SheetTab } from './SettingsSheet'
@@ -20,7 +21,6 @@ import { ViewerActions } from './ViewerActions'
 import { printScore } from './exports'
 import {
   abTap,
-  clampPitches,
   clampRange,
   loopBounds,
   measureSeconds,
@@ -91,6 +91,8 @@ function Viewer({ doc }: { doc: ScoreDoc }) {
   const countIn = useSettings((s) => s.countIn)
   const followScore = useSettings((s) => s.followScore)
   const volume = useSettings((s) => s.playbackVolume)
+  const sustainPedal = useSettings((s) => s.sustainPedal)
+  const pianoSound = usePianoSound()
   const setSetting = useSettings((s) => s.set)
 
   const [view, setView] = useViewState(doc.id)
@@ -110,11 +112,15 @@ function Viewer({ doc }: { doc: ScoreDoc }) {
 
   /* ---------- playback ---------- */
 
-  const playScore = useMemo(() => clampPitches(score, SOUNDFONT_PITCH_RANGE), [score])
-  const playAbc = useMemo(
-    () => (hasNotes ? scoreToAbc(playScore, { hands: view.hands, measuresPerLine: 8, printTempo: false }) : ''),
-    [playScore, view.hands, hasNotes],
-  )
+  // What the piano plays: every note of the shown hands with its own timing and loudness, the dampers
+  // driven by the key releases and (when Pedal is on) the sustain pedal inferred from the audio.
+  const play = useMemo(() => {
+    if (!hasNotes) return null
+    const notes = playNotes(score, view.hands)
+    if (!notes.length) return null
+    const voices = planVoices(notes, noteDynamics(notes), sustainPedal ? pedalSeconds(score) : [])
+    return { voices, key: voicesKey(voices) }
+  }, [score, view.hands, hasNotes, sustainPedal])
   const loopA = loopRange?.[0]
   const loopB = loopRange?.[1]
   const loop = useMemo(
@@ -123,7 +129,15 @@ function Viewer({ doc }: { doc: ScoreDoc }) {
   )
   const spec = useMemo<PlayerSpec>(
     () => ({
-      synth: playAbc ? { abc: playAbc, msPerMeasure: measureSeconds(score) * 1000, timeSignature: score.timeSignature } : null,
+      synth: play
+        ? {
+            voices: play.voices,
+            key: `${play.key}|${pianoSound}`,
+            instrument: pianoSound,
+            msPerMeasure: measureSeconds(score) * 1000,
+            timeSignature: score.timeSignature,
+          }
+        : null,
       duration: scoreSeconds(score),
       speed: view.speed,
       metronome,
@@ -131,9 +145,16 @@ function Viewer({ doc }: { doc: ScoreDoc }) {
       volume,
       loop,
       sound: view.sound === 'original' && blob ? 'original' : 'piano',
-      original: blob ? { blob, startSeconds: score.startSeconds } : null,
+      // Score time <-> recording time through the analysis beat map (rubato stays in sync).
+      original: blob
+        ? {
+            blob,
+            toSource: (seconds: number) => sourceSecondsAt(score, secondsToTick(score, seconds), analysis),
+            fromSource: (seconds: number) => tickToSeconds(score, tickAtSourceSeconds(score, seconds, analysis)),
+          }
+        : null,
     }),
-    [playAbc, score, view.speed, metronome, countIn, volume, loop, view.sound, blob],
+    [play, pianoSound, score, view.speed, metronome, countIn, volume, loop, view.sound, blob, analysis],
   )
 
   const paperRef = useRef<PaperHandle>(null)
@@ -266,6 +287,7 @@ function Viewer({ doc }: { doc: ScoreDoc }) {
           score={score}
           hands={view.hands}
           naming={naming}
+          pedalMarks={sustainPedal}
           zoom={zoom}
           band={view.loop === 'ab' ? loopRange : null}
           onTap={onTap}
@@ -301,10 +323,12 @@ function Viewer({ doc }: { doc: ScoreDoc }) {
         playback={{
           view,
           setView,
-          settings: { metronome, countIn, followScore },
+          settings: { metronome, countIn, followScore, sustainPedal },
           setSetting,
           hasOriginal: !!blob,
           onLoopMode: setLoopMode,
+          pianoSound,
+          onPianoSound: setPianoSound,
         }}
         notation={{ view, setView, naming, setSetting, params, patch, analysis, score }}
         filters={{
@@ -324,7 +348,7 @@ function Viewer({ doc }: { doc: ScoreDoc }) {
         onClose={() => setActionsOpen(false)}
         onStop={() => player.pause()}
         getParams={() => paramsRef.current}
-        onPrint={() => printScore(scoreRef.current, { title: doc.title, composer: doc.composer, hands: view.hands, naming })}
+        onPrint={() => printScore(scoreRef.current, { title: doc.title, composer: doc.composer, hands: view.hands, naming, pedalMarks: sustainPedal })}
       />
     </Page>
   )

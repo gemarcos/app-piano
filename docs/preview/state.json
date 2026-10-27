@@ -1,7 +1,7 @@
 {
   "project": "Pauta",
-  "nextBoard": 11,
-  "nextMotion": 9,
+  "nextBoard": 12,
+  "nextMotion": 10,
   "seen": {
     "assets-board-dark.png": 1793101996952,
     "assets-board.png": 1793101996952,
@@ -55,8 +55,8 @@
     "library-no-results.png": 1793109765038,
     "viewer-acciones-dark.png": 1793110370039,
     "viewer-acciones.png": 1793110344710,
-    "viewer-ajustes-filtros-dark.png": 1793110368478,
-    "viewer-ajustes-filtros.png": 1793110343146,
+    "viewer-ajustes-filtros-dark.png": 1793125344640,
+    "viewer-ajustes-filtros.png": 1793125339262,
     "viewer-ajustes-partitura-dark.png": 1793110366338,
     "viewer-ajustes-partitura.png": 1793110340981,
     "viewer-ajustes-reproduccion-dark.png": 1793110364173,
@@ -134,12 +134,12 @@
     "sound-pedal-ajustes.png": 1793118398935,
     "sound-pedal-visor-dark.png": 1793118403438,
     "sound-pedal-visor.png": 1793118395057,
-    "score-quality-balada-dark.png": 1793118631440,
-    "score-quality-balada.png": 1793118628701,
-    "score-quality-liebestraum-dark.png": 1793118637029,
-    "score-quality-liebestraum.png": 1793118634268,
-    "score-quality-preludio-dark.png": 1793118735019,
-    "score-quality-preludio.png": 1793118731923
+    "score-quality-balada-dark.png": 1793124949850,
+    "score-quality-balada.png": 1793124947130,
+    "score-quality-liebestraum-dark.png": 1793124955797,
+    "score-quality-liebestraum.png": 1793124952772,
+    "score-quality-preludio-dark.png": 1793124961777,
+    "score-quality-preludio.png": 1793124958802
   },
   "reportsSeen": {
     "assets.json": 1793101996926,
@@ -151,10 +151,11 @@
     "capture.json": 1793110652228,
     "viewer.json": 1793111255870,
     "integration.json": 1793114571751,
-    "score-accuracy.json": 1793116552182,
-    "share.json": 1793118778760
+    "score-accuracy.json": 1793125068511,
+    "share.json": 1793124276145,
+    "audio-accuracy.json": 1793124856765
   },
-  "journalSeen": 22,
+  "journalSeen": 26,
   "deliveries": [
     {
       "when": "earlier",
@@ -303,10 +304,33 @@
         "share-import.png",
         "share-link-short-dark.png"
       ]
+    },
+    {
+      "when": "2026-10-27 19:28",
+      "files": [
+        "docs/preview/11-avance.jpg",
+        "docs/preview/sonido-arpegios-antes.mp3",
+        "docs/preview/sonido-arpegios-ahora.mp3",
+        "docs/preview/sonido-oda-antes.mp3",
+        "docs/preview/sonido-oda-ahora.mp3",
+        "docs/preview/motion-09-sonido-visor.mp4",
+        "docs/preview/motion-09-sonido-visor-dark.mp4"
+      ],
+      "caption": "Avance 11: los audios y los vídeos de este avance tienen sonido. Ahora suena a piano de cola con pedal, y las partituras leen mejor el tempo, las manos y el pedal.",
+      "sources": [
+        "sound-arpegios-antes/ahora.mp3 (19:20)",
+        "sound-oda-antes (17:22)/ahora (19:20).mp3",
+        "sound-visor(-dark).mp4 (19:21-19:22, h264 yuvj420p + AAC, copied as-is)",
+        "score-quality-balada.png crops antes [0,0,780,1260] ahora [0,2283,780,3600]",
+        "score-quality-liebestraum-dark.png crops antes [0,0,780,1280] ahora [0,2664,780,3965]",
+        "audio-accuracy.json F1 0.744 -> 0.873 (detuned 0.467->0.870, sped-up 0.491->0.880)"
+      ],
+      "note": "piano-sound had NOT logged done at delivery (its evidence was re-rendered 19:20-19:22 after the resume). score-accuracy done 19:19, audio-accuracy done 19:16. New agent piano-model started 19:23."
     }
   ],
-  "updatedAt": "2026-10-27T18:03:20.415Z",
+  "updatedAt": "2026-10-27T18:28:09.789278+00:00",
   "shown": [
+    "audio-accuracy-stat",
     "audio-calibration-stat",
     "capture-home",
     "capture-home-empty",
@@ -328,6 +352,8 @@
     "library-no-results",
     "library-tab-filter-video",
     "note-names-before-after",
+    "quality-score-before-after",
+    "quality-sound-before-after",
     "settings-about",
     "settings-about-transition-video",
     "settings-clear-confirm",
@@ -338,6 +364,7 @@
     "share-link-recording",
     "share-link-short",
     "share-link-youtube",
+    "sound-visor-video",
     "theme-switch-video",
     "viewer-actions",
     "viewer-bucle-ab",
@@ -350,12 +377,13 @@
   "notes": "Videos: record from a production build of the current code in the liaison temp dist (node node_modules/vite/bin/vite.js build --outDir <temp>/dist) served by preview.mjs on 5190; the dev server drops frames on page transitions. Next ideas: library/viewer/capture screens as they appear; sheets and cover->viewer transitions as videos.",
   "tooling": "Liaison temp scripts: scan.mjs, diff.py, board.mjs (spec JSON; tiles: image, stat, audio{src,label,note,accent}, video{src,mode,badge} poster+play badge, checks{value,label,items,caption}; spec.title overrides 'Avance N'), rec.mjs (scenario JSON; steps wait/tap/tapText/eval/scrollTo/mark/waitFor/waitHash/speed/badge; fakeAudio), preview.mjs (vite preview of temp build on 5190), strip.py, sheet.py (contact sheet), cap.mjs (capture set: node cap.mjs <outDir> [names]), wait.mjs, waitj.mjs (journal waiter).",
   "notShownYet": [
-    "share-link-denied(-dark)",
-    "share-link-noembed(-dark)",
-    "share-link-unsupported(-dark)",
-    "viewer-top(-dark) (same as viewer-playing, skip)"
+    "sound-pedal-visor(-dark).png / sound-pedal-ajustes(-dark).png (new Pedal toggle)",
+    "sound-creditos(-dark).png (Salamander credit)",
+    "score-quality-preludio(-dark).png (Prelude with held tenor voice)",
+    "sound-minueto/preludio antes/ahora mp3, sound-arpegios-sin-pedal.mp3",
+    "share-link-denied/noembed/unsupported(-dark)"
   ],
-  "nextIdeas": "Phase C integration: final-*.png -> \"Resumen final\" board before stopping when integration finishes. Possible videos: viewer settings sheet tabs, library long-press action sheet, processing ring. Always record videos from a fresh production build in the liaison temp dist (preview.mjs on 5190).",
+  "nextIdeas": "When piano-model (Onsets and Frames) lands: before/after accuracy stat + score. When piano-sound logs done: check if its mp3/mp4 changed after 19:22 (re-deliver only if clearly different). Phase D (reviewers + fixers) not started yet as of 19:28: compare liaison/caps/C with a fresh cap set after fixers. Possible video: share link flow (Enlace -> YouTube embed -> Escuchar).",
   "observations": "Page transitions use AnimatePresence mode=\"wait\": ~100-200 ms of empty background between screens (fade-through). List->grid switch in Biblioteca re-mounts the list: ~200 ms empty, then tiles pop in (headless capture).",
   "runEnded": "2026-10-27 15:29 (2.5 h limit; phase B finished: settings, library, viewer, capture done; integration not started yet)",
   "run2": {
@@ -393,7 +421,8 @@
       "sound-visor.mp4 (light)",
       "docs/agents/reports/audio-accuracy.json (before/after accuracy)",
       "score-accuracy final report"
-    ]
+    ],
+    "ended": "2026-10-27 19:29 (active-time budget used; stopped after delivering the quality preview)"
   },
   "captureSets": {
     "B": "liaison/caps/B (15:28 build, end of phase B)",

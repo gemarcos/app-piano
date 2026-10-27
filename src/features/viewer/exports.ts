@@ -27,7 +27,10 @@ const PRINT_WIDTH = 680
  * PDF through the browser's print dialog: a print-only sheet (white paper, black ink, title and
  * composer) rendered next to the app, which the print stylesheet hides.
  */
-export async function printScore(score: Score, opts: { title: string; composer?: string; hands: Hands; naming: NoteNaming }): Promise<void> {
+export async function printScore(
+  score: Score,
+  opts: { title: string; composer?: string; hands: Hands; naming: NoteNaming; pedalMarks?: boolean },
+): Promise<void> {
   const abcjs = await loadAbcjs()
   document.querySelectorAll('.vw-print').forEach((n) => n.remove())
   const sheet = document.createElement('div')
@@ -48,7 +51,7 @@ export async function printScore(score: Score, opts: { title: string; composer?:
 
   const fit = Math.min(6, suggestMeasuresPerLine(scoreForHands(score, opts.hands), PRINT_WIDTH, { noteNames: opts.naming !== 'none' }))
   const perLine = balancedPerLine(score.measureCount, fit)
-  const abc = scoreToAbc(score, { hands: opts.hands, noteNaming: opts.naming, measuresPerLine: perLine, printTempo: true })
+  const abc = scoreToAbc(score, { hands: opts.hands, noteNaming: opts.naming, measuresPerLine: perLine, printTempo: true, pedalMarks: opts.pedalMarks })
   // One SVG per system, so page breaks fall between systems instead of through them.
   abcjs.renderAbc(target, abc, {
     responsive: 'resize',

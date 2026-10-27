@@ -3,3 +3,6 @@ dist
 dev-dist
 *.log
 .DS_Store
+
+# Grabaciones del cliente para pruebas locales (no se publican)
+test/fixtures/local/

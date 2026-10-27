@@ -1,0 +1,81 @@
+{
+  "summary": "Playback now uses a real grand piano with sustain pedal, and the previous piano is back as a choice. Client feedback applied: 16:20 item 3 (grand tone), the playback side of item 2 (pedal) and item 4 (preview with sound); 16:45 (pedalled arpeggios, second voices); 19:40 (dull sound, keep the old piano).\n- Samples: Salamander Grand Piano V3 (Yamaha C5, Alexander Holm, CC BY 3.0). License checked on archive.org, FreePats, sfzinstruments and the instrument README. 30 notes (minor thirds A0..C8) x layers 4/9/14, trimmed, 3.5-8 s tails, 32 kHz stereo MP3, 5.4 MB in public/soundfonts/salamander/, precached.\n- Tuning: per-note cents fixes put every key on a smooth stretch curve. The 'C8' file actually sounds a C#8 and is corrected by -57.8 cents. Per-note level fixes even out the keyboard.\n- Renderer: one AudioBuffer the existing player keeps playing. I did NOT use an OfflineAudioContext, which the prompt asked for: measured in Chrome it costs ~1.5 ms per voice-second plus ~20 ms/s for convolution, which would mean >10 s renders for 3 min at 0.5x. Instead a JS sample mixer (mixer.ts): Hermite interpolation, gain, exponential damper release, 16-bit sample storage, yields to the UI every 16 ms.\n- Per note: nearest sample, at most one semitone of shift; the layer is picked by max(velocity, dynamic level); loudness from the dynamic level. Only pianissimo is gently low-passed. Natural decay comes from the sample; the damper release is short and pitch-dependent; keys above F#6 have no dampers.\n- Pedal: Score.pedals sustains a note until the pedal lifts. A key released exactly at a pedal change is damped there. A re-struck key damps the earlier strike. Two voices sharing a key keep it down until the later release.\n- Also in the renderer: notes come from the engine's scoreNotes (both staves and voices). Pieces are evened out to a common loudness. Metronome and count-in clicks come from the bundled percussion. A soft limiter prevents clipping. A soft generated room reverb is applied live.\n- Loops: seamless loop buffers whose ring-out is folded onto the start, with a crossfaded first pass. Pause and seek fade instead of clicking.\n- Client 19:40: my first render was too dark (centroid 761 Hz). Fixed: Ode 925/1747 Hz centroid/rolloff, above the raw Salamander reference of 855/1627. New 'Timbre' setting: 'Piano de cola' (default) or 'Piano clásico' (the old FluidR3 samples through the same renderer: 1423/2873 Hz, matching the old 1409/2856), in the viewer and in Ajustes, persisted as settings.pianoSound.\n- Settings: 'Pedal' toggle in the viewer and in Ajustes drives both the playback pedal and the score's Ped. marks (pedalMarks also goes to the PDF).\n- Viewer follow-ups (I now own the viewer):\n  - 'División de manos' is a manual override (splitMode 'fixed'; Restablecer brings back auto).\n  - 'Original' sync goes through sourceSecondsAt / tickAtSourceSeconds.\n  - Second-voice notes light up while playing.\n  - 'Ruido' became 'Notas suaves', capped at 30 % (default 10 % kept).\n- Evidence for the client: before/after MP3s of the 3 demos and of a pedalled arpeggio study (my own composition), the study without pedal, the Ode with each sound, and 18 s viewer videos with audio in light and dark.",
+  "files": [
+    "src/features/viewer/synth.ts (rewritten: renderer, grand + classic)",
+    "src/features/viewer/mixer.ts (new: sample mixer, limiter, loop fold, loudness)",
+    "src/features/viewer/pianoPlan.ts (new: notes, dynamics, dampers/pedal/re-strike, clicks)",
+    "src/features/viewer/pianoSamples.ts (new: sample tables, tuning/level fixes, loaders)",
+    "src/features/viewer/pianoSound.ts (new: Timbre setting helpers)",
+    "src/features/viewer/reverb.ts (new: generated room impulse, live room)",
+    "src/features/viewer/player.ts (new spec, loop buffers, fades, live room, Original beat-map sync)",
+    "src/features/viewer/ViewerScreen.tsx (voices spec, Pedal/Timbre, beat-map sync, pedal marks)",
+    "src/features/viewer/SettingsPanels.tsx (Pedal, Timbre, hand-split override, Notas suaves)",
+    "src/features/viewer/ScorePaper.tsx (pedal marks, second-voice highlight)",
+    "src/features/viewer/timeline.ts (buildTracks, trackOf)",
+    "src/features/viewer/exports.ts (PDF pedal marks)",
+    "src/features/viewer/pianoPlan.test.ts, mixer.test.ts, synth.test.ts (new), timeline.test.ts (tracks test)",
+    "src/features/settings/SettingsScreen.tsx (Timbre and Pedal rows in Reproducción only)",
+    "src/features/settings/credits.ts (sound attribution only)",
+    "src/assets/images.ts (sound constants; old soundfont exports kept)",
+    "src/state/settings.ts (lead-owned, at the lead's request: DEFAULT_SETTINGS pianoSound 'grand' via a cast)",
+    "public/soundfonts/salamander/*.mp3 (90 new files, 5.4 MB)",
+    "docs/CREDITS.md (sound sections)",
+    "docs/screenshots/sound-{oda,minueto,preludio,arpegios}-antes.mp3, -ahora.mp3, sound-arpegios-sin-pedal.mp3, sound-oda-piano-de-cola.mp3, sound-oda-piano-clasico.mp3",
+    "docs/screenshots/sound-visor.mp4, sound-visor-dark.mp4",
+    "docs/screenshots/sound-pedal-visor[-dark].png, sound-pedal-ajustes[-dark].png, sound-creditos[-dark].png, viewer-ajustes-{reproduccion,partitura,filtros}[-dark].png",
+    "docs/agents/reports/piano-sound.json"
+  ],
+  "public_api_notes": "SETTINGS:\n- New field settings.pianoSound: 'grand' | 'classic', default 'grand'. Added to DEFAULT_SETTINGS with a cast, so it persists and resets.\n- Read it with usePianoSound(); write it with setPianoSound(v); options are PIANO_SOUND_OPTIONS (all in src/features/viewer/pianoSound.ts).\n- Please declare pianoSound: 'grand' | 'classic' in Settings (src/types.ts); then the casts in settings.ts and pianoSound.ts can go.\n- settings.sustainPedal drives both the playback pedal and pedalMarks (screen and PDF).\nPLAYER (src/features/viewer/player.ts):\n- PlayerSpec.synth = SynthSpec {voices, key, instrument?, msPerMeasure, timeSignature}. A changed key means new music; an instrument-only change keeps playing from the same spot.\n- PlayerSpec.original = {blob, toSource(scoreSec), fromSource(sourceSec)}, built from sourceSecondsAt / tickAtSourceSeconds.\n- Loops play a separate seamless buffer. Pause and seek fade over ~20-40 ms. The room reverb is live: ConvolverNode after the volume gain.\nRENDERER (src/features/viewer/synth.ts):\n- renderTune(ctx, spec, {speed, metronome, countIn, duration}) returns {buffer, introSec, speedF, tailSec, levelDb}.\n- renderLoop(..., loop, levelDb) and wholeLoop(ctx, r, duration) build the loop buffers.\n- Gain chain: master -3 dB, then a gated-loudness correction to -21.5 dB (limited to -6/+2 dB, reused by loops), then a soft limiter at 0.89.\nPLANNER (src/features/viewer/pianoPlan.ts):\n- playNotes(score, hands) wraps the engine's scoreNotes.\n- noteDynamics: half the velocity, half the piece's spread around mezzo forte; flat or absent velocities fall back to a melody/inner-voice voicing.\n- planVoices(notes, dynamics, pedalSeconds): a span ending where the next starts is a pedal change.\n- Also exported: metronomeClicks, loopVoices, voicesKey, legatoPedals (synthetic pedal, not used by the app).\nSAMPLES:\n- Grand: soundfonts/salamander/<A0|C1|Ds1|Fs1...C8>v<4|9|14>.mp3, loaded lazily (only the notes and layers a score needs) and kept as Int16. They are released 60 s after the viewer closes.\n- Classic: soundfonts/acoustic_grand_piano-mp3/<flat name>.mp3, used again, so not deleted.\n- images.ts adds PIANO_SAMPLE_DIR, getPianoSampleUrl, CLASSIC_PIANO_DIR, METRONOME_CLICKS and getSoundUrl. SOUNDFONT_* and METRONOME_DRUM are kept and still compile.\nTIMELINE: buildTracks(score) returns 4 tracks [right v1, left v1, right v2, left v2]; trackOf(staff, voice) gives the index. buildTimeline is unchanged.\nSELECTORS:\n- Rows are found by .ui-row__title: 'Timbre' (segmented 'Piano de cola' / 'Piano clásico') and 'Pedal' (toggle), in the viewer sheet's Reproducción tab and in Ajustes > Reproducción.\n- In Filtros, the 'Ruido' row is now 'Notas suaves' (max 30 %).\n- 'División de manos' shows the subtitle 'Automática' while the split is automatic.\nRENDER COST (Chrome, this PC, final code):\n- 30 s piece: 0.15-0.21 s at 1x, 0.20-0.36 s at 0.5x. Buffer 8.2 / 16.3 MB.\n- 3 min piece (894 pedalled notes): 0.68-1.1 s at 1x, 1.06-1.6 s at 0.5x. Buffer 39.5 / 78.6 MB.\n- Decoded samples: 12-20 MB (16-26 files, 16-bit).\n- Old abcjs equivalent: ~23 MB per 90 s at 1x.",
+  "requests": [
+    {
+      "owner": "lead",
+      "request": "src/types.ts: add pianoSound: 'grand' | 'classic' to Settings (the default 'grand' is already in DEFAULT_SETTINGS through a cast); then remove the casts in src/state/settings.ts and src/features/viewer/pianoSound.ts."
+    },
+    {
+      "owner": "lead",
+      "request": "BRIEF sections 4 and 6: the viewer's piano is public/soundfonts/salamander/*.mp3 (Salamander Grand Piano V3, CC BY 3.0); 'Piano clásico' is soundfonts/acoustic_grand_piano-mp3 (FluidR3); abcjs only draws the score now; the About attribution lives in src/features/settings/credits.ts and credits both works."
+    },
+    {
+      "owner": "lead",
+      "request": "Client preview: compare docs/screenshots/sound-oda-antes.mp3, sound-oda-ahora.mp3 and sound-oda-piano-clasico.mp3; for the pedal, sound-arpegios-ahora.mp3 vs sound-arpegios-sin-pedal.mp3; and the videos sound-visor.mp4 / sound-visor-dark.mp4. The spectral numbers for the 19:40 feedback are in verification."
+    }
+  ],
+  "known_issues": [
+    "Darker than the old sound by nature. The grand measures below the old FluidR3 even after the fix (Ode 925 vs 1409 Hz centroid). It is above the raw Salamander samples played dry at the same velocities (855 Hz), as the lead asked. 'Piano clásico' gives the old brightness with pedal and release.",
+    "Not the cause of the dullness: the 32 kHz render rate (old and new both rendered at 32 kHz) and the room reverb (925 Hz wet vs 923 Hz dry).",
+    "Loop Todo doubles memory while active (it copies the tune buffer). A-B loops render only their measures.",
+    "Very long held bass notes fade early. Sample tails are 3.5-8 s by register, so pedalled bass notes longer than ~6-8 s fade before a real piano would.",
+    "Not modelled: damper or release noise, string sympathetic resonance and pedal noises. The reverb is a generated impulse response, not a recorded hall.",
+    "The engine's pickup (anacrusis) option is not used in the viewer: measure 0 is still drawn as a full bar. Mapping trimmed rests to abcjs elements needs more work.",
+    "Never listened to: verification was headless and objective (spectra, loudness, clicks, pitch). iOS Safari is untested; there is a fallback when the 32 kHz AudioContext option is refused.",
+    "src/state/settings.ts (lead-owned) was edited at the lead's request: one DEFAULT_SETTINGS line."
+  ],
+  "verification": "Build and tests:\n- npx tsc --noEmit: exit 0.\n- npx vitest run: 28 files, 364 tests passed. Includes the viewer timeline tests and my pianoPlan (21), mixer (11) and synth (7) tests.\n- npm run build: OK, precache 227 entries, 11.9 MB.\nHeadless app checks (dev server 5196):\n- check-playback 14/14: play/pause, highlight moves, 32 kHz buffer, speed 50 %, Todo loop wraps with a seamless seam, A-B stays inside and is exactly one cycle, count-in then music, metronome clicks every beat (accent 0.26 vs 0.16), Pedal toggle, Original plays through the beat map, no console errors.\n- check-pedal: bar-end fullness 0.60 with pedal vs 0.42 without; Ped. marks 10 vs 0.\n- check-voice2: second-voice notes light up.\n- check-timbre: switching to Piano clásico while playing continues from the same spot, loads the FluidR3 files, persists pianoSound, and Ajustes shows the same choice.\nProduction preview:\n- 90 grand and 6 percussion samples precached; offline playback starts in 0.19 s.\n- node scripts/e2e.mjs --url http://localhost:5196/: 17/17 PASS.\nObjective audio checks:\n- Pitch (FFT partial fit, 88 keys): all within 4.8 c of the stretch curve; C3-C6 within 1.0 c of it, with up to 7 c ET deviation (the stretch); A0 -25 c, C8 +42 c.\n- Clipping: peaks <= -0.7 dBFS everywhere (soft limiter).\n- Clicks: second-difference spike detector, worst ratio <= 5.6 in all new renders and the 88-key releases, none above 12x. The old abcjs arpeggio render had 16.7.\n- Releases decay smoothly: largest window-to-window rise 0.8 dB.\n- Loop seams: wrap jump below the local waveform step.\n- Loudness (EBU R128), before -> now: Ode -18.7 -> -18.5 LUFS; Minuet -18.1 -> -18.5; Prelude -19.2 -> -18.7; arpeggios -17.3 -> -19.1; Ode Piano clásico -18.4.\n- Spectra, first 8 s (ffmpeg aspectralstats, centroid/rolloff Hz):\n  - Ode: old 1409/2856, raw-Salamander reference 855/1627, first render 761/1426, fixed 925/1747, Piano clásico 1423/2873.\n  - Minuet: old 1549/3114, reference 1102/2017, first render 958/1658, fixed 1174/2189.\n  - Prelude: old 1747/3521, reference 1102/1983, first render 1068/1923, fixed 1284/2434.\n  - Arpeggio study: old 1409/2920, reference 698/1313, fixed 747/1431, Piano clásico 1348/2792.\nServer: node scripts/serve.mjs stop 5196 done; nothing listens on 5196.",
+  "screenshots": [
+    "docs/screenshots/sound-oda-antes.mp3",
+    "docs/screenshots/sound-oda-ahora.mp3",
+    "docs/screenshots/sound-oda-piano-de-cola.mp3",
+    "docs/screenshots/sound-oda-piano-clasico.mp3",
+    "docs/screenshots/sound-minueto-antes.mp3",
+    "docs/screenshots/sound-minueto-ahora.mp3",
+    "docs/screenshots/sound-preludio-antes.mp3",
+    "docs/screenshots/sound-preludio-ahora.mp3",
+    "docs/screenshots/sound-arpegios-antes.mp3",
+    "docs/screenshots/sound-arpegios-ahora.mp3",
+    "docs/screenshots/sound-arpegios-sin-pedal.mp3",
+    "docs/screenshots/sound-visor.mp4",
+    "docs/screenshots/sound-visor-dark.mp4",
+    "docs/screenshots/sound-pedal-visor.png",
+    "docs/screenshots/sound-pedal-visor-dark.png",
+    "docs/screenshots/sound-pedal-ajustes.png",
+    "docs/screenshots/sound-pedal-ajustes-dark.png",
+    "docs/screenshots/sound-creditos.png",
+    "docs/screenshots/sound-creditos-dark.png",
+    "docs/screenshots/viewer-ajustes-reproduccion.png",
+    "docs/screenshots/viewer-ajustes-reproduccion-dark.png",
+    "docs/screenshots/viewer-ajustes-partitura.png",
+    "docs/screenshots/viewer-ajustes-partitura-dark.png",
+    "docs/screenshots/viewer-ajustes-filtros.png",
+    "docs/screenshots/viewer-ajustes-filtros-dark.png"
+  ]
+}

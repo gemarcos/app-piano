@@ -17,12 +17,26 @@ export type StaffTimeline = TimelineEvent[]
 
 /** Events of both staves ([right, left]) in absolute ticks, sorted; each staff tiles the score. */
 export function buildTimeline(score: Score): [StaffTimeline, StaffTimeline] {
-  return [staffTimeline(score.staves[0], score.ticksPerMeasure), staffTimeline(score.staves[1], score.ticksPerMeasure)]
+  return [staffTimeline(score.staves[0].measures, score.ticksPerMeasure), staffTimeline(score.staves[1].measures, score.ticksPerMeasure)]
 }
 
-function staffTimeline(staff: Staff, ticksPerMeasure: number): StaffTimeline {
+/** Track index of a staff (0 right, 1 left) and voice (1 main, 2 second): voice 1 = 0..1, voice 2 = 2..3. */
+export const trackOf = (staff: 0 | 1, voice: 1 | 2) => (voice - 1) * 2 + staff
+
+/**
+ * Four tracks [right voice 1, left voice 1, right voice 2, left voice 2]: like buildTimeline, plus the
+ * second voice of each staff (Staff.voice2; an empty track when the staff has one voice). Each track
+ * tiles the score, so eventIndexAt works on each of them.
+ */
+export function buildTracks(score: Score): StaffTimeline[] {
+  const [right, left] = buildTimeline(score)
+  const second = (staff: Staff) => (staff.voice2?.length ? staffTimeline(staff.voice2, score.ticksPerMeasure) : [])
+  return [right, left, second(score.staves[0]), second(score.staves[1])]
+}
+
+function staffTimeline(measures: Staff['measures'], ticksPerMeasure: number): StaffTimeline {
   const out: StaffTimeline = []
-  staff.measures.forEach((measure, m) => {
+  measures.forEach((measure, m) => {
     const base = m * ticksPerMeasure
     measure.events.forEach((ev, index) => {
       const start = base + ev.start

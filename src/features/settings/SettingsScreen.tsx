@@ -27,6 +27,7 @@ import {
 import { version } from '../../../package.json'
 import { LibrarySettings } from './LibrarySettings'
 import { switchTheme } from './theme'
+import { PIANO_SOUND_OPTIONS, setPianoSound, usePianoSound } from '../viewer/pianoSound'
 import './SettingsScreen.css'
 
 const THEMES: SegmentedOption<ThemePreference>[] = [
@@ -204,12 +205,20 @@ function PlaybackGroup() {
   const metronome = useSettings((s) => s.metronome)
   const countIn = useSettings((s) => s.countIn)
   const followScore = useSettings((s) => s.followScore)
+  const sustainPedal = useSettings((s) => s.sustainPedal)
+  const pianoSound = usePianoSound()
   const volume = useSettings((s) => Math.round(s.playbackVolume * 100))
   const set = useSettings((s) => s.set)
   return (
     <SettingsGroup title="Reproducción">
+      <ListRow title="Timbre">
+        <Below>
+          <Segmented full options={PIANO_SOUND_OPTIONS} value={pianoSound} onChange={setPianoSound} ariaLabel="Timbre" />
+        </Below>
+      </ListRow>
       <ListRow title="Metrónomo" trailing={<Toggle checked={metronome} onChange={(v) => set('metronome', v)} ariaLabel="Metrónomo" />} />
       <ListRow title="Cuenta previa" trailing={<Toggle checked={countIn} onChange={(v) => set('countIn', v)} ariaLabel="Cuenta previa" />} />
+      <ListRow title="Pedal" trailing={<Toggle checked={sustainPedal} onChange={(v) => set('sustainPedal', v)} ariaLabel="Pedal" />} />
       <ListRow
         title="Seguir partitura"
         trailing={<Toggle checked={followScore} onChange={(v) => set('followScore', v)} ariaLabel="Seguir partitura" />}

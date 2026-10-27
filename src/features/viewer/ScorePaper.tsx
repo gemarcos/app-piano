@@ -7,7 +7,7 @@ import type { Hands, NoteNaming, Score } from '../../types'
 import { scoreToAbc, suggestMeasuresPerLine } from '../../engine/score'
 import { cx } from '../../ui'
 import { loadAbcjs } from './abcjs'
-import { buildTimeline, eventIndexAt, scoreForHands, type MeasureRange, type StaffTimeline } from './timeline'
+import { buildTracks, eventIndexAt, scoreForHands, trackOf, type MeasureRange, type StaffTimeline } from './timeline'
 import './ScorePaper.css'
 
 export interface PaperHandle {
@@ -19,6 +19,8 @@ export interface ScorePaperProps {
   score: Score
   hands: Hands
   naming: NoteNaming
+  /** Show the sustain pedal marks (Settings.sustainPedal). */
+  pedalMarks?: boolean
   /** Percent (100 = abcjs units are CSS px). */
   zoom: number
   /** Shaded measures of an A-B loop. */
@@ -38,14 +40,15 @@ const PAD_LEFT = 0
 
 interface NoteRef {
   g: SVGGElement
-  staff: 0 | 1
+  /** Track (timeline.buildTracks: staff and voice). */
+  track: number
   index: number
 }
 
 interface PaperMap {
   svg: SVGSVGElement
-  /** Per staff, the <g> of each timeline event (null for hidden staves or unmapped elements). */
-  groups: [(SVGGElement | null)[], (SVGGElement | null)[]]
+  /** Per track, the <g> of each timeline event (null for hidden staves or unmapped elements). */
+  groups: (SVGGElement | null)[][]
   notes: NoteRef[]
   /** Barline <g> ending each measure (first shown staff). */
   bars: (SVGGElement | null)[]
@@ -86,15 +89,30 @@ interface VoiceElement {
   abselem?: { elemset?: SVGGElement[] }
 }
 
-function buildMap(tune: TuneObject, target: HTMLElement, timeline: [StaffTimeline, StaffTimeline], hands: Hands, perLine: number, measureCount: number): PaperMap | null {
+/**
+ * Maps abcjs elements to timeline events: per shown staff, voices[0] is the main voice and, when the
+ * Score staff has a second voice, voices[1] is that voice (abcjs keeps one element per event, the
+ * invisible rests included); a pedal-mark voice (V:PED) comes after them and is skipped.
+ */
+function buildMap(
+  tune: TuneObject,
+  target: HTMLElement,
+  tracks: StaffTimeline[],
+  score: Score,
+  hands: Hands,
+  perLine: number,
+  measureCount: number,
+): PaperMap | null {
   const svg = target.querySelector('svg')
   if (!svg) return null
   const shown: (0 | 1)[] = hands === 'both' ? [0, 1] : hands === 'right' ? [0] : [1]
-  const first: [number[], number[]] = [[], []]
-  timeline.forEach((events, s) => events.forEach((ev, i) => {
-    if (first[s][ev.measure] === undefined) first[s][ev.measure] = i
-  }))
-  const groups: PaperMap['groups'] = [timeline[0].map(() => null), timeline[1].map(() => null)]
+  const first: number[][] = tracks.map(() => [])
+  tracks.forEach((events, t) =>
+    events.forEach((ev, i) => {
+      if (first[t][ev.measure] === undefined) first[t][ev.measure] = i
+    }),
+  )
+  const groups: PaperMap['groups'] = tracks.map((events) => events.map(() => null))
   const notes: NoteRef[] = []
   const bars: (SVGGElement | null)[] = Array.from({ length: measureCount }, () => null)
   let line = 0
@@ -103,25 +121,29 @@ function buildMap(tune: TuneObject, target: HTMLElement, timeline: [StaffTimelin
     tl.staff.forEach((staff, si) => {
       const s = shown[si]
       if (s === undefined) return
-      let measure = line * perLine
-      let index = 0
-      const voice = (staff.voices?.[0] ?? []) as unknown as VoiceElement[]
-      for (const el of voice) {
-        if (el.el_type === 'bar') {
-          if (si === 0 && measure < measureCount) bars[measure] = el.abselem?.elemset?.[0] ?? null
-          measure++
-          index = 0
-          continue
+      const voiceCount = score.staves[s].voice2?.length ? 2 : 1
+      for (let v = 0; v < voiceCount; v++) {
+        const t = trackOf(s, (v + 1) as 1 | 2)
+        let measure = line * perLine
+        let index = 0
+        const voice = (staff.voices?.[v] ?? []) as unknown as VoiceElement[]
+        for (const el of voice) {
+          if (el.el_type === 'bar') {
+            if (si === 0 && v === 0 && measure < measureCount) bars[measure] = el.abselem?.elemset?.[0] ?? null
+            measure++
+            index = 0
+            continue
+          }
+          if (el.el_type !== 'note') continue
+          const start = first[t][measure]
+          const i = start === undefined ? -1 : start + index
+          const g = el.abselem?.elemset?.[0]
+          if (i >= 0 && i < tracks[t].length && tracks[t][i].measure === measure && g) {
+            groups[t][i] = g
+            notes.push({ g, track: t, index: i })
+          }
+          index++
         }
-        if (el.el_type !== 'note') continue
-        const start = first[s][measure]
-        const i = start === undefined ? -1 : start + index
-        const g = el.abselem?.elemset?.[0]
-        if (i >= 0 && i < timeline[s].length && timeline[s][i].measure === measure && g) {
-          groups[s][i] = g
-          notes.push({ g, staff: s, index: i })
-        }
-        index++
       }
     })
     line++
@@ -158,7 +180,7 @@ function placeCursor(map: PaperMap, groups: SVGGElement[], line: number) {
 }
 
 export const ScorePaper = forwardRef<PaperHandle, ScorePaperProps>(function ScorePaper(
-  { score, hands, naming, zoom, band, onTap, viewport, reducedMotion, empty },
+  { score, hands, naming, pedalMarks = false, zoom, band, onTap, viewport, reducedMotion, empty },
   ref,
 ) {
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -168,15 +190,15 @@ export const ScorePaper = forwardRef<PaperHandle, ScorePaperProps>(function Scor
   const [failed, setFailed] = useState(false)
 
   const zoomF = zoom / 100
-  const timeline = useMemo(() => buildTimeline(score), [score])
+  const timeline = useMemo(() => buildTracks(score), [score])
   const layoutScore = useMemo(() => scoreForHands(score, hands), [score, hands])
   const perLine = useMemo(
     () => (width > 0 ? suggestMeasuresPerLine(layoutScore, width, { noteNames: naming !== 'none', zoom: zoomF }) : 2),
     [layoutScore, width, naming, zoomF],
   )
   const abc = useMemo(
-    () => scoreToAbc(score, { hands, noteNaming: naming, measuresPerLine: perLine, printTempo: false }),
-    [score, hands, naming, perLine],
+    () => scoreToAbc(score, { hands, noteNaming: naming, measuresPerLine: perLine, printTempo: false, pedalMarks }),
+    [score, hands, naming, perLine, pedalMarks],
   )
   const staffwidth = width > 0 ? Math.max(120, Math.round((width / zoomF - PAD_LEFT - PAD_RIGHT) * 10) / 10) : 0
 
@@ -224,12 +246,14 @@ export const ScorePaper = forwardRef<PaperHandle, ScorePaperProps>(function Scor
       let band: SVGGElement[] = []
       if (tick != null && map) {
         const tl = timelineRef.current
-        for (const s of [0, 1] as const) {
+        for (let s = 0; s < tl.length; s++) {
           const i = eventIndexAt(tl[s], tick)
           if (i < 0) continue
           const g = map.groups[s][i]
           const ev = tl[s][i]
           if (!g) continue
+          // Second voices: their rests are invisible, so only their notes light up.
+          if (s >= 2 && !ev.pitches.length) continue
           if (ev.pitches.length) next.add(g)
           if (measure < 0) measure = ev.measure
           if (ev.start > bandStart) {
@@ -282,7 +306,7 @@ export const ScorePaper = forwardRef<PaperHandle, ScorePaperProps>(function Scor
       if (m % map.perLine === 0 || !map.bars[m - 1]) {
         // First measure of the system: start just before its first note or rest.
         const xs = map.notes
-          .filter((n) => timelineRef.current[n.staff][n.index].measure === m)
+          .filter((n) => timelineRef.current[n.track][n.index].measure === m)
           .map((n) => n.g.getBBox().x)
         x0 = (xs.length ? Math.min(...xs) : barBox.x - 40) - 8
       } else {
@@ -334,7 +358,7 @@ export const ScorePaper = forwardRef<PaperHandle, ScorePaperProps>(function Scor
         litRef.current = new Set()
         bandKeyRef.current = ''
         followLineRef.current = -1
-        mapRef.current = tune ? buildMap(tune, target, timelineRef.current, hands, perLine, score.measureCount) : null
+        mapRef.current = tune ? buildMap(tune, target, timelineRef.current, score, hands, perLine, score.measureCount) : null
         paintBand()
         paintCursor(tickRef.current, false)
         setFailed(false)
@@ -347,7 +371,7 @@ export const ScorePaper = forwardRef<PaperHandle, ScorePaperProps>(function Scor
     return () => {
       cancelled = true
     }
-  }, [abc, staffwidth, hasNotes, hands, perLine, score.measureCount, paintBand, paintCursor])
+  }, [abc, staffwidth, hasNotes, hands, perLine, score, paintBand, paintCursor])
 
   useEffect(() => {
     paintBand()
@@ -369,7 +393,7 @@ export const ScorePaper = forwardRef<PaperHandle, ScorePaperProps>(function Scor
       }
     }
     if (!best || bestD > 36) return
-    const ev = timelineRef.current[best.staff][best.index]
+    const ev = timelineRef.current[best.track][best.index]
     onTap(ev.start, ev.measure)
   }
 

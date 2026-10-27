@@ -23,12 +23,18 @@ export const SOFTWARE: SoftwareCredit[] = [
   { name: 'vite-plugin-pwa y Workbox', author: 'Anthony Fu, Google', license: 'MIT', url: 'https://github.com/vite-pwa/vite-plugin-pwa' },
 ]
 
-/** CC BY 3.0 attribution of the piano samples. Required word for word: do not edit. */
+/**
+ * CC BY 3.0 attributions of the playback sounds (owner: piano-sound; see docs/CREDITS.md). Required:
+ * keep author, work, license and the note on the changes made to the samples.
+ */
 export const SOUNDFONT_ATTRIBUTION =
-  'Sonidos de piano: FluidR3_GM de Frank Wen, renderizado por el proyecto midi-js-soundfonts (Benjamin Gleitzman, Paul Rosen), CC BY 3.0'
+  'Piano de cola: Salamander Grand Piano V3 de Alexander Holm, CC BY 3.0 (muestras recortadas y convertidas a MP3). ' +
+  'Piano clásico y metrónomo: FluidR3_GM de Frank Wen, renderizado por el proyecto midi-js-soundfonts (Benjamin Gleitzman, Paul Rosen), CC BY 3.0 US.'
 
-/** Phrases of the attribution rendered as links (the visible text stays identical). */
+/** Phrases of the attribution rendered as links (the visible text stays identical). Longest first. */
 export const SOUNDFONT_LINKS: Record<string, string> = {
+  'Salamander Grand Piano V3': 'https://archive.org/details/SalamanderGrandPianoV3',
   'midi-js-soundfonts': 'https://github.com/gleitz/midi-js-soundfonts',
-  'CC BY 3.0': 'https://creativecommons.org/licenses/by/3.0/us/',
+  'CC BY 3.0 US': 'https://creativecommons.org/licenses/by/3.0/us/',
+  'CC BY 3.0': 'https://creativecommons.org/licenses/by/3.0/',
 }

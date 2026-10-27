@@ -209,7 +209,36 @@ export const brandIcons = {
   favicon: base + 'icons/favicon.svg',
 }
 
-/* ---------- abcjs soundfont (public/soundfonts) ---------- */
+/* ---------- Playback sounds (public/soundfonts) ---------- */
+
+/**
+ * Grand piano samples played by the viewer: Salamander Grand Piano V3 (Yamaha C5) by Alexander Holm,
+ * CC BY 3.0 (credits in docs/CREDITS.md and Acerca de). 30 notes in minor thirds A0..C8 x velocity
+ * layers 4, 9 and 14, named `<note>v<layer>.mp3` with s for sharps (A0v4.mp3, Ds1v9.mp3, Fs6v14.mp3).
+ */
+export const PIANO_SAMPLE_DIR = 'soundfonts/salamander/'
+
+/** Absolute URL of a piano sample file (browser only: uses document.baseURI). */
+export function getPianoSampleUrl(file: string): string {
+  return new URL(PIANO_SAMPLE_DIR + file, document.baseURI).href
+}
+
+/**
+ * The "Piano clásico" sound: the FluidR3_GM piano renders (Frank Wen; midi-js-soundfonts, CC BY 3.0),
+ * one MP3 per key with flat names (A0.mp3, Bb0.mp3 … C8.mp3, Db8.mp3), the sound phase B played through
+ * abcjs; the viewer now plays them through its own renderer too.
+ */
+export const CLASSIC_PIANO_DIR = 'soundfonts/acoustic_grand_piano-mp3/'
+
+/** Metronome clicks: GM wood blocks from the bundled percussion samples (76 high = downbeat, 77 low). */
+export const METRONOME_CLICKS = { accent: 'soundfonts/percussion-mp3/E5.mp3', beat: 'soundfonts/percussion-mp3/F5.mp3' } as const
+
+/** Absolute URL of a bundled sound file given relative to the app base (browser only). */
+export function getSoundUrl(path: string): string {
+  return new URL(path, document.baseURI).href
+}
+
+/* ---------- abcjs soundfont (public/soundfonts), no longer used for playback ---------- */
 
 /** Folder of the bundled abcjs-format soundfont, relative to the app base. */
 export const SOUNDFONT_DIR = 'soundfonts/'

@@ -80,10 +80,12 @@ src/
   features/settings/         settings + about (settings)
 public/
   models/basic-pitch/        model.json + weights (engine-audio)
-  soundfonts/acoustic_grand_piano-mp3/*.mp3   abcjs piano samples, flat note names (assets)
-  soundfonts/percussion-mp3/*.mp3             metronome/count-in samples, GM 33/34/37/75/76/77 only (assets)
-                             -> use getSoundFontUrl(), SOUNDFONT_VOLUME_MULTIPLIER, METRONOME_DRUM,
-                                SOUNDFONT_PITCH_RANGE from src/assets/images.ts
+  soundfonts/salamander/*.mp3                 grand piano (Salamander Grand Piano V3, CC BY 3.0): "Piano de cola", default
+  soundfonts/acoustic_grand_piano-mp3/*.mp3   FluidR3 piano, flat note names: "Piano clásico" (Settings.pianoSound)
+  soundfonts/percussion-mp3/*.mp3             metronome/count-in clicks, GM 33/34/37/75/76/77 only
+                             -> the viewer's own renderer (src/features/viewer/synth.ts, mixer.ts, pianoPlan.ts)
+                                plays them with dynamics, release and the sustain pedal; abcjs only DRAWS the score.
+                                Paths: getPianoSampleUrl, CLASSIC_PIANO_DIR, METRONOME_CLICKS in src/assets/images.ts
   images/                    copyright-free photos (assets)
   icons/                     PWA icons + favicon (assets)
 ```
@@ -136,4 +138,4 @@ Never edit files you don't own. If you need a change in someone else's module, w
 - No console errors on load. Graceful errors (toast/inline) for: mic permission denied, unsupported file, decode failure, model load failure, empty transcription (no notes detected).
 - Everything works offline after first load (PWA precache of model, soundfont, images, fonts).
 - Copyright: no real copyrighted song titles/artists/lyrics in demo data or placeholders. Demo pieces are public-domain compositions.
-- Attribution: the piano soundfont (FluidR3_GM by Frank Wen, rendered by midi-js-soundfonts) is CC BY 3.0 — the About screen must credit it (see docs/CREDITS.md). Image credits come from `allImages`.
+- Attribution: both piano sounds are CC BY 3.0 — Salamander Grand Piano V3 (Alexander Holm) and FluidR3_GM (Frank Wen, rendered by midi-js-soundfonts) — and the About screen credits both (texts in `src/features/settings/credits.ts`, details in docs/CREDITS.md). Image credits come from `allImages`.

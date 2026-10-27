@@ -6,9 +6,12 @@ import { TIME_SIGNATURES, allKeys, keyName, pitchName, tonicPc } from '../../eng
 import { Button, Icon, ListRow, RangeSlider, Segmented, SettingsGroup, Slider, Stepper, Toggle, type SegmentedOption } from '../../ui'
 import { formatSemitones, type LoopMode } from './timeline'
 import { SPEED_RANGE, ZOOM_RANGE, type SoundSource, type ViewState } from './viewState'
+import { PIANO_SOUND_OPTIONS, type PianoSound } from './pianoSound'
 
 const NBSP = ' '
 const percent = (v: number) => `${Math.round(v)}${NBSP}%`
+/** Highest "Notas suaves" filter, percent of velocity (soft accompaniment sits around 30). */
+const SOFT_MAX = 30
 
 const LOOPS: SegmentedOption<LoopMode>[] = [
   { value: 'off', label: 'No' },
@@ -59,13 +62,16 @@ function useDraft(value: number): [number, (v: number) => void] {
 export interface PlaybackPanelProps {
   view: ViewState
   setView: (patch: Partial<ViewState>) => void
-  settings: Pick<Settings, 'metronome' | 'countIn' | 'followScore'>
+  settings: Pick<Settings, 'metronome' | 'countIn' | 'followScore' | 'sustainPedal'>
   setSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void
   hasOriginal: boolean
   onLoopMode: (mode: LoopMode) => void
+  /** Piano sound ("Timbre"): grand (default) or classic. */
+  pianoSound: PianoSound
+  onPianoSound: (sound: PianoSound) => void
 }
 
-export function PlaybackPanel({ view, setView, settings, setSetting, hasOriginal, onLoopMode }: PlaybackPanelProps) {
+export function PlaybackPanel({ view, setView, settings, setSetting, hasOriginal, onLoopMode, pianoSound, onPianoSound }: PlaybackPanelProps) {
   const [speed, setSpeed] = useDraft(view.speed)
   const original = hasOriginal && view.sound === 'original'
   return (
@@ -94,11 +100,20 @@ export function PlaybackPanel({ view, setView, settings, setSetting, hasOriginal
           trailing={<Toggle checked={settings.countIn} onChange={(v) => setSetting('countIn', v)} ariaLabel="Cuenta previa" disabled={original} />}
         />
         <ListRow
+          title="Pedal"
+          trailing={<Toggle checked={settings.sustainPedal} onChange={(v) => setSetting('sustainPedal', v)} ariaLabel="Pedal" />}
+        />
+        <ListRow
           title="Seguir partitura"
           trailing={<Toggle checked={settings.followScore} onChange={(v) => setSetting('followScore', v)} ariaLabel="Seguir partitura" />}
         />
       </SettingsGroup>
       <SettingsGroup>
+        <ListRow title="Timbre" disabled={original}>
+          <Below>
+            <Segmented full options={PIANO_SOUND_OPTIONS} value={pianoSound} onChange={onPianoSound} ariaLabel="Timbre" />
+          </Below>
+        </ListRow>
         <ListRow title="Bucle">
           <Below>
             <Segmented full options={LOOPS} value={view.loop} onChange={onLoopMode} ariaLabel="Bucle" />
@@ -211,12 +226,15 @@ export function NotationPanel({ view, setView, naming, setSetting, params, patch
         />
         <ListRow
           title="División de manos"
+          subtitle={params.splitMode === 'fixed' ? undefined : 'Automática'}
           trailing={
             <Stepper
               value={params.splitPoint}
               min={36}
               max={84}
-              onChange={(v) => patch({ splitPoint: v })}
+              // Touching it is a manual override: the hands split at this note from now on
+              // ('Restablecer' brings back the automatic split).
+              onChange={(v) => patch({ splitPoint: v, splitMode: 'fixed' })}
               format={(v) => pitchName(v, names)}
               ariaLabel="División de manos"
             />
@@ -249,8 +267,17 @@ export function FiltersPanel({ params, patch, naming, onReset }: FiltersPanelPro
   return (
     <div className="vw-panel">
       <SettingsGroup>
-        <ListRow title="Ruido" subtitle="Ignora las notas más suaves" trailing={<span className="tabular">{percent(noise)}</span>}>
-          <Slider value={noise} min={0} max={80} step={5} onChange={(v) => patch({ minVelocity: v / 100 })} ariaLabel="Ruido" format={percent} />
+        {/* Velocities are loudness within the piece (soft accompaniment ~0.3): only the softest go. */}
+        <ListRow title="Notas suaves" subtitle="Quita las más suaves" trailing={<span className="tabular">{percent(noise)}</span>}>
+          <Slider
+            value={Math.min(noise, SOFT_MAX)}
+            min={0}
+            max={SOFT_MAX}
+            step={5}
+            onChange={(v) => patch({ minVelocity: v / 100 })}
+            ariaLabel="Notas suaves"
+            format={percent}
+          />
         </ListRow>
         <ListRow title="Duración mínima" trailing={<span className="tabular">{`${minMs}${NBSP}ms`}</span>}>
           <Slider

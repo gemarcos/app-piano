@@ -202,6 +202,8 @@ export interface Settings {
   sustainPedal: boolean
   /** Transcription model: 'auto' = piano model (Onsets and Frames) when the device can run it, else 'fast' (Basic Pitch). */
   transcriptionModel: TranscriptionModel
+  /** Viewer playback timbre: 'grand' (Salamander grand piano) or 'classic' (the FluidR3 piano of the first version). */
+  pianoSound: 'grand' | 'classic'
 }
 
 export type TranscriptionModel = 'auto' | 'piano' | 'fast'
