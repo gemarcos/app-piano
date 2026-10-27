@@ -170,3 +170,30 @@ export function liebestraumStyle(opts: PerformanceOptions = {}): Performance {
     n.role === 'melody' ? 0.74 + rand() * 0.06 : n.role === 'bass' ? 0.5 + rand() * 0.06 : 0.42 + rand() * 0.08,
   )
 }
+
+/**
+ * A slow 4/4 ballad texture in Eb major (three flats), written from scratch: every beat is a
+ * sixteenth-note sextuplet (two sixteenth triplets) arpeggio rising from the bass, under a melody
+ * note held by the right hand, with the pedal down throughout. Truth ticks of the sextuplet notes
+ * are fractional (4 / 6 of a tick apart): the tick grid has no triplets yet.
+ */
+export function sextupletBallad(opts: PerformanceOptions = {}): Performance {
+  const bpm = opts.bpm ?? 60
+  const chords = [
+    ['Eb2', 'Bb2', 'Eb3', 'G3', 'Bb3', 'Eb4'],
+    ['C2', 'G2', 'C3', 'Eb3', 'G3', 'C4'],
+    ['Ab1', 'Eb2', 'Ab2', 'C3', 'Eb3', 'Ab3'],
+    ['Bb1', 'F2', 'Bb2', 'D3', 'F3', 'Bb3'],
+  ]
+  const melody = [['G4', 'Bb4'], ['C5', 'G4'], ['Ab4', 'C5'], ['F4', 'D4']]
+  const written: TruthNote[] = []
+  chords.forEach((chord, bar) => {
+    for (let beat = 0; beat < 4; beat++) {
+      chord.forEach((p, i) => written.push({ pitch: P(p), tick: bar * 16 + beat * 4 + (i * 4) / 6, ticks: 4 / 6, role: i === 0 ? 'bass' : 'accomp' }))
+    }
+    melody[bar].forEach((p, i) => written.push({ pitch: P(p), tick: bar * 16 + i * 8, ticks: 8, role: 'melody' }))
+  })
+  return render(written, bpm, '4/4', chords.length, 0, { pedal: true, rubato: 0.03, ...opts }, (n, rand) =>
+    n.role === 'melody' ? 0.7 + rand() * 0.08 : 0.4 + rand() * 0.1,
+  )
+}

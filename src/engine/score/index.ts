@@ -64,7 +64,7 @@ export type { PedalSeconds } from './pedal'
  * With note names it sets a small %%annotationfont (ABC_ANNOTATION_SIZE pt, ABC_ANNOTATION_FONT).
  * suggestMeasuresPerLine: bars per system for a width (abcjs units ~ CSS px at zoom 1) and density.
  */
-export { scoreToAbc, suggestMeasuresPerLine, ABC_ANNOTATION_SIZE, ABC_ANNOTATION_FONT } from './abc'
+export { scoreToAbc, suggestMeasuresPerLine, pedalThroughout, PEDAL_THROUGHOUT, ABC_ANNOTATION_SIZE, ABC_ANNOTATION_FONT } from './abc'
 export type { AbcOptions } from './abc'
 
 /** MusicXML 4.0 partwise document (one piano part, two staves). */

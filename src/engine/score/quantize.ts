@@ -17,6 +17,8 @@ export interface QNote {
   voice: 1 | 2
   /** Source onset cluster: notes struck together in the audio share it. */
   cluster: number
+  /** Held by the hand over later notes (voices.ts): keeps its length under the pedal. */
+  held?: boolean
 }
 
 export interface Quantized {

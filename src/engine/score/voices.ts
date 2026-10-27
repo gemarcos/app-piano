@@ -40,7 +40,10 @@ function median(xs: Float64Array, n: number): number {
  * tells whether the sustain pedal is down over a tick range.
  */
 export function splitVoices(notes: QNote[], measureTicks: number, pedalled: (from: number, to: number) => boolean = () => false): void {
-  for (const n of notes) n.voice = 1
+  for (const n of notes) {
+    n.voice = 1
+    n.held = false
+  }
   if (notes.length < 3) return
   const sustained = new Uint8Array(notes.length)
   let any = false
@@ -112,5 +115,57 @@ export function splitVoices(notes: QNote[], measureTicks: number, pedalled: (fro
     if (!held || !moving) return
     const heldUp = sums[r * 4] / held >= sums[r * 4 + 2] / moving
     n.voice = (sustained[i] ? heldUp : !heldUp) ? 1 : 2
+    if (sustained[i]) n.held = true
   })
+}
+
+/**
+ * Notated (articulated) lengths under the pedal: the pedal makes every note ring, but a pianist
+ * reads each note only as long as the hand plays it: up to the next note of its hand, and no
+ * further than the next note of either hand or the end of its beat (an arpeggio crossing the hands
+ * becomes running eighths or sixteenths, not a chain of ties). Notes the hand holds keep their
+ * length: the held voice of a two-voice staff, and melody notes clearly louder (1.15x) than what
+ * sounds with them. Notes outside the pedal keep theirs; playback keeps the sustain (Score.pedals).
+ */
+export function articulate(hand: QNote[], all: QNote[], pedalled: (from: number, to: number) => boolean, beatTicks: number): void {
+  const onsets = (list: QNote[]) => [...new Set(list.map((n) => n.on))].sort((a, b) => a - b)
+  const own = onsets(hand)
+  const any = onsets(all)
+  const sorted = [...all].sort((a, b) => a.on - b.on)
+  const after = (list: number[], t: number) => {
+    let lo = 0
+    let hi = list.length
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1
+      if (list[mid] <= t) lo = mid + 1
+      else hi = mid
+    }
+    return lo < list.length ? list[lo] : Infinity
+  }
+  for (const n of hand) {
+    if (n.held) continue
+    const nextOwn = after(own, n.on)
+    const limit = Math.min(nextOwn, Math.max(after(any, n.on), (Math.floor(n.on / beatTicks) + 1) * beatTicks))
+    if (limit >= n.off || !pedalled(n.on, n.on + 1)) continue
+    // A melody note louder than the notes sounding with it is held by the hand.
+    const around: number[] = []
+    let lo = 0
+    let hi = sorted.length
+    const from = n.on - 4 * beatTicks
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1
+      if (sorted[mid].on < from) lo = mid + 1
+      else hi = mid
+    }
+    for (let j = lo; j < sorted.length && sorted[j].on < n.off && around.length < 64; j++) {
+      const m = sorted[j]
+      if (m !== n && m.off > n.on) around.push(m.vel)
+    }
+    around.sort((a, b) => a - b)
+    if (around.length && n.vel >= 1.15 * around[(around.length - 1) >> 1]) {
+      if (nextOwn < n.off) n.off = nextOwn
+      continue
+    }
+    n.off = Math.max(n.on + 1, limit)
+  }
 }

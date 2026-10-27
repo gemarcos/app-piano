@@ -23,7 +23,7 @@ import { inferPedalSeconds, pedalTicks, type PedalSeconds } from './pedal'
 import { filterNotes, quantizeNotes, sortByOnset, type QNote, type SourceNote } from './quantize'
 import { simplify } from './simplify'
 import { createTimeMap } from './timemap'
-import { splitVoices } from './voices'
+import { articulate, splitVoices } from './voices'
 
 const DIFFICULTIES: readonly Difficulty[] = ['original', 'intermedio', 'facil']
 const finite = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x)
@@ -332,6 +332,7 @@ export function buildScore(notes: NoteEvent[], params: EngineParams, analysis: A
     const simple = simplify(sorted, { difficulty: p.difficulty, maxPolyphony: p.maxPolyphony, beatTicks: beat, measureTicks: tpm })
     const hands = [simple.filter((n) => n.right), simple.filter((n) => !n.right)]
     if (p.difficulty === 'original') for (const h of hands) splitVoices(h, tpm, pedalled)
+    if (p.difficulty !== 'facil') for (const h of hands) articulate(h, simple, pedalled, beat)
     segs = hands.map((h) => [chordStream(h.filter((n) => n.voice !== 2), grid, tpm), chordStream(h.filter((n) => n.voice === 2), grid, tpm)])
     for (const voices of segs) cutUnisons(voices)
     clefs = [chooseClef(hands[0].map((n) => n.pitch), 'treble'), chooseClef(hands[1].map((n) => n.pitch), 'bass')]

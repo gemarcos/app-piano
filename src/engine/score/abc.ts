@@ -221,14 +221,29 @@ function pedalMarks(score: Score, index: number, lead: number): [number, string]
     list.push(text)
     marks.set(rel, list)
   }
-  for (const span of score.pedals ?? []) {
-    if (!(span.end > span.start)) continue
-    add(span.end, '*')
-    add(span.start, 'Ped.')
+  const spans = (score.pedals ?? []).filter((s) => s.end > s.start)
+  if (pedalThroughout(score)) {
+    // Pedal through most of the piece: one "con Ped." where it starts, as published scores do.
+    if (spans.length) add(spans[0].start, 'con Ped.')
+  } else {
+    for (const span of spans) {
+      add(span.end, '*')
+      add(span.start, 'Ped.')
+    }
   }
   return [...marks.entries()]
     .sort((a, b) => a[0] - b[0])
     .map(([t, texts]) => [t, texts.includes('*') && texts.includes('Ped.') ? '* Ped.' : texts[0]])
+}
+
+/** Share of the score under the pedal from which a single "con Ped." replaces the per-span marks. */
+export const PEDAL_THROUGHOUT = 0.6
+
+/** True when the pedal covers most of the score (marks collapse to one "con Ped."). */
+export function pedalThroughout(score: Score): boolean {
+  const total = Math.max(1, score.measureCount) * score.ticksPerMeasure
+  const covered = (score.pedals ?? []).reduce((sum, s) => sum + Math.max(0, s.end - s.start), 0)
+  return covered >= PEDAL_THROUGHOUT * total
 }
 
 /** The invisible PED voice of a measure: rests carrying "Ped." / "*" annotations below the staff. */

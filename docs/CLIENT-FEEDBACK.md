@@ -4,6 +4,15 @@ Feedback from the client, relayed during development. Newest first. Every agent:
 
 <!-- entries: "## YYYY-MM-DD HH:MM — area" followed by the request -->
 
+## 2026-10-27 21:15 — score: do not notate the pedal sustain; link capture hears nothing
+
+1. **Score (score-accuracy):** the client dislikes that "everything looks connected": notes held by the sustain pedal are written long and tied across the bar (the piano model's durations include the pedal). Notate notes as played (articulated durations, as a pianist reads them), and show the pedal only when a whole section is played with it (one "con pedal" / single Ped. indication, like "with pedal" in published scores), not a mark per span. Playback keeps the pedal sound. The client's comparison (a copyrighted song: never copy its notes; recreate the texture only): 4/4 in 3 flats, 16th-note sextuplet arpeggios (two 16th triplets per beat) under a held melody note, pedal throughout. The app got the key right but read 194 bpm and wrote long tied notes with no triplets. Triplets are now required (second client example after the 16:35 ballad pickup).
+2. **Link capture (share):** on the link screen the option to capture the audio appears, but the app receives no sound.
+   Clarified by the client right after: it records their microphone, but it should capture the video's own audio («Acabo de ver que está pillando mi microfono pero tiene que pillar lo del video»). Plan: on a computer, direct capture of Pauta's own tab (the embedded player) becomes the primary action and the microphone a fallback; on a phone browsers cannot capture an embedded player's audio, so the microphone stays the live option (volume up), and the exact-audio route is sharing a saved video file to Pauta.
+
+Client's words:
+> «No me gusta que parece que todo está conectado. Es verdad que eso hace que de verdad se note el sostenido pero me gustaria que no se muestre ese sostenido, a no ser que haya una seccion entera tocada con eso. Te muestro una comparacion del primer compas hecho por la aplicacion y el compás del video para que lo compares. Por otro lado, parece que es incapaz de hacer lo de escuchar el audio al compartir un enlace. Me aparece la opción de pillar el audio pero la aplicacion/pagina no está recibiendo ningún sonido»
+
 ## 2026-10-27 19:55 — real recording: Liebestraum still read badly; fewer agents
 
 **Status: notes DONE (piano-model, commit 0cd7524): F1 on this recording ±50 ms 0.534 -> 0.666, ±100 ms 0.613 -> 0.790, low-register recall 63 % -> 75 %; aligned reference in test/fixtures/local/liebestraum-abydos.json (local only). Rhythm: score-accuracy (resumed) in progress.**

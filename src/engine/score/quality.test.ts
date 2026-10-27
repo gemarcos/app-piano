@@ -26,7 +26,7 @@ import {
   type EngineParams,
 } from './index'
 import { beatPositions } from './beats'
-import { balladStyle, liebestraumStyle, type Performance } from './performances'
+import { balladStyle, liebestraumStyle, sextupletBallad, type Performance } from './performances'
 import { knownAnalysis, plainParams, staffNotes, tickNote } from './test-helpers'
 
 const settings = { quantize: 16 as const, splitPoint: 60, defaultDifficulty: 'original' as const }
@@ -120,25 +120,40 @@ describe('sustain pedal', () => {
     expect(build(twoVoices).pedals).toBeUndefined()
   })
 
-  it('writes Ped. / * marks on an invisible ABC voice only on request, which abcjs parses and keeps silent', () => {
+  it('writes pedal marks on an invisible ABC voice only on request, which abcjs parses and keeps silent', () => {
+    // Pedal throughout: one "con Ped." where it starts (no Ped./* pair per span).
     const score = build(pedalled(4))
     expect(scoreToAbc(score)).not.toContain('PED')
     for (const noteNaming of ['none', 'latin'] as const) {
       const abc = scoreToAbc(score, { pedalMarks: true, noteNaming })
       expect(abc).toContain('%%score {RH | (LH PED)}')
       expect(abc).toContain('V:PED clef=bass')
-      const ped = abc.split('\n').filter((l) => l.startsWith('[V:PED]')).join(' ')
-      expect(ped.match(/"_Ped\."/g)).toHaveLength(1)
-      expect(ped.match(/"_\* Ped\."/g)).toHaveLength(3)
-      expect(ped.match(/"_\*"/g)).toHaveLength(1)
-      if (noteNaming === 'latin') expect(ped).toContain('"_ ""_Ped."')
+      const ped = abc.split(String.fromCharCode(10)).filter((l) => l.startsWith('[V:PED]')).join(' ')
+      expect(ped.match(/"_con Ped\."/g)).toHaveLength(1)
+      expect(ped).not.toContain('"_*')
+      if (noteNaming === 'latin') expect(ped).toContain('"_ ""_con Ped."')
       const { warnings, staves } = abcjsStaves(abc)
       expect(warnings).toEqual([])
       expect(staves.get('RH')).toEqual(staffNotes(score, 0))
       expect(staves.get('LH')).toEqual(staffNotes(score, 1))
     }
-    // One hand shown: the marks go under that staff.
     expect(scoreToAbc(score, { pedalMarks: true, hands: 'right' })).toContain('%%score (RH PED)')
+    // Local pedalling (one bar of four): a Ped. / * pair for that span.
+    const local = [...pedalled(1), ...pedalled(4, false).filter((x) => x.start >= 2)]
+    const ls = build(local)
+    expect(ls.pedals).toEqual([{ start: 0, end: 16 }])
+    const ped = scoreToAbc(ls, { pedalMarks: true }).split(String.fromCharCode(10)).filter((l) => l.startsWith('[V:PED]')).join(' ')
+    expect(ped).toContain('"_Ped."')
+    expect(ped).toContain('"_*"')
+    expect(ped).not.toContain('con Ped.')
+  })
+
+  it('notates pedalled notes as played: arpeggio notes to the next note, no ties', () => {
+    const score = build(pedalled(4))
+    const events = score.staves.flatMap((s) => staffVoices(s).flatMap((v) => v.flatMap((m) => m.events)))
+    expect(events.some((e) => e.tie)).toBe(false)
+    for (const x of scoreNotes(score)) expect(x.ticks).toBeLessThanOrEqual(4)
+    expect(score.pedals).toHaveLength(4)
   })
 
   it('exports MusicXML pedal directions and MIDI sustain (CC64) on both hands', () => {
@@ -412,4 +427,19 @@ describe.skipIf(realFixtures.length === 0)('real piano fixtures (ground truth as
       }
     })
   }
+})
+
+describe('sixteenth-note sextuplet arpeggios under a held melody (Eb major, pedal)', () => {
+  it('finds the key, writes every note once, pedal throughout as one mark, few ties', () => {
+    const perf = sextupletBallad({ seed: 2 })
+    const a = analyzeNotes(perf.notes)
+    expect(a.key).toEqual(keyFromFifths(-3, 'major'))
+    const score = buildScore(perf.notes, defaultParams(a, settings), a)
+    expect(scoreNotes(score)).toHaveLength(perf.truth.length)
+    const abc = scoreToAbc(score, { pedalMarks: true })
+    expect(abc.match(/"_con Ped\./g)).toHaveLength(1)
+    const events = score.staves.flatMap((s) => staffVoices(s).flatMap((v) => v.flatMap((m) => m.events)))
+    expect(events.filter((e) => e.tie).length / scoreNotes(score).length).toBeLessThan(0.15)
+  })
+  it.todo('reads 60 bpm 4/4 and writes each beat as two sixteenth triplets (needs TICKS_PER_QUARTER 12)')
 })
