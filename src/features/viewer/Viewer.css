@@ -1,0 +1,80 @@
+/* Owner: viewer. Layout of the viewer screen; components come from the UI kit. */
+
+.vw-page.ui-page {
+  padding-bottom: 0;
+}
+
+/* The paper is a little wider than the usual gutter: notation needs the room. */
+.vw-body {
+  padding: var(--s-2) var(--s-3) var(--s-2);
+}
+
+/* Meta line under the title: quiet, tappable (opens the notation settings). */
+.vw-meta {
+  position: relative;
+  max-width: 100%;
+  padding: 0;
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  touch-action: manipulation;
+  transition: color var(--dur-fast) var(--ease);
+}
+
+/* 44 px tall hit area without moving the text. */
+.vw-meta::before {
+  content: '';
+  position: absolute;
+  inset: -12px -8px;
+}
+
+.vw-meta:active {
+  color: var(--ink-2);
+}
+
+@media (hover: hover) {
+  .vw-meta:hover {
+    color: var(--ink-2);
+  }
+}
+
+.vw-topbar .ui-topbar__subtitle {
+  overflow: visible;
+}
+
+/* Favorite: the heart fills when the item is a favorite. */
+.vw-fav.is-fav {
+  color: var(--accent);
+}
+
+.vw-fav.is-fav .ui-icon path {
+  fill: currentColor;
+}
+
+/* No notes left after the filters. */
+.vw-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-14) var(--s-4);
+  text-align: center;
+}
+
+.vw-empty__text {
+  font-size: var(--fs-body);
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+/* Loading: a soft paper placeholder. */
+.vw-paper-skeleton {
+  height: 420px;
+  border-radius: var(--r-lg);
+  background: var(--score-paper);
+  box-shadow: var(--shadow-sm);
+  opacity: 0.6;
+}

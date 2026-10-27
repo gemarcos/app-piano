@@ -1,0 +1,66 @@
+/* Owner: viewer. "Exportar PDF": only the print sheet is printed, black ink on white paper,
+   whatever the app theme (print is outside the theme, so plain keywords are used here). */
+
+/* Laid out off-screen (not display:none): abcjs measures the systems with getBBox while rendering. */
+.vw-print {
+  position: fixed;
+  top: 0;
+  left: -20000px;
+  width: 180mm;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
+
+  html,
+  body {
+    background: white !important;
+    background-image: none !important;
+    color: black !important;
+  }
+
+  body > :not(.vw-print) {
+    display: none !important;
+  }
+
+  .vw-print {
+    position: static;
+    width: auto;
+    visibility: visible;
+    color: black;
+    font-family: var(--font);
+  }
+
+  .vw-print header {
+    margin-bottom: 8mm;
+    text-align: center;
+  }
+
+  .vw-print h1 {
+    margin: 0;
+    font-size: 20pt;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .vw-print header p {
+    margin: 2mm 0 0;
+    font-size: 11pt;
+    font-weight: 500;
+  }
+
+  .vw-print svg {
+    display: block;
+  }
+
+  .vw-print .abcjs-container,
+  .vw-print svg {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

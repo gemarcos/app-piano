@@ -1,0 +1,73 @@
+/* Owner: viewer. Score paper: a calm white card (dark paper in dark mode) holding the abcjs SVG. */
+
+.vw-paper {
+  position: relative;
+  border-radius: var(--r-lg);
+  background: var(--score-paper);
+  color: var(--score-ink);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Padding lives here: abcjs 'resize' turns its own target into an aspect-ratio box. */
+.vw-paper__inner {
+  min-height: 240px;
+  padding: var(--s-4) 6px var(--s-2) 10px;
+}
+
+.vw-paper__abc {
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease);
+}
+
+.vw-paper.is-ready .vw-paper__abc {
+  opacity: 1;
+}
+
+.vw-paper svg {
+  display: block;
+  overflow: visible;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Note names one step quieter than the notes (legible in both themes). */
+.vw-paper .abcjs-annotation {
+  fill: var(--ink-2);
+}
+
+/* Playing notes (and their names) light up softly. */
+.vw-paper .abcjs-note > * {
+  transition: fill 90ms linear;
+}
+
+.vw-paper .abcjs-note.vw-on > *,
+.vw-paper .abcjs-note.vw-on .abcjs-annotation {
+  fill: var(--score-highlight);
+}
+
+/* The beat that is playing sits on a soft accent band (behind the notes). */
+.vw-paper .vw-cursor {
+  fill: var(--accent-soft);
+  stroke: none;
+}
+
+/* A-B loop: the selected measures on a quiet neutral band. */
+.vw-paper .vw-band {
+  fill: var(--fill);
+  stroke: none;
+}
+
+.vw-paper__message {
+  padding: var(--s-14) var(--s-4);
+  text-align: center;
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+}
+
+/* Taps on notes seek: show it is interactive on pointer devices. */
+@media (hover: hover) {
+  .vw-paper .abcjs-note,
+  .vw-paper .abcjs-rest {
+    cursor: pointer;
+  }
+}

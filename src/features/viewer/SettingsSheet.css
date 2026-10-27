@@ -1,0 +1,90 @@
+/* Owner: viewer. Settings sheet: constant height (tabs do not make it jump), sticky tabs, light scrim. */
+
+.vw-sheet.ui-sheet {
+  height: min(74dvh, 660px);
+}
+
+/* A lighter scrim than other sheets: the score stays visible while it re-renders. */
+.ui-sheet-root:has(> .vw-sheet) > .ui-sheet-scrim {
+  background: color-mix(in srgb, var(--scrim) 45%, transparent);
+}
+
+.vw-sheet__tabs {
+  position: sticky;
+  top: calc(var(--s-2) * -1);
+  z-index: 2;
+  margin: calc(var(--s-2) * -1) calc(var(--gutter) * -1) 0;
+  padding: var(--s-2) var(--gutter) var(--s-4);
+  background: var(--surface);
+}
+
+.vw-sheet__tabs .ui-seg__item {
+  padding-inline: 6px;
+}
+
+.vw-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.vw-panel .ui-group + .ui-group {
+  margin-top: 0;
+}
+
+.vw-below {
+  container-type: inline-size;
+  padding: var(--s-2) 0 var(--s-3);
+}
+
+.vw-below .ui-seg__item {
+  padding-inline: 6px;
+}
+
+@container (max-width: 300px) {
+  .vw-below .ui-seg__item {
+    font-size: var(--fs-caption);
+  }
+}
+
+.vw-panel__reset {
+  display: flex;
+  justify-content: center;
+  padding: var(--s-2) 0 var(--s-4);
+}
+
+/* Native key picker styled as a quiet pill (the OS list is the best picker on phones). */
+.vw-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  max-width: 190px;
+}
+
+.vw-select select {
+  height: 36px;
+  max-width: 100%;
+  padding: 0 32px 0 14px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  color: var(--ink);
+  font-size: var(--fs-caption);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.vw-select select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.vw-select__icon {
+  position: absolute;
+  right: 10px;
+  color: var(--ink-3);
+  pointer-events: none;
+}
