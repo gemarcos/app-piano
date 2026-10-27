@@ -1,0 +1,122 @@
+/* Owner: capture. Inicio: wordmark, the vinyl hero, two quiet actions, recent covers. */
+
+/* A wordmark rather than a page title: smaller than the other tabs' titles, so the vinyl leads. */
+.home-topbar .ui-topbar__title {
+  font-size: 26px;
+  letter-spacing: -0.035em;
+}
+
+.home-hero {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-block: var(--s-6) var(--s-8);
+}
+
+.home-hero__vinyl {
+  display: grid;
+  place-items: center;
+}
+
+/*
+ * Short phones cannot show the hero and the recent covers together without the floating tab bar covering
+ * the cards: the hero fills the first screen and only the "Recientes" title shows, just above the bar
+ * (72px large top bar; the bar floats 14px above the safe area; title + gap before the cards = 48px).
+ */
+@media (max-height: 779px) {
+  .home-hero.has-recents {
+    min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 72px - var(--tabbar-h) - 14px - 48px);
+    padding-block: var(--s-4);
+  }
+}
+
+.home-hero__hint {
+  margin-top: var(--s-2);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.home-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s-3);
+  margin-top: var(--s-8);
+}
+
+/* ---------- Recientes ---------- */
+
+.home-recents__row {
+  display: flex;
+  gap: var(--s-3);
+  margin-inline: calc(var(--gutter) * -1);
+  padding: var(--s-1) var(--gutter) var(--s-3);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--gutter);
+  scrollbar-width: none;
+}
+
+.home-recents__row::-webkit-scrollbar {
+  display: none;
+}
+
+.home-recents__row > li {
+  flex: none;
+  scroll-snap-align: start;
+}
+
+.home-card {
+  position: relative;
+  display: block;
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+  -webkit-touch-callout: none;
+}
+
+.home-card:focus-visible {
+  outline-offset: 3px;
+}
+
+.home-card__caption {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 10px 8px;
+  border-radius: var(--r-sm);
+  background: var(--surface-glass);
+  -webkit-backdrop-filter: saturate(1.4) blur(16px);
+  backdrop-filter: saturate(1.4) blur(16px);
+  box-shadow: inset 0 0 0 1px var(--glass-border);
+}
+
+.home-card__title,
+.home-card__key {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-card__title {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.home-card__key {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink-2);
+}

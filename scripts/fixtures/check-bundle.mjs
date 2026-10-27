@@ -55,17 +55,19 @@ const rows = files
   .map((f) => {
     const src = readFileSync(f, 'utf8')
     const spawns = /new Worker\(new URL\((?:new URL\()?[`"']([^`"']+)[`"']/.exec(src)?.[1]
-    return { name: path.relative(OUT, f).split(path.sep).join('/'), kib: statSync(f).size / 1024, found: MARKERS.filter((m) => src.includes(m)), spawns }
+    return { name: path.relative(OUT, f).split(path.sep).join('/'), kib: statSync(f).size / 1024, found: MARKERS.filter((m) => src.includes(m)), spawns, src }
   })
 console.log(`\nbuild: ${OUT}\nchunk                                       KiB  tfjs/basic-pitch code`)
 for (const r of rows) console.log(r.name.padEnd(40), r.kib.toFixed(1).padStart(8), ' ', r.found.length ? r.found.join(', ') : '-', r.spawns ? `  [spawns ${r.spawns}]` : '')
 const workers = rows.filter((r) => /(^|\/)worker-[^/]+\.js$/.test(r.name))
 const probeChunk = rows.find((r) => /(^|\/)probe-[^/]+\.js$/.test(r.name))
+// Once the app imports the engine too, Rolldown moves the client into a shared chunk that the probe imports.
+const spawner = [probeChunk, ...rows.filter((r) => r.spawns && probeChunk?.src.includes(path.posix.basename(r.name)))].find((r) => r?.spawns)
 const checks = [
   ['worker emitted as its own chunk', workers.length === 1],
   ['worker chunk holds tfjs + basic-pitch', workers.length === 1 && workers[0].found.length === MARKERS.length],
   ['no other chunk (app, engine client, PWA) contains tfjs / basic-pitch code', rows.filter((r) => !workers.includes(r)).every((r) => !r.found.length)],
-  ['the engine client spawns that worker chunk', Boolean(probeChunk?.spawns && workers[0]?.name.endsWith(probeChunk.spawns))],
+  ['the engine client spawns that worker chunk', Boolean(spawner && workers[0]?.name.endsWith(spawner.spawns))],
 ]
 console.log('')
 for (const [label, ok] of checks) console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}`)

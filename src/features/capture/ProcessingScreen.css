@@ -1,0 +1,58 @@
+/* Owner: capture. Procesando: vinyl inside the progress ring, percentage and a one-word stage. */
+
+.cap-proc__stage {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-8);
+  padding-bottom: calc(var(--s-18) + var(--s-6));
+}
+
+.cap-proc__status,
+.cap-proc__message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 96px;
+  text-align: center;
+}
+
+.cap-proc__status {
+  gap: var(--s-2);
+}
+
+.cap-proc__percent {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+
+.cap-proc__label {
+  display: block;
+  min-height: 1.45em;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.cap-proc__label > span {
+  display: inline-block;
+}
+
+.cap-proc__message {
+  justify-content: center;
+  gap: var(--s-5);
+  max-width: 300px;
+}
+
+.cap-proc__message p {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--ink-2);
+  text-wrap: balance;
+}

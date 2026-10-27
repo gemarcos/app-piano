@@ -1,7 +1,7 @@
 {
   "project": "Pauta",
-  "nextBoard": 6,
-  "nextMotion": 5,
+  "nextBoard": 7,
+  "nextMotion": 6,
   "seen": {
     "assets-board-dark.png": 1793101996952,
     "assets-board.png": 1793101996952,
@@ -52,7 +52,38 @@
     "library-list-dark.png": 1793109714366,
     "library-list.png": 1793109707270,
     "library-no-results-dark.png": 1793109769980,
-    "library-no-results.png": 1793109765038
+    "library-no-results.png": 1793109765038,
+    "viewer-acciones-dark.png": 1793110370039,
+    "viewer-acciones.png": 1793110344710,
+    "viewer-ajustes-filtros-dark.png": 1793110368478,
+    "viewer-ajustes-filtros.png": 1793110343146,
+    "viewer-ajustes-partitura-dark.png": 1793110366338,
+    "viewer-ajustes-partitura.png": 1793110340981,
+    "viewer-ajustes-reproduccion-dark.png": 1793110364173,
+    "viewer-ajustes-reproduccion.png": 1793110338796,
+    "viewer-bucle-ab-dark.png": 1793110378682,
+    "viewer-bucle-ab.png": 1793110353328,
+    "viewer-pdf.png": 1793110356874,
+    "viewer-playing-dark.png": 1793110373545,
+    "viewer-playing.png": 1793110348234,
+    "viewer-top-dark.png": 1793110362632,
+    "viewer-top.png": 1793110337249,
+    "capture-home-dark.png": 1793110240192,
+    "capture-home-empty-dark.png": 1793110230574,
+    "capture-home-empty.png": 1793110226536,
+    "capture-home.png": 1793110235357,
+    "capture-import-dark.png": 1793110279327,
+    "capture-import-video-dark.png": 1793110289174,
+    "capture-import-video.png": 1793110283952,
+    "capture-import.png": 1793110274310,
+    "capture-processing-dark.png": 1793110319144,
+    "capture-processing-empty-dark.png": 1793110344830,
+    "capture-processing-empty.png": 1793110331571,
+    "capture-processing.png": 1793110304174,
+    "capture-record-dark.png": 1793110257828,
+    "capture-record-denied-dark.png": 1793110268418,
+    "capture-record-denied.png": 1793110263051,
+    "capture-record.png": 1793110248968
   },
   "reportsSeen": {
     "assets.json": 1793101996926,
@@ -60,9 +91,10 @@
     "engine-audio.json": 1793105109490,
     "settings.json": 1793105187968,
     "engine-score.json": 1793106375753,
-    "library.json": 1793110000376
+    "library.json": 1793110000376,
+    "capture.json": 1793110652228
   },
-  "journalSeen": 10,
+  "journalSeen": 11,
   "deliveries": [
     {
       "when": "earlier",
@@ -123,9 +155,26 @@
         "library-actions-dark.png",
         "library-empty(-dark).png"
       ]
+    },
+    {
+      "when": "2026-10-27 15:14",
+      "files": [
+        "docs/preview/06-avance.jpg",
+        "docs/preview/motion-05-visor.mp4",
+        "docs/preview/motion-05-visor-dark.mp4"
+      ],
+      "caption": "Avance 6: ya está el visor de partituras, que sigue la música al reproducir, con sus ajustes, filtros y exportación a PDF, en claro y oscuro; vídeos de abrir una partitura y darle al play.",
+      "sources": [
+        "viewer-playing(-dark).png",
+        "viewer-ajustes-reproduccion.png",
+        "viewer-ajustes-partitura-dark.png",
+        "viewer-ajustes-filtros.png",
+        "viewer-acciones-dark.png",
+        "viewer-pdf.png"
+      ]
     }
   ],
-  "updatedAt": "2026-10-27T14:07:05.442Z",
+  "updatedAt": "2026-10-27T14:18:03.107Z",
   "shown": [
     "audio-calibration-stat",
     "engine-score-demos",
@@ -139,8 +188,16 @@
     "settings-about",
     "settings-about-transition-video",
     "settings-main",
-    "theme-switch-video"
+    "theme-switch-video",
+    "viewer-actions",
+    "viewer-open-play-video",
+    "viewer-pdf",
+    "viewer-playing",
+    "viewer-settings-tabs"
   ],
   "notes": "Videos: record from a production build of the current code in the liaison temp dist (node node_modules/vite/bin/vite.js build --outDir <temp>/dist) served by preview.mjs on 5190; the dev server drops frames on page transitions. Next ideas: library/viewer/capture screens as they appear; sheets and cover->viewer transitions as videos.",
-  "tooling": "Liaison temp scripts: scan.mjs, diff.py, board.mjs (spec JSON), rec.mjs (scenario JSON), preview.mjs (vite preview of temp build on 5190), strip.py."
+  "tooling": "Liaison temp scripts: scan.mjs, diff.py, board.mjs (spec JSON), rec.mjs (scenario JSON), preview.mjs (vite preview of temp build on 5190), strip.py.",
+  "pending": {
+    "07-avance": "Composed (not delivered yet) from capture-home(-dark), capture-record(-dark), capture-import-video, capture-processing-dark: spec at C:/Users/Marcos/AppData/Local/Temp/pauta/liaison/spec-7.json, board at .../liaison/07-avance.jpg; videos .../liaison/motion-06-escuchar(.mp4|-dark.mp4) (Home -> tap vinyl -> recording). Re-render if capture-* screenshots changed."
+  }
 }

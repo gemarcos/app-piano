@@ -1,0 +1,110 @@
+/* Owner: capture. Escuchar: vinyl hero, live bars, timer, one round stop control. */
+
+.cap-record__stage {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-6);
+  padding-block: var(--s-4) var(--s-6);
+}
+
+.cap-record__vinyl {
+  display: grid;
+  place-items: center;
+  will-change: transform;
+}
+
+.cap-record__meter,
+.cap-record__message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 112px;
+}
+
+.cap-record__meter {
+  gap: var(--s-3);
+}
+
+.cap-record__bars {
+  color: var(--ink-2);
+}
+
+.cap-record__time {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  line-height: 1;
+}
+
+.cap-record__elapsed {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.cap-record__max {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+/* Recording indicator: a quiet dot that only breathes while the microphone is open. */
+.cap-record__dot {
+  align-self: center;
+  width: 8px;
+  height: 8px;
+  margin-right: 2px;
+  border-radius: 50%;
+  background: var(--line-strong);
+  transition: background-color var(--dur) var(--ease);
+}
+
+.cap-record__dot.is-on {
+  background: var(--recording);
+  animation: cap-breathe 1.6s var(--ease) infinite;
+}
+
+@keyframes cap-breathe {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+:root[data-reduce-motion] .cap-record__dot.is-on {
+  animation: none;
+}
+
+.cap-record__message {
+  justify-content: center;
+  gap: var(--s-5);
+  max-width: 300px;
+  text-align: center;
+}
+
+.cap-record__message p {
+  font-size: var(--fs-body);
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--ink-2);
+  text-wrap: balance;
+}
+
+.cap-record__controls {
+  display: flex;
+  justify-content: center;
+  min-height: 76px;
+  padding-bottom: var(--s-6);
+}
+
+.cap-record__button {
+  color: var(--ink);
+}
+
+/* The Untitled "Stop" glyph is an outlined rounded square: fill it for a solid stop sign. */
+.cap-record__button.is-stop .ui-icon path {
+  fill: currentColor;
+}
