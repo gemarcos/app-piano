@@ -7,6 +7,9 @@
   min-height: 100vh;
   min-height: 100dvh;
   margin: 0 auto;
+  /* Push transitions slide pages sideways: without clipping, mobile browsers zoom the page out to fit the
+     overflow for the length of the slide. clip (unlike hidden) keeps sticky bars working. */
+  overflow-x: clip;
 }
 
 @media (min-width: 520px) {

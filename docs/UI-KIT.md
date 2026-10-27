@@ -74,7 +74,7 @@ Tokens: `--s-1` 4 · `--s-2` 8 · `--s-3` 12 · `--s-4` 16 · `--s-5` 20 · `--s
 | export | usage |
 |---|---|
 | `Button({ children, variant: 'ink'\|'accent'\|'secondary'\|'ghost'\|'danger' = 'ink', size: 'sm'\|'md'\|'lg' = 'md', icon?, iconRight?, full?, loading?, disabled?, onClick?, type?, ariaLabel?, ref? })` | `<Button variant="accent" size="lg" full icon={Microphone01}>Escuchar</Button>`. Heights 36 / 44 / 56. `ink` = black pill (main action), `accent` = the one primary action, `secondary` = grey pill. `loading` keeps the width and shows a spinner. |
-| `IconButton({ icon, label, onClick?, variant: 'ghost'\|'surface'\|'neu'\|'ink'\|'accent' = 'ghost', size: 'sm'\|'md'\|'lg'\|'xl' = 'md', active?, pressed?, disabled?, iconSize?, ref? })` | `<IconButton icon={Share07} label="Compartir" onClick={share} />`. Sizes 36 / 44 / 56 / 76 (sm keeps a 44px hit area). `neu` = soft neumorphic hardware control (record, play, transport). `active` = accent tint (or pressed-in for neu); `pressed` sets `aria-pressed` for toggles. |
+| `IconButton({ icon, label, onClick?, variant: 'ghost'\|'surface'\|'neu'\|'ink'\|'accent' = 'ghost', size: 'sm'\|'md'\|'lg'\|'xl' = 'md', active?, pressed?, loading?, disabled?, iconSize?, ref? })` | `<IconButton icon={Share07} label="Compartir" onClick={share} />`. Sizes 36 / 44 / 56 / 76 (sm keeps a 44px hit area). `neu` = soft neumorphic hardware control (record, play, transport). `active` = accent tint (or pressed-in for neu); `pressed` sets `aria-pressed` for toggles. `loading` = spinner in place of the icon, inert meanwhile (`aria-busy`). |
 | `PauseIcon` | `<IconButton icon={playing ? PauseIcon : Play} label={playing ? 'Pausar' : 'Reproducir'} variant="neu" size="xl" />` |
 
 ## Surfaces & lists
@@ -82,7 +82,7 @@ Tokens: `--s-1` 4 · `--s-2` 8 · `--s-3` 12 · `--s-4` 16 · `--s-5` 20 · `--s
 | export | usage |
 |---|---|
 | `Card({ children, padding: 'none'\|'sm'\|'md'\|'lg' = 'md', interactive?, onClick?, glass?, ariaLabel?, className?, style?, ...pressHandlers })` | `<Card onClick={open} ariaLabel={title}>…</Card>`. With `onClick` it is a keyboard-accessible button with press scale. `glass` = frosted (over images). Accepts `useLongPress` handlers. |
-| `ListRow({ leading?, title, subtitle?, trailing?, onClick?, chevron?, tone?: 'danger', disabled?, current?, ariaLabel?, children?, ...pressHandlers })` | `<ListRow leading={<Cover seed={id} src={src} size={48} />} title="Minueto en Sol" subtitle="Sol mayor · 3/4" trailing="1:12" onClick={open} />`. Becomes a `<button>` with `onClick`; never put a Toggle/Button in `trailing` of a clickable row. `children` = full-width content under the title line (sliders). |
+| `ListRow({ leading?, title, subtitle?, trailing?, onClick?, chevron?, tone?: 'danger', disabled?, current?, wrap?, ariaLabel?, children?, ...pressHandlers })` | `<ListRow leading={<Cover seed={id} src={src} size={48} />} title="Minueto en Sol" subtitle="Sol mayor · 3/4" trailing="1:12" onClick={open} />`. Becomes a `<button>` with `onClick`; never put a Toggle/Button in `trailing` of a clickable row. `children` = full-width content under the title line (sliders). `wrap` lets title and subtitle take more lines instead of an ellipsis (narrow phones). |
 | `SettingsGroup({ title?, children, footer? })` | `<SettingsGroup title="Reproducción"><ListRow title="Metrónomo" trailing={<Toggle … />} /></SettingsGroup>`. White card, hairlines between direct children. |
 | `EmptyState({ image?: string \| ReactNode, title, action?: ReactNode \| { label, onClick, icon? } })` | `<EmptyState image={heroImages.emptyLibrary?.src} title="Aún no hay partituras" action={{ label: 'Escuchar', onClick, icon: Microphone01 }} />`. One line, one action. |
 
@@ -111,19 +111,19 @@ Settings recipes:
 
 | export | usage |
 |---|---|
-| `Segmented<T>({ options: { value, label?, icon?, ariaLabel? }[], value, onChange, size?: 'sm'\|'md', full?, ariaLabel? })` | `<Segmented full value={hands} onChange={setHands} ariaLabel="Manos" options={[{ value: 'both', label: 'Ambas' }, …]} />`. Radio group with arrow keys; sliding indicator. Icon-only options need `ariaLabel`. |
+| `Segmented<T>({ options: { value, label?, icon?, ariaLabel? }[], value, onChange, size?: 'sm'\|'md', full?, ariaLabel? })` | `<Segmented full value={hands} onChange={setHands} ariaLabel="Manos" options={[{ value: 'both', label: 'Ambas' }, …]} />`. Radio group with arrow keys; sliding indicator. Icon-only options need `ariaLabel`. `full` segments use compact side padding (8 px), so icon + label fit three across at 390 px. |
 | `Slider({ value, min, max, step = 1, onChange, onChangeEnd?, ariaLabel, format?, showValue?, disabled? })` | `<Slider value={speed} min={50} max={150} step={5} onChange={setSpeed} onChangeEnd={persist} ariaLabel="Velocidad" format={(v) => `${v} %`} showValue />`. Native range (keyboard, screen readers). `onChangeEnd` fires once on release: use it for expensive work (rebuilding the score). |
 | `RangeSlider({ value: [a, b], min, max, step = 1, minGap?, onChange, onChangeEnd?, ariaLabel, labels? = ['inicio', 'fin'], format? })` | `<RangeSlider value={[start, end]} min={0} max={dur} step={0.1} minGap={1} onChange={setSel} ariaLabel="Selección" format={formatTime} />` |
 | `Toggle({ checked, onChange, ariaLabel?, ariaLabelledBy?, disabled?, id? })` | `<Toggle checked={metronome} onChange={setMetronome} ariaLabel="Metrónomo" />` |
 | `Stepper({ value, min, max, step = 1, onChange, format?, ariaLabel, disabled? })` | `<Stepper value={bpm} min={40} max={220} onChange={setBpm} ariaLabel="Tempo" format={(v) => `${v} ppm`} />`. Press and hold repeats; value is a spinbutton (arrows, Home/End). Decimal steps are rounded. |
-| `Chip({ children, selected?, onClick?, icon?, disabled? })`, `ChipRow({ children, ariaLabel? })` | `<ChipRow ariaLabel="Filtros"><Chip selected={f === 'fav'} onClick={() => setF('fav')} icon={Star01}>Favoritas</Chip></ChipRow>`. ChipRow scrolls horizontally edge to edge (bleeds into the gutters, faded edges). |
+| `Chip({ children, selected?, onClick?, icon?, disabled? })`, `ChipRow({ children, ariaLabel? })` | `<ChipRow ariaLabel="Filtros"><Chip selected={f === 'fav'} onClick={() => setF('fav')} icon={Star01}>Favoritas</Chip></ChipRow>`. ChipRow scrolls horizontally edge to edge (bleeds into the gutters, faded edges). Inside a `Sheet`, unselected chips sit on `--fill` instead of white. |
 | `SearchField({ value, onChange, placeholder = 'Buscar', onClear?, autoFocus? })` | `<SearchField value={q} onChange={setQ} placeholder="Buscar partituras" />`. Escape or the X clears. |
 
 ## Media & signature pieces
 
 | export | usage |
 |---|---|
-| `Cover({ src?, seed, size, shape?: 'circle'\|'rounded' = 'rounded', spinning?, alt?, layoutId?, className?, style? })` | `<Cover src={getCover(doc.coverId)?.src} seed={doc.id} size={56} />`. Without `src` (or if it fails) draws a soft token-colored cover with a staff motif from `seed`. Radius follows size (8 / 12 / 16). `layoutId` for shared transitions. |
+| `Cover({ src?, seed, size, shape?: 'circle'\|'rounded' = 'rounded', spinning?, alt?, layoutId?, className?, style? })` | `<Cover src={getCover(doc.coverId)?.src} seed={doc.id} size={56} />`. Without `src` (or if it fails) draws a soft token-colored cover with a staff motif from `seed`. Radius follows size (8 / 12 / 16). `size` also takes a CSS length (`'var(--lib-cover)'`, `'100%'`; radius 12, override with `style.borderRadius`). `layoutId` for shared transitions. |
 | `Vinyl({ size = 260, spinning?, speed?: 'slow'\|'normal', label?, labelSrc?, tonearm?: 'rest'\|'play'\|'hidden' = 'hidden', progress?, plinth? = true, onClick?, ariaLabel? })` | `<Vinyl size={280} spinning={isPlaying} tonearm={isPlaying ? 'play' : 'rest'} progress={t / dur} labelSrc={cover} />`. The record, plinth and arm fit inside `size` x `size`. Spin eases in/out (never jumps); none with reduced motion. `slow` for listening/processing. |
 | `Waveform({ peaks, progress?, selection?: [s, e], height = 72, barWidth = 3, gap = 2, normalize? = true, animate? = true, ariaLabel? })` | `<Waveform peaks={peaks} selection={[s / dur, e / dur]} progress={pos / dur} height={64} />`. Canvas, device-pixel crisp, fills its container width, re-themes itself. Played part = accent, outside selection = dimmed. Bars grow in when the data changes; pass `animate={false}` for live data that grows while recording. |
 | `LiveBars({ level, bars = 24, height = 48, active? = true, className? })` | `<LiveBars level={rms} active={recording} />`. Smooth attack/decay, taller in the center. Color = `currentColor` (default `--ink-2`; set `color` via className to change). |
@@ -137,13 +137,14 @@ Settings recipes:
 |---|---|
 | `useLongPress(cb, ms = 500)` | `const lp = useLongPress(() => openActions(doc)); <Card onClick={open} {...lp}>`. Touch hold, mouse hold or right click; swallows the click that follows. |
 | `useReducedMotionPref()` | `const reduced = useReducedMotionPref()` (OS setting or Ajustes > Reducir movimiento). Use it to skip infinite/decorative animations. |
+| `useElementWidth(ref)` | `const width = useElementWidth(paperRef)`: CSS px, kept current with a ResizeObserver (0 until mounted). |
 | `ease`, `spring`, `softSpring`, `durations`, `tapScale` | `transition={spring}`, `whileTap={tapScale}`. |
 | `pageVariants` | Used by `Page`. |
 | `fadeUp(delay?, distance?)` | `<motion.div {...fadeUp(0.08)}>` |
-| `listContainer`, `listItem` | `<motion.ul variants={listContainer} initial="hidden" animate="show">` + `<motion.li variants={listItem}>` (stagger 0.04 s). |
+| `listContainer`, `listItem` | `<motion.ul variants={listContainer} initial="hidden" animate="show">` + `<motion.li variants={listItem}>` (stagger 0.04 s). The stagger does not propagate through an `AnimatePresence` between them: inside one, give each item its own `initial`/`animate` with an index-based delay. |
 | `cx(...classes)` | `className={cx('lib-card', fav && 'is-fav')}` |
 
-Motion is global: App sets `<MotionConfig reducedMotion>`; route transitions use `AnimatePresence mode="wait"` keyed by pathname, so keep page exit work light.
+Motion is global: App sets `<MotionConfig reducedMotion>`; route transitions use `AnimatePresence mode="wait"` keyed by pathname, so keep page exit work light. The app column clips horizontal overflow (`overflow-x: clip` on `.ui-frame`), so push slides never widen the page.
 
 ---
 

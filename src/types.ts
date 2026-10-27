@@ -39,6 +39,8 @@ export interface AnalysisResult {
   timeSignature: TimeSignature
   key: KeySignature
   keyConfidence: number
+  /** Optional beat map: seconds in the source audio of each beat (variable tempo). Absent = constant bpm from beatOffset. */
+  beatTimes?: number[]
 }
 
 /** Everything that turns NoteEvent[] into notation. Stored per score, editable in the viewer. */
@@ -71,6 +73,8 @@ export interface ScoreEvent {
   start: number
   duration: number
   pitches: Midi[]
+  /** Loudness 0..1 per pitch (same order as `pitches`), from the raw notes. Absent = unknown (play at a default). */
+  velocities?: number[]
   /** All pitches are tied into the next event of the same staff. */
   tie?: boolean
 }
@@ -109,6 +113,14 @@ export interface Score {
   /** [right hand / treble, left hand / bass] — both always present, possibly with only rests. */
   staves: [Staff, Staff]
   stats: ScoreStats
+  /** Sustain (damper) pedal spans inferred from the audio, in absolute ticks, sorted and non-overlapping. Absent = no pedal. */
+  pedals?: PedalSpan[]
+}
+
+/** Damper pedal held down from `start` to `end` (absolute ticks: measure.index * ticksPerMeasure + event start). */
+export interface PedalSpan {
+  start: number
+  end: number
 }
 
 /** Denormalized summary stored on each library item (for listing, filtering and sorting). */
@@ -181,4 +193,6 @@ export interface Settings {
   followScore: boolean
   /** 0..1 */
   playbackVolume: number
+  /** Play the sustain pedal inferred from the audio (and show its marks in the score). */
+  sustainPedal: boolean
 }

@@ -151,8 +151,9 @@ function TranscriptionGroup() {
         trailing={<Segmented size="sm" options={GRIDS} value={quantize} onChange={(v) => set('quantize', v)} ariaLabel="Cuantización" />}
       />
       <ListRow
-        title={<span className="set-wrap">División de manos</span>}
-        subtitle={<span className="set-wrap">Mano derecha desde aquí</span>}
+        wrap
+        title="División de manos"
+        subtitle="Mano derecha desde aquí"
         trailing={
           <Stepper
             value={splitPoint}

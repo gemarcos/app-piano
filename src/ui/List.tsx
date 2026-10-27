@@ -22,6 +22,8 @@ export interface ListRowProps extends PressHandlers {
   ariaLabel?: string
   /** Mark the current/selected row (aria-current). */
   current?: boolean
+  /** Let the title and subtitle wrap onto more lines instead of being cut with an ellipsis. */
+  wrap?: boolean
   /** Full-width content under the title line (e.g. a Slider). Not for clickable rows. */
   children?: ReactNode
   className?: string
@@ -40,6 +42,7 @@ export function ListRow({
   disabled = false,
   ariaLabel,
   current,
+  wrap = false,
   children,
   className,
   style,
@@ -50,6 +53,7 @@ export function ListRow({
     onClick && 'ui-row--button',
     children != null && 'ui-row--stacked',
     tone === 'danger' && 'ui-row--danger',
+    wrap && 'ui-row--wrap',
     disabled && 'is-disabled',
     className,
   )

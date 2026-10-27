@@ -16,6 +16,12 @@ export const durations = { fast: 0.18, base: 0.28, slow: 0.45 } as const
 export const tapScale = { scale: 0.96 } as const
 
 /**
+ * Exiting pages fade with an ease-in: with AnimatePresence mode="wait" the next screen mounts only when
+ * the exit ends, and an ease-out fade left the old screen invisible for most of its exit (a blank flash).
+ */
+const exitFade = [0.4, 0, 1, 1] as const
+
+/**
  * Page transitions. Use with initial="initial" animate="enter" exit="exit".
  * `custom` is the navigation direction: 1 forward, -1 back (provided by App through AnimatePresence).
  */
@@ -23,12 +29,16 @@ export const pageVariants: { tab: Variants; push: Variants } = {
   tab: {
     initial: { opacity: 0, y: 12 },
     enter: { opacity: 1, y: 0, x: 0, transition: { duration: 0.34, ease } },
-    exit: { opacity: 0, y: -6, transition: { duration: 0.16, ease } },
+    exit: { opacity: 0, y: -6, transition: { duration: 0.16, ease, opacity: { duration: 0.16, ease: exitFade } } },
   },
   push: {
     initial: (dir: number = 1) => ({ opacity: 0, x: 28 * dir }),
     enter: { opacity: 1, x: 0, y: 0, transition: { duration: 0.36, ease } },
-    exit: (dir: number = 1) => ({ opacity: 0, x: -18 * dir, transition: { duration: 0.18, ease } }),
+    exit: (dir: number = 1) => ({
+      opacity: 0,
+      x: -18 * dir,
+      transition: { duration: 0.18, ease, opacity: { duration: 0.18, ease: exitFade } },
+    }),
   },
 }
 

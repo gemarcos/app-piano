@@ -172,6 +172,21 @@ function startLevelMeter(stream: MediaStream, onLevel: (level: number) => void):
   sink.connect(ctx.destination)
   ctx.resume().catch(() => {})
 
+  // The recording starts a moment after the user's tap, so iOS Safari may keep this context suspended
+  // (the bars would stay still; the recording itself is unaffected): retry on the next touch or key.
+  const UNLOCK_EVENTS = ['pointerdown', 'touchend', 'keydown'] as const
+  const removeUnlock = () => UNLOCK_EVENTS.forEach((type) => window.removeEventListener(type, unlock, true))
+  function unlock() {
+    if (ctx.state === 'running' || ctx.state === 'closed') return removeUnlock()
+    ctx
+      .resume()
+      .then(() => {
+        if (ctx.state === 'running') removeUnlock()
+      })
+      .catch(() => {})
+  }
+  if (ctx.state !== 'running') UNLOCK_EVENTS.forEach((type) => window.addEventListener(type, unlock, true))
+
   const block = new Float32Array(analyser.fftSize)
   const bytes = new Uint8Array(analyser.fftSize)
   let shown = 0
@@ -197,6 +212,7 @@ function startLevelMeter(stream: MediaStream, onLevel: (level: number) => void):
   return {
     stop() {
       window.clearInterval(timer)
+      removeUnlock()
       try {
         source.disconnect()
         analyser.disconnect()

@@ -95,6 +95,8 @@ export interface IconButtonProps {
   active?: boolean
   /** Sets aria-pressed (use for toggles such as favorite, metronome). */
   pressed?: boolean
+  /** Spinner in place of the icon; the button is inert meanwhile. */
+  loading?: boolean
   disabled?: boolean
   type?: 'button' | 'submit' | 'reset'
   /** Override the icon size (defaults: 20 / 24 / 24 / 28). */
@@ -115,6 +117,7 @@ export function IconButton({
   size = 'md',
   active = false,
   pressed,
+  loading = false,
   disabled = false,
   type = 'button',
   iconSize,
@@ -122,21 +125,29 @@ export function IconButton({
   style,
   ref,
 }: IconButtonProps) {
+  const inert = disabled || loading
+  const glyph = iconSize ?? ICON_BTN_ICON[size]
   return (
     <motion.button
       ref={ref}
       type={type}
-      className={cx('ui-iconbtn', `ui-iconbtn--${variant}`, `ui-iconbtn--${size}`, active && 'is-active', className)}
+      className={cx('ui-iconbtn', `ui-iconbtn--${variant}`, `ui-iconbtn--${size}`, active && 'is-active', loading && 'is-loading', className)}
       onClick={onClick}
-      disabled={disabled}
+      disabled={inert}
       aria-label={label}
       title={label}
       aria-pressed={pressed}
-      whileTap={disabled ? undefined : { scale: variant === 'neu' ? 0.97 : 0.92 }}
+      aria-busy={loading || undefined}
+      whileTap={inert ? undefined : { scale: variant === 'neu' ? 0.97 : 0.92 }}
       transition={spring}
       style={style}
     >
-      <Icon icon={icon} size={iconSize ?? ICON_BTN_ICON[size]} />
+      <Icon icon={icon} size={glyph} />
+      {loading && (
+        <span className="ui-iconbtn__spinner">
+          <Spinner size={Math.max(16, glyph - 4)} />
+        </span>
+      )}
     </motion.button>
   )
 }

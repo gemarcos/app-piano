@@ -26,6 +26,16 @@
   flex: 1 1 0;
 }
 
+/* Equal segments share the row (~100 px each at 390 px): tighter sides keep icon + label whole.
+   :where() keeps these at single-class specificity, so screens can still tune them. */
+.ui-seg--full > :where(.ui-seg__item:not(.is-icon)) {
+  padding-inline: 8px;
+}
+
+.ui-seg--full :where(.ui-seg__content) {
+  gap: 5px;
+}
+
 .ui-seg__item {
   position: relative;
   display: inline-flex;

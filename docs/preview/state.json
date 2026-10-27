@@ -1,7 +1,7 @@
 {
   "project": "Pauta",
-  "nextBoard": 8,
-  "nextMotion": 7,
+  "nextBoard": 9,
+  "nextMotion": 8,
   "seen": {
     "assets-board-dark.png": 1793101996952,
     "assets-board.png": 1793101996952,
@@ -95,7 +95,7 @@
     "capture.json": 1793110652228,
     "viewer.json": 1793111255870
   },
-  "journalSeen": 13,
+  "journalSeen": 16,
   "deliveries": [
     {
       "when": "earlier",
@@ -188,15 +188,37 @@
         "capture-import-video.png",
         "capture-processing-dark.png"
       ]
+    },
+    {
+      "when": "2026-10-27 15:36",
+      "files": [
+        "docs/preview/08-avance.jpg",
+        "docs/preview/motion-07-ajustes-visor.mp4",
+        "docs/preview/motion-07-ajustes-visor-dark.mp4"
+      ],
+      "caption": "Avance 8: los avisos cuando algo falta o falla y el bucle A-B del visor; vídeos de los ajustes de la partitura, en claro y oscuro.",
+      "sources": [
+        "viewer-bucle-ab(-dark).png",
+        "capture-record-denied.png",
+        "capture-processing-empty-dark.png",
+        "library-no-results-dark.png",
+        "settings-clear-confirm.png",
+        "capture-home-empty.png",
+        "capture-import-dark.png"
+      ]
     }
   ],
-  "updatedAt": "2026-10-27T14:29:36.890Z",
+  "updatedAt": "2026-10-27T14:37:04.710Z",
   "shown": [
     "audio-calibration-stat",
     "capture-home",
+    "capture-home-empty",
+    "capture-import-audio",
     "capture-import-video",
     "capture-processing",
+    "capture-processing-empty",
     "capture-record",
+    "capture-record-denied",
     "engine-score-demos",
     "home-to-listen-video",
     "library-actions",
@@ -204,35 +226,38 @@
     "library-filters",
     "library-grid",
     "library-list",
+    "library-no-results",
     "library-tab-filter-video",
     "note-names-before-after",
     "settings-about",
     "settings-about-transition-video",
+    "settings-clear-confirm",
     "settings-main",
     "theme-switch-video",
     "viewer-actions",
+    "viewer-bucle-ab",
     "viewer-open-play-video",
     "viewer-pdf",
     "viewer-playing",
-    "viewer-settings-tabs"
+    "viewer-settings-tabs",
+    "viewer-settings-tabs-video"
   ],
   "notes": "Videos: record from a production build of the current code in the liaison temp dist (node node_modules/vite/bin/vite.js build --outDir <temp>/dist) served by preview.mjs on 5190; the dev server drops frames on page transitions. Next ideas: library/viewer/capture screens as they appear; sheets and cover->viewer transitions as videos.",
   "tooling": "Liaison temp scripts: scan.mjs, diff.py, board.mjs (spec JSON), rec.mjs (scenario JSON), preview.mjs (vite preview of temp build on 5190), strip.py.",
   "notShownYet": [
-    "capture-home-empty(-dark)",
-    "capture-record-denied(-dark)",
-    "capture-import(-dark) audio",
-    "capture-processing-empty(-dark)",
-    "viewer-bucle-ab(-dark)",
-    "viewer-top(-dark)",
-    "settings-clear-confirm(-dark)",
-    "library-no-results(-dark)",
-    "engine-score preludio re-render with thinned note names (14:01)"
+    "viewer-top(-dark) (same as viewer-playing, skip)",
+    "engine-score preludio re-render (14:01)"
   ],
   "nextIdeas": "Phase C integration: final-*.png -> \"Resumen final\" board before stopping when integration finishes. Possible videos: viewer settings sheet tabs, library long-press action sheet, processing ring. Always record videos from a fresh production build in the liaison temp dist (preview.mjs on 5190).",
   "observations": "Page transitions use AnimatePresence mode=\"wait\": ~100-200 ms of empty background between screens (fade-through). List->grid switch in Biblioteca re-mounts the list: ~200 ms empty, then tiles pop in (headless capture).",
-  "pending": {
-    "motion-07-ajustes-visor": "Recorded at 15:29 (not delivered, NOT in docs/preview): C:/Users/Marcos/AppData/Local/Temp/pauta/liaison/motion-07-ajustes-visor(.mp4|-dark.mp4), viewer settings sheet opening and switching tabs Reproduccion -> Partitura -> Filtros (4.6 s). Scenario JSON: .../liaison/rec-ajustes-visor-(light|dark).json. Re-record from a fresh temp build if the viewer changed, then ship with the next board as motion-07-ajustes-visor.mp4 / -dark.mp4."
-  },
-  "runEnded": "2026-10-27 15:29 (2.5 h limit; phase B finished: settings, library, viewer, capture done; integration not started yet)"
+  "runEnded": "2026-10-27 15:29 (2.5 h limit; phase B finished: settings, library, viewer, capture done; integration not started yet)",
+  "run2": {
+    "started": "2026-10-27 15:31",
+    "deadline": "2026-10-27 18:00",
+    "stopRule": "after integration done -> 'Resumen de la integración' board from docs/screenshots/final-*.png (light+dark), then follow phase D (4 reviewers report-only, fixers per area, final check) showing fixer changes with before/after; stop on docs/preview/.stop or 18:00. Lead asks later for the true 'Resumen final'.",
+    "knownIssuesNotNews": [
+      "blank moment between screens on page transitions",
+      "~0.2 s gap when switching library list->grid"
+    ]
+  }
 }

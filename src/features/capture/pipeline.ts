@@ -4,7 +4,7 @@
 import { encodeWav, MODEL_SAMPLE_RATE, toModelInput, type DecodedMedia } from '../../engine/audio'
 import { transcribe } from '../../engine/transcribe'
 import { analyzeNotes, buildScore, defaultParams, summarizeScore } from '../../engine/score'
-import { createScore, saveAudio } from '../../data/db'
+import { createScore, recentCoverIds, saveAudio } from '../../data/db'
 import { pickCoverId } from '../../assets/images'
 import { defaultTitle } from '../../lib/format'
 import { newId } from '../../lib/id'
@@ -117,6 +117,7 @@ async function run(input: PipelineInput, signal: AbortSignal, report: PipelinePr
   // From here on the item is committed (saving takes a few milliseconds).
   const audioId = settings.keepOriginalAudio ? await storeAudio(input, samples) : undefined
   const id = newId()
+  const recentCovers = await recentCoverIds().catch(() => [])
   let doc: ScoreDoc
   try {
     doc = await createScore({
@@ -126,7 +127,7 @@ async function run(input: PipelineInput, signal: AbortSignal, report: PipelinePr
       sourceName: fromFile ? input.name || decoded.name : undefined,
       sourceKind: fromFile ? decoded.kind : 'audio',
       durationSec: Math.max(0, range.end - range.start),
-      coverId: pickCoverId(id),
+      coverId: pickCoverId(id, recentCovers),
       favorite: false,
       notes,
       analysis,

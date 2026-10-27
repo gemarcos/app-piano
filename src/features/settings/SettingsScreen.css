@@ -29,11 +29,6 @@
   }
 }
 
-/* Row text that may wrap on narrow phones instead of being cut */
-.set-wrap {
-  white-space: normal;
-}
-
 /*
  * Theme fade (Tema), only while html.set-theme-fade is set (~0.34 s, see theme.ts): surfaces,
  * lines and shadows ease to the new theme; text and icons (currentColor) switch at the midpoint,

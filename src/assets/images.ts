@@ -185,11 +185,18 @@ export function getCover(id: string): ImageAsset | undefined {
 }
 
 /** Deterministic cover choice for a seed (e.g. the item id). Returns '' when no covers exist. */
-export function pickCoverId(seed: string): string {
+export function pickCoverId(seed: string, avoid?: Iterable<string>): string {
   if (covers.length === 0) return ''
   let h = 0
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0
-  return covers[Math.abs(h) % covers.length].id
+  const start = Math.abs(h) % covers.length
+  // Optional: skip covers already in use (e.g. by the latest items), so neighbours in a list differ.
+  const used = new Set(avoid ?? [])
+  for (let k = 0; k < covers.length; k++) {
+    const cover = covers[(start + k) % covers.length]
+    if (!used.has(cover.id)) return cover.id
+  }
+  return covers[start].id
 }
 
 /* ---------- Brand icons (public/icons) ---------- */

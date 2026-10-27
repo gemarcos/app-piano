@@ -42,7 +42,13 @@ function listeningPids() {
     const out = execFileSync('lsof', ['-ti', `tcp:${port}`, '-sTCP:LISTEN'], { encoding: 'utf8' })
     return out.split(/\s+/).filter(Boolean).map(Number)
   } catch {
-    return []
+    // lsof missing (minimal Linux) or nothing listening: try iproute2's ss.
+    try {
+      const out = execFileSync('ss', ['-ltnpH', `sport = :${port}`], { encoding: 'utf8' })
+      return [...new Set([...out.matchAll(/pid=(\d+)/g)].map((m) => Number(m[1])))]
+    } catch {
+      return []
+    }
   }
 }
 

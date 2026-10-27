@@ -7,6 +7,8 @@
 // Usage: node scripts/e2e-capture.mjs [--url http://localhost:5185/] [--preview] [--headful]
 //   Without a server answering at --url it starts one on that port with scripts/serve.mjs (dev server, or the
 //   production build in dist/ with --preview) and stops it at the end. Exit code 1 when any check fails.
+// The flows are also exported (importFlow, micFlow, tooShort, cancelProcessing, readScore...) so that
+// scripts/e2e.mjs runs them inside its full-app session; call setBase(url) first.
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
@@ -15,23 +17,33 @@ import { fileURLToPath } from 'node:url'
 import puppeteer from 'puppeteer-core'
 import { chromePath } from './chrome-path.mjs'
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const FIXTURES = path.join(ROOT, 'test', 'fixtures')
-const argv = process.argv.slice(2)
-const option = (name, fallback) => {
-  const i = argv.indexOf(name)
-  return i >= 0 && argv[i + 1] ? argv[i + 1] : fallback
-}
-const BASE = option('--url', 'http://localhost:5185/').replace(/#.*$/, '').replace(/\/?$/, '/')
-const PREVIEW = argv.includes('--preview')
-const HEADFUL = argv.includes('--headful')
-const PORT = Number(new URL(BASE).port || 80)
+export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+export const FIXTURES = path.join(ROOT, 'test', 'fixtures')
 const TRANSCRIBE_TIMEOUT = 120_000
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+const normalizeBase = (url) => url.replace(/#.*$/, '').replace(/\/?$/, '/')
+let BASE = 'http://localhost:5185/'
+/** Base URL of the app under test (the flows navigate to BASE + '#/…'). */
+export function setBase(url) {
+  BASE = normalizeBase(url)
+}
+
+/** Chrome flags shared by the e2e scripts: fake media devices (the fake mic plays `fakeAudio`), autoplay. */
+export function chromeArgs(fakeAudio = path.join(FIXTURES, 'melody-bass.wav')) {
+  return [
+    '--no-sandbox',
+    '--use-fake-ui-for-media-stream',
+    '--use-fake-device-for-media-stream',
+    `--use-file-for-fake-audio-capture=${fakeAudio}`,
+    '--autoplay-policy=no-user-gesture-required',
+    '--enable-unsafe-swiftshader',
+  ]
+}
+
+export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 /** A PCM WAV fixture repeated to at least `seconds` (written to the OS temp folder), for slow-enough jobs. */
-function loopWav(fixture, seconds) {
+export function loopWav(fixture, seconds) {
   const src = readFileSync(path.join(FIXTURES, fixture))
   let offset = 12
   let fmt = null
@@ -63,7 +75,7 @@ function loopWav(fixture, seconds) {
   return out
 }
 
-async function answers(url) {
+export async function answers(url) {
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(3000) })
     return res.ok
@@ -72,20 +84,14 @@ async function answers(url) {
   }
 }
 
-function serve(cmd) {
-  const args = [path.join(ROOT, 'scripts', 'serve.mjs'), cmd, String(PORT)]
-  if (cmd === 'start' && PREVIEW) args.push('--preview')
-  execFileSync(process.execPath, args, { cwd: ROOT, stdio: 'inherit' })
-}
-
 /* ---------- page helpers ---------- */
 
-const hashIs = (page, pattern, timeout = 15_000) =>
+export const hashIs = (page, pattern, timeout = 15_000) =>
   page.waitForFunction((src) => new RegExp(src).test(location.hash), { timeout, polling: 100 }, pattern.source)
 
-const currentHash = (page) => page.evaluate(() => location.hash)
+export const currentHash = (page) => page.evaluate(() => location.hash)
 
-async function clickByText(page, selector, text, timeout = 15_000) {
+export async function clickByText(page, selector, text, timeout = 15_000) {
   const handle = await page.waitForFunction(
     (sel, label) => [...document.querySelectorAll(sel)].find((el) => el.textContent?.trim() === label && !el.disabled) ?? null,
     { timeout, polling: 100 },
@@ -96,7 +102,7 @@ async function clickByText(page, selector, text, timeout = 15_000) {
 }
 
 /** Raw IndexedDB read (works against the dev server and the production build alike). */
-function readScore(page, id) {
+export function readScore(page, id) {
   return page.evaluate(async (scoreId) => {
     const db = await new Promise((resolve, reject) => {
       const req = indexedDB.open('pauta')
@@ -138,13 +144,13 @@ function readScore(page, id) {
   }, id)
 }
 
-async function openHome(page) {
+export async function openHome(page) {
   await page.goto(BASE + '#/', { waitUntil: 'networkidle0', timeout: 60_000 })
   await page.waitForSelector('[aria-label="Escuchar"]', { timeout: 15_000 })
 }
 
-/** Home file input -> Import -> Transcribir -> Processing -> viewer; returns the stored item. */
-async function importFlow(page, fixture, expect) {
+/** Home file input -> Import -> Transcribir -> Processing -> viewer; returns a summary of the stored item. */
+export async function importFlow(page, fixture, expect) {
   await openHome(page)
   const input = await page.waitForSelector('input[type=file]')
   await input.uploadFile(path.join(FIXTURES, fixture))
@@ -166,7 +172,7 @@ async function importFlow(page, fixture, expect) {
   return `${id.slice(0, 8)}: ${doc.notes} notes, ${doc.key}, ${doc.bpm} ppm, ${doc.durationSec} s, audio ${(doc.audio.bytes / 1024).toFixed(0)} KB`
 }
 
-async function micFlow(page, seconds) {
+export async function micFlow(page, seconds) {
   await openHome(page)
   await page.click('[aria-label="Escuchar"]')
   await hashIs(page, /^#\/listen\?mode=mic$/)
@@ -201,7 +207,7 @@ async function sampleLevels(page, ms) {
   return { moved: seen.size > 2 && peak > 8, peak }
 }
 
-async function tooShort(page) {
+export async function tooShort(page) {
   await openHome(page)
   await page.click('[aria-label="Escuchar"]')
   await page.waitForSelector('button[aria-label="Detener"]:not([disabled])', { timeout: 15_000 })
@@ -218,7 +224,7 @@ async function tooShort(page) {
   return 'toast shown, idle state offers "Grabar", close discards the take'
 }
 
-async function cancelProcessing(page) {
+export async function cancelProcessing(page) {
   const before = (await readScore(page, null)).total
   await openHome(page)
   const input = await page.waitForSelector('input[type=file]')
@@ -240,63 +246,75 @@ async function cancelProcessing(page) {
   return `no item saved (${after} items), reload on /import -> Home`
 }
 
-/* ---------- run ---------- */
+/* ---------- run (only when executed directly, not when imported by scripts/e2e.mjs) ---------- */
 
-let started = false
-if (!(await answers(BASE))) {
-  serve('start')
-  started = true
-}
+async function main() {
+  const argv = process.argv.slice(2)
+  const option = (name, fallback) => {
+    const i = argv.indexOf(name)
+    return i >= 0 && argv[i + 1] ? argv[i + 1] : fallback
+  }
+  setBase(option('--url', 'http://localhost:5185/'))
+  const PREVIEW = argv.includes('--preview')
+  const HEADFUL = argv.includes('--headful')
+  const PORT = Number(new URL(BASE).port || 80)
 
-const errors = []
-const results = []
-const browser = await puppeteer.launch({
-  executablePath: chromePath(),
-  headless: !HEADFUL,
-  args: [
-    '--no-sandbox',
-    '--use-fake-ui-for-media-stream',
-    '--use-fake-device-for-media-stream',
-    `--use-file-for-fake-audio-capture=${path.join(FIXTURES, 'melody-bass.wav')}`,
-    '--autoplay-policy=no-user-gesture-required',
-    '--enable-unsafe-swiftshader',
-  ],
-})
-
-try {
-  const page = await browser.newPage()
-  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true })
-  page.on('console', (m) => {
-    if (m.type() === 'error') errors.push(`[console] ${m.text()}`)
-  })
-  page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`))
-
-  const step = async (name, fn) => {
-    const t0 = Date.now()
-    try {
-      const detail = await fn()
-      results.push({ name, ok: true, s: (Date.now() - t0) / 1000, detail })
-    } catch (err) {
-      results.push({ name, ok: false, s: (Date.now() - t0) / 1000, detail: String(err?.message ?? err).split('\n')[0] })
-    }
-    process.stdout.write(`${results.at(-1).ok ? 'PASS' : 'FAIL'}  ${name}\n`)
+  const serve = (cmd) => {
+    const args = [path.join(ROOT, 'scripts', 'serve.mjs'), cmd, String(PORT)]
+    if (cmd === 'start' && PREVIEW) args.push('--preview')
+    execFileSync(process.execPath, args, { cwd: ROOT, stdio: 'inherit' })
   }
 
-  await step('import scale.wav -> score', () => importFlow(page, 'scale.wav', { video: false }))
-  await step('import scale.mp4 (video) -> score', () => importFlow(page, 'scale.mp4', { video: true }))
-  await step('fake mic, record 6 s -> score', () => micFlow(page, 6.5))
-  await step('too-short take is refused', () => tooShort(page))
-  await step('cancel processing, reload on /import', () => cancelProcessing(page))
-  await step('no console errors', async () => {
-    if (errors.length) throw new Error(`${errors.length}: ${errors.slice(0, 3).join(' | ')}`)
-    return 'none'
-  })
-} finally {
-  await browser.close()
-  if (started) serve('stop')
+  let started = false
+  if (!(await answers(BASE))) {
+    serve('start')
+    started = true
+  }
+
+  const errors = []
+  const results = []
+  const browser = await puppeteer.launch({ executablePath: chromePath(), headless: !HEADFUL, args: chromeArgs() })
+
+  try {
+    const page = await browser.newPage()
+    await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true })
+    page.on('console', (m) => {
+      if (m.type() === 'error') errors.push(`[console] ${m.text()}`)
+    })
+    page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`))
+
+    const step = async (name, fn) => {
+      const t0 = Date.now()
+      try {
+        const detail = await fn()
+        results.push({ name, ok: true, s: (Date.now() - t0) / 1000, detail })
+      } catch (err) {
+        results.push({ name, ok: false, s: (Date.now() - t0) / 1000, detail: String(err?.message ?? err).split('\n')[0] })
+      }
+      process.stdout.write(`${results.at(-1).ok ? 'PASS' : 'FAIL'}  ${name}\n`)
+    }
+
+    await step('import scale.wav -> score', () => importFlow(page, 'scale.wav', { video: false }))
+    await step('import scale.mp4 (video) -> score', () => importFlow(page, 'scale.mp4', { video: true }))
+    await step('fake mic, record 6 s -> score', () => micFlow(page, 6.5))
+    await step('too-short take is refused', () => tooShort(page))
+    await step('cancel processing, reload on /import', () => cancelProcessing(page))
+    await step('no console errors', async () => {
+      if (errors.length) throw new Error(`${errors.length}: ${errors.slice(0, 3).join(' | ')}`)
+      return 'none'
+    })
+  } finally {
+    await browser.close()
+    if (started) serve('stop')
+  }
+
+  console.log(`\ncapture e2e  ${BASE}${PREVIEW ? ' (production build)' : ''}`)
+  for (const r of results) console.log(`${r.ok ? 'PASS' : 'FAIL'}  ${r.name.padEnd(40)} ${r.s.toFixed(1).padStart(5)} s  ${r.detail}`)
+  if (errors.length) console.log('\nconsole errors:\n' + errors.join('\n'))
+  process.exit(results.every((r) => r.ok) ? 0 : 1)
 }
 
-console.log(`\ncapture e2e  ${BASE}${PREVIEW ? ' (production build)' : ''}`)
-for (const r of results) console.log(`${r.ok ? 'PASS' : 'FAIL'}  ${r.name.padEnd(40)} ${r.s.toFixed(1).padStart(5)} s  ${r.detail}`)
-if (errors.length) console.log('\nconsole errors:\n' + errors.join('\n'))
-process.exit(results.every((r) => r.ok) ? 0 : 1)
+const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : ''
+const selfPath = fileURLToPath(import.meta.url)
+const isMain = process.platform === 'win32' ? invokedPath.toLowerCase() === selfPath.toLowerCase() : invokedPath === selfPath
+if (isMain) await main()

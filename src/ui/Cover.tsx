@@ -8,8 +8,8 @@ export interface CoverProps {
   src?: string
   /** Stable string (item id) that picks the generated tone and motif. */
   seed: string
-  /** px */
-  size: number
+  /** px, or any CSS length (e.g. 'var(--lib-cover)', '100%'). */
+  size: number | string
   shape?: 'circle' | 'rounded'
   /** Slow continuous rotation (circle covers in a "now playing" context). */
   spinning?: boolean
@@ -93,8 +93,10 @@ const CoverArt = memo(function CoverArt({ seed, minimal }: { seed: string; minim
   )
 })
 
-function radiusFor(size: number, shape: 'circle' | 'rounded'): string {
+function radiusFor(size: number | string, shape: 'circle' | 'rounded'): string {
   if (shape === 'circle') return '50%'
+  // CSS lengths: the list/thumbnail radius (pass style.borderRadius to change it).
+  if (typeof size === 'string') return 'var(--r-sm)'
   if (size <= 48) return 'var(--r-xs)'
   if (size <= 96) return 'var(--r-sm)'
   return 'var(--r-md)'
@@ -128,7 +130,7 @@ export function Cover({ src, seed, size, shape = 'rounded', spinning = false, al
             onError={() => setFailedSrc(src ?? null)}
           />
         ) : (
-          <CoverArt seed={seed} minimal={size < 40} />
+          <CoverArt seed={seed} minimal={typeof size === 'number' && size < 40} />
         )}
       </span>
     </motion.div>

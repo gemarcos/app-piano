@@ -30,6 +30,12 @@
   box-shadow: none;
 }
 
+/* Inside a sheet (white surface): unselected chips sit on the translucent fill, not white-on-white */
+.ui-sheet .ui-chip:not(.is-selected) {
+  background: var(--fill);
+  box-shadow: none;
+}
+
 .ui-chip:disabled {
   cursor: default;
   opacity: 0.4;

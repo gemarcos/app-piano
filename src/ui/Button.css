@@ -114,11 +114,17 @@
   visibility: hidden;
 }
 
-.ui-btn__spinner {
+.ui-btn__spinner,
+.ui-iconbtn__spinner {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
+  pointer-events: none;
+}
+
+.ui-iconbtn.is-loading .ui-icon {
+  opacity: 0;
 }
 
 @media (hover: hover) {
@@ -232,6 +238,10 @@
 .ui-iconbtn:disabled {
   cursor: default;
   opacity: 0.36;
+}
+
+.ui-iconbtn.is-loading {
+  opacity: 1;
 }
 
 @media (hover: hover) {

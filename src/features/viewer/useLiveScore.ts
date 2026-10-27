@@ -45,7 +45,12 @@ export function useLiveScore(doc: ScoreDoc) {
   const pending = useRef<(() => void) | null>(null)
   useEffect(() => {
     const json = JSON.stringify(built)
-    if (json === saved.current) return
+    if (json === saved.current) {
+      // Back to what is stored (e.g. +1 then -1): drop the save scheduled for the intermediate value,
+      // or the flush on close would persist it.
+      pending.current = null
+      return
+    }
     const write = () => {
       pending.current = null
       saved.current = json

@@ -17,6 +17,7 @@ export const DEFAULT_SETTINGS: Settings = {
   countIn: false,
   followScore: true,
   playbackVolume: 0.9,
+  sustainPedal: true,
 }
 
 const SETTINGS_KEYS = Object.keys(DEFAULT_SETTINGS) as (keyof Settings)[]
