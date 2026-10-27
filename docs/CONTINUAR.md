@@ -1,6 +1,7 @@
 # Continuar el desarrollo de Pauta
 
 Documento de traspaso escrito el 2026-10-27 (10:40) al pausar el trabajo en el PC del laboratorio.
+**Retomado en Windows el 2026-10-27 (13:00):** entorno preparado, typecheck/tests/build verificados y prompts adaptados (sección 3). El avance por fases se anota en la sección 4.
 **Claude: si estás leyendo esto al empezar una sesión, sigue la sección 1 antes de hacer nada más.**
 
 ---
@@ -25,7 +26,7 @@ App móvil (PWA instalable, preparada para Capacitor) que **escucha audio o víd
   - Windows: instalador LTS de nodejs.org o `winget install OpenJS.NodeJS.LTS`. Comprueba `node -v` ≥ 22.12.
   - Linux: `nvm install 22 && nvm use 22` (`.nvmrc` = 22).
 - **Git para Windows**: Claude Code lo usa para su shell (Git Bash).
-  - Clona por **HTTPS**: `git clone https://github.com/gemarcos/pauta.git`. Git Credential Manager pide iniciar sesión en el navegador. La clave SSH se quedó en el PC Linux.
+  - Clona por **HTTPS**: `git clone https://github.com/gemarcos/app-piano.git` (el repo se llama `app-piano`). Git Credential Manager pide iniciar sesión en el navegador. La clave SSH se quedó en el PC Linux. Si el PC tiene varias cuentas de GitHub guardadas, fija la del repo: `git config credential.username gemarcos` (así no pregunta qué cuenta usar).
   - `.gitattributes` fuerza LF en el repo, así que los `.sh` no se rompen.
 - `npm install` y después `npm run dev` (puerto 5173, `--host` para abrirlo desde el móvil en la misma red Wi-Fi; Windows puede pedir permiso en el firewall).
 - **Chrome sin interfaz** (`scripts/shot.mjs`, `scripts/fixtures/check-transcription.mjs`): ambos usan `scripts/chrome-path.mjs`, que lo encuentra solo en Windows (Program Files, LocalAppData y Edge como alternativa), Linux y macOS. Si no lo encuentra, define `CHROME_PATH`. En PowerShell: `$env:CHROME_PATH="C:\Program Files\Google\Chrome\Application\chrome.exe"`.
@@ -33,12 +34,13 @@ App móvil (PWA instalable, preparada para Capacitor) que **escucha audio o víd
   - `ffmpeg` (vídeos de animaciones para el cliente): `winget install Gyan.FFmpeg`.
   - Python 3 + Pillow (tableros de previsualización): `winget install Python.Python.3.12` y después `pip install pillow`.
   - `sox` solo hace falta para regenerar los audios de prueba, que ya están en `test/fixtures/`.
-- **Adaptar los prompts de `docs/agents/pauta-build.workflow.js` antes de reutilizarlos.** Son del PC Linux:
-  - quita `source ~/.nvm/nvm.sh >/dev/null 2>&1; nvm use 22 >/dev/null 2>&1;`;
-  - cambia las rutas absolutas (`/home/alumnos/gemarcos/Escritorio/apps-claude/pauta`) por la raíz nueva;
-  - sustituye `/tmp/claude-11397/...` por la carpeta temporal o el scratchpad de la sesión;
-  - sustituye `pkill -f "vite --port N"` por una forma de parar el servidor en Windows: `npx kill-port N`, o `taskkill` con el PID que escucha en el puerto (`netstat -ano | findstr :N`);
-  - actualiza la ruta del journal del workflow nuevo en el prompt del agente de enlace.
+- **Prompts de los agentes: adaptados a Windows el 2026-10-27** (`docs/agents/pauta-build.workflow.js`, `docs/agents/client-liaison.md` y la sección 3 del BRIEF):
+  - raíz `C:/Users/Marcos/Desktop/app-piano`, Git Bash, Node 24 sin nvm;
+  - temporales en `C:/Users/Marcos/AppData/Local/Temp/pauta/<rol>/` (el scratchpad de la sesión tiene una ruta tan larga que rompe herramientas con el límite de 260 caracteres de Windows);
+  - servidores con `node scripts/serve.mjs start|stop|status <puerto>` (solo mata el proceso node que escucha en ese puerto; `--preview` sirve `dist/`). Nunca matar procesos por nombre;
+  - el agente de enlace espera entre rondas con `node scripts/wait-for-changes.mjs` y lee el journal del lead en `C:/Users/Marcos/AppData/Local/Temp/pauta/journal.jsonl`;
+  - en Windows `python3` es un acceso directo de la Microsoft Store: hay que llamar a `python`. `convert` es la herramienta de discos de Windows, no ImageMagick (no está instalado): las imágenes se componen con Pillow.
+  - Esta sesión no tiene ejecutor de workflows: el lead lanza cada agente con el Agent tool (COMMON + prompt del rol + anexo de la fase), en el orden que documenta el final del workflow.
 - Los permisos de micrófono y la captura de pestaña funcionan igual en Chrome y Edge de Windows. Las pruebas e2e con audio falso usan flags de Chrome que también valen en Windows (`--use-file-for-fake-audio-capture=C:\\ruta\\melody-bass.wav`).
 
 ## 4. Estado por módulo (al pausar)
