@@ -19,11 +19,27 @@ App móvil (PWA instalable, preparada para Capacitor) que **escucha audio o víd
 
 ## 3. Puesta en marcha en otro ordenador
 
-- **Node ≥ 22.12** (Vite 8 lo exige). Con nvm: `nvm install 22 && nvm use 22`. En el PC del laboratorio el Node por defecto era el 18: cada comando necesitaba `source ~/.nvm/nvm.sh; nvm use 22`.
-- `npm install` y después `npm run dev` (puerto 5173, `--host` para abrirlo desde el móvil en la misma red).
-- Scripts con Chrome sin interfaz (`scripts/shot.mjs`, `scripts/fixtures/check-transcription.mjs`): usan `/usr/bin/google-chrome`. Si Chrome está en otra ruta, exporta `CHROME_PATH=/ruta/a/chrome` (`shot.mjs` ya lo soporta). Revisa también el otro script.
-- Herramientas que usaban los agentes: `ffmpeg`, `sox`, ImageMagick, python3 + PIL (fixtures de audio y tableros de previsualización).
-- `docs/agents/pauta-build.workflow.js` contiene **rutas absolutas del PC antiguo** (`/home/alumnos/gemarcos/Escritorio/apps-claude/pauta`, `/tmp/claude-11397/...`, la ruta del journal del workflow). Adáptalas antes de reutilizar sus prompts.
+**El siguiente ordenador es Windows** (el desarrollo empezó en Ubuntu 24.04). El código de la app es multiplataforma; lo que cambia es el entorno.
+
+- **Node ≥ 22.12** (Vite 8 lo exige).
+  - Windows: instalador LTS de nodejs.org o `winget install OpenJS.NodeJS.LTS`. Comprueba `node -v` ≥ 22.12.
+  - Linux: `nvm install 22 && nvm use 22` (`.nvmrc` = 22).
+- **Git para Windows**: Claude Code lo usa para su shell (Git Bash).
+  - Clona por **HTTPS**: `git clone https://github.com/gemarcos/pauta.git`. Git Credential Manager pide iniciar sesión en el navegador. La clave SSH se quedó en el PC Linux.
+  - `.gitattributes` fuerza LF en el repo, así que los `.sh` no se rompen.
+- `npm install` y después `npm run dev` (puerto 5173, `--host` para abrirlo desde el móvil en la misma red Wi-Fi; Windows puede pedir permiso en el firewall).
+- **Chrome sin interfaz** (`scripts/shot.mjs`, `scripts/fixtures/check-transcription.mjs`): ambos usan `scripts/chrome-path.mjs`, que lo encuentra solo en Windows (Program Files, LocalAppData y Edge como alternativa), Linux y macOS. Si no lo encuentra, define `CHROME_PATH`. En PowerShell: `$env:CHROME_PATH="C:\Program Files\Google\Chrome\Application\chrome.exe"`.
+- **Herramientas de los agentes** (opcionales en Windows):
+  - `ffmpeg` (vídeos de animaciones para el cliente): `winget install Gyan.FFmpeg`.
+  - Python 3 + Pillow (tableros de previsualización): `winget install Python.Python.3.12` y después `pip install pillow`.
+  - `sox` solo hace falta para regenerar los audios de prueba, que ya están en `test/fixtures/`.
+- **Adaptar los prompts de `docs/agents/pauta-build.workflow.js` antes de reutilizarlos.** Son del PC Linux:
+  - quita `source ~/.nvm/nvm.sh >/dev/null 2>&1; nvm use 22 >/dev/null 2>&1;`;
+  - cambia las rutas absolutas (`/home/alumnos/gemarcos/Escritorio/apps-claude/pauta`) por la raíz nueva;
+  - sustituye `/tmp/claude-11397/...` por la carpeta temporal o el scratchpad de la sesión;
+  - sustituye `pkill -f "vite --port N"` por una forma de parar el servidor en Windows: `npx kill-port N`, o `taskkill` con el PID que escucha en el puerto (`netstat -ano | findstr :N`);
+  - actualiza la ruta del journal del workflow nuevo en el prompt del agente de enlace.
+- Los permisos de micrófono y la captura de pestaña funcionan igual en Chrome y Edge de Windows. Las pruebas e2e con audio falso usan flags de Chrome que también valen en Windows (`--use-file-for-fake-audio-capture=C:\\ruta\\melody-bass.wav`).
 
 ## 4. Estado por módulo (al pausar)
 

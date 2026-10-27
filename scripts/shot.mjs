@@ -4,6 +4,7 @@
 //        [--eval "js to run before the shot"] [--click "css selector"] [--fake-audio path.wav]
 // Prints console messages and page errors so you can spot runtime problems.
 import puppeteer from 'puppeteer-core'
+import { chromePath } from './chrome-path.mjs'
 
 const [url, out, ...rest] = process.argv.slice(2)
 if (!url || !out) {
@@ -33,7 +34,7 @@ const args = [
 ]
 if (opts.fakeAudio) args.push(`--use-file-for-fake-audio-capture=${opts.fakeAudio}`)
 
-const browser = await puppeteer.launch({ executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome', headless: true, args })
+const browser = await puppeteer.launch({ executablePath: chromePath(), headless: true, args })
 try {
   const page = await browser.newPage()
   await page.setViewport({ width: opts.width, height: opts.height, deviceScaleFactor: 2, isMobile: true, hasTouch: true })

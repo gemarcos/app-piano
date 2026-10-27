@@ -17,6 +17,7 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import puppeteer from 'puppeteer-core'
+import { chromePath } from '../chrome-path.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const FIXTURES = ['scale.wav', 'chords.wav', 'melody-bass.wav', 'scale.mp4', 'chords-room.wav', 'melody-bass-room.wav', 'silence.wav']
@@ -64,7 +65,7 @@ const chromeArgs = [
 ]
 if (opts.gpu) chromeArgs.push('--enable-gpu', '--use-angle=vulkan')
 if (opts.mic) chromeArgs.push(`--use-file-for-fake-audio-capture=${path.join(ROOT, 'test/fixtures/scale.wav')}`)
-const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: true, protocolTimeout: 900_000, args: chromeArgs })
+const browser = await puppeteer.launch({ executablePath: chromePath(), headless: true, protocolTimeout: 900_000, args: chromeArgs })
 
 let exitCode = 0
 try {

@@ -1,0 +1,12 @@
+# Line endings: always LF in the repo (shell scripts break with CRLF on Windows checkouts).
+* text=auto eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.webp binary
+*.mp3 binary
+*.mp4 binary
+*.wav binary
+*.bin binary
+*.woff2 binary
