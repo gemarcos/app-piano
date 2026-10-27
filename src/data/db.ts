@@ -101,7 +101,9 @@ export async function importBackup(file: Blob): Promise<number> {
   if (data.format !== BACKUP_FORMAT || !Array.isArray(data.scores)) {
     throw new Error('El archivo no es una copia de seguridad de Pauta.')
   }
-  const valid = data.scores.filter((s) => s && typeof s.id === 'string' && Array.isArray(s.notes) && s.params && s.analysis)
+  const valid = data.scores.filter(
+    (s) => s && typeof s.id === 'string' && typeof s.title === 'string' && Array.isArray(s.notes) && s.params && s.analysis && s.summary,
+  )
   await db.scores.bulkPut(valid)
   return valid.length
 }

@@ -1,0 +1,90 @@
+/* Owner: settings. Layout of the Ajustes screen; components come from the UI kit. */
+
+.set-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-8);
+  margin-top: var(--s-4);
+}
+
+/* Full-width choices under a row title */
+.set-below {
+  container-type: inline-size;
+  padding: var(--s-2) 0 var(--s-3);
+}
+
+/* Equal segments are ~100px wide at 390px: tighter side padding keeps "Sistema" + icon whole */
+.set-below .ui-seg__item {
+  padding-inline: 6px;
+}
+
+/* Narrow phones (320px): labels only, a size smaller */
+@container (max-width: 300px) {
+  .set-below .ui-seg__item {
+    padding-inline: 4px;
+    font-size: var(--fs-caption);
+  }
+  .set-below .ui-seg__item .ui-icon {
+    display: none;
+  }
+}
+
+/* Row text that may wrap on narrow phones instead of being cut */
+.set-wrap {
+  white-space: normal;
+}
+
+/*
+ * Theme fade (Tema), only while html.set-theme-fade is set (~0.34 s, see theme.ts): surfaces,
+ * lines and shadows ease to the new theme; text and icons (currentColor) switch at the midpoint,
+ * where both inks still contrast with the half-way surfaces (a plain fade would make text vanish).
+ * Gradients cannot transition, so the page shows its flat --bg meanwhile (a few levels apart).
+ */
+:root.set-theme-fade,
+:root.set-theme-fade *,
+:root.set-theme-fade *::before,
+:root.set-theme-fade *::after {
+  transition-property: background-color, border-color, outline-color, box-shadow, fill, stroke, color, text-decoration-color !important;
+  transition-duration: 0.3s, 0.3s, 0.3s, 0.3s, 0.3s, 0.3s, 0.15s, 0.15s !important;
+  transition-timing-function: ease-in-out, ease-in-out, ease-in-out, ease-in-out, ease-in-out, ease-in-out, steps(1, end), steps(1, end) !important;
+  transition-delay: 0s !important;
+}
+
+:root.set-theme-fade body,
+:root.set-theme-fade .ui-frame {
+  background-image: none !important;
+}
+
+/* Trailing icons of action rows: quiet, like the chevron */
+.set-action-icon {
+  color: var(--ink-3);
+}
+
+.set-reset-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.set-reset {
+  min-height: 44px;
+  padding: 0 var(--s-5);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-3);
+  touch-action: manipulation;
+  transition:
+    color var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease);
+}
+
+.set-reset:active {
+  background: var(--press);
+}
+
+@media (hover: hover) {
+  .set-reset:hover {
+    color: var(--ink-2);
+    background: var(--press);
+  }
+}
