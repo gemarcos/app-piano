@@ -1,9 +1,9 @@
 // Owner: engine-audio. Public API — Basic Pitch running in a Web Worker.
 // This file must never import tfjs / basic-pitch (only worker.ts does), so the main bundle stays lean.
 import type { NoteEvent } from '../../types'
-import type { RawActivations, TranscriberBackend, WorkerRequest, WorkerResponse } from './protocol'
+import type { RawActivations, TranscriberBackend, TuningInfo, WorkerRequest, WorkerResponse } from './protocol'
 
-export type { TranscriberBackend } from './protocol'
+export type { TranscriberBackend, TuningInfo } from './protocol'
 
 export interface TranscribeOptions {
   /**
@@ -43,6 +43,8 @@ export interface TranscribeDetails {
   renderer?: string
   timings: { loadMs: number; inferenceMs: number; decodeMs: number }
   raw?: RawActivations
+  /** Tuning offset detected in the input and the correction applied before inference. */
+  tuning?: TuningInfo
 }
 
 let worker: Worker | null = null
@@ -144,7 +146,7 @@ function handleMessage(msg: WorkerResponse) {
       backend = msg.backend
       modelReady = true
       jobs.delete(msg.id)
-      job.onDetails?.({ backend: msg.backend, renderer: msg.renderer, timings: msg.timings, raw: msg.raw })
+      job.onDetails?.({ backend: msg.backend, renderer: msg.renderer, timings: msg.timings, raw: msg.raw, tuning: msg.tuning })
       job.resolve(msg.notes)
       break
     case 'error':
@@ -186,7 +188,12 @@ export function startTranscription(
   samples: Float32Array,
   opts: TranscribeOptions,
   onProgress?: (fraction: number, stage: TranscribeStage) => void,
-  extra?: { debugRaw?: boolean; backend?: TranscriberBackend; onDetails?: (details: TranscribeDetails) => void },
+  extra?: {
+    debugRaw?: boolean
+    backend?: TranscriberBackend
+    tuning?: 'auto' | 'off' | number
+    onDetails?: (details: TranscribeDetails) => void
+  },
 ): TranscribeJob {
   const id = nextId++
   let settled = false
@@ -206,7 +213,7 @@ export function startTranscription(
         onProgress,
         onDetails: extra?.onDetails,
       },
-      { type: 'transcribe', id, modelUrl: modelUrl(), samples, opts, debugRaw: extra?.debugRaw, backend: extra?.backend },
+      { type: 'transcribe', id, modelUrl: modelUrl(), samples, opts, debugRaw: extra?.debugRaw, backend: extra?.backend, tuning: extra?.tuning },
     )
   })
   return {

@@ -2,9 +2,11 @@
 // One long-lived instance keeps the model loaded; jobs run one at a time.
 import * as tf from '@tensorflow/tfjs'
 import { BasicPitch } from '@spotify/basic-pitch'
-import type { RawActivations, TranscriberBackend, WorkerRequest, WorkerResponse } from './protocol'
-import { decoderParams } from './params'
+import type { RawActivations, TranscriberBackend, TuningInfo, WorkerRequest, WorkerResponse } from './protocol'
+import { decoderParams, scaleNoteTimes } from './params'
 import { decodeNotes } from './decode'
+import { estimateTuning, retune, retuneFactor, tuningCorrection, TUNING_MIN_CONFIDENCE } from './tuning'
+import { withVelocities } from './velocity'
 
 interface WorkerScope {
   onmessage: ((event: MessageEvent<WorkerRequest>) => void) | null
@@ -15,6 +17,8 @@ const scope = self as unknown as WorkerScope
 
 const MODEL_ERROR = 'No se pudo cargar el modelo de transcripción.'
 const RUN_ERROR = 'No se pudo transcribir el audio.'
+/** Basic Pitch input rate. */
+const MODEL_SAMPLE_RATE = 22050
 /** Samples per model window (2 s at 22 050 Hz minus one hop). */
 const MODEL_WINDOW = 43844
 /** Shorter inputs (< ~0.1 s) cannot contain a note. */
@@ -198,17 +202,31 @@ async function runTranscription(req: Extract<WorkerRequest, { type: 'transcribe'
   const t1 = performance.now()
   progress(0.1, 'analyzing')
 
+  // Detuned or sped-up audio: move it back onto the semitone grid before inference (see tuning.ts).
+  let input = samples
+  let timeScale = 1
+  let tuning: TuningInfo | undefined
+  if (samples.length >= MIN_SAMPLES && req.tuning !== 'off') {
+    const estimate = estimateTuning(samples)
+    const applied = typeof req.tuning === 'number' ? req.tuning : tuningCorrection(estimate)
+    tuning = { cents: estimate.cents, confidence: Math.round(estimate.confidence * 100) / 100, applied }
+    if (applied) {
+      input = retune(samples, applied)
+      timeScale = retuneFactor(applied)
+    }
+  }
+
   let activations: Activations = { frames: [], onsets: [] }
-  if (samples.length >= MIN_SAMPLES) {
+  if (input.length >= MIN_SAMPLES) {
     const onProgress = (p: number) => progress(0.1 + 0.8 * p, 'analyzing')
     try {
-      activations = await infer(model, samples, onProgress)
+      activations = await infer(model, input, onProgress)
     } catch (err) {
       if (backend !== 'webgl') throw err
       // GPU trouble (context loss, texture limits): retry once on the CPU.
       console.warn('[Pauta] WebGL inference failed, retrying on CPU', err)
       model = await fallBackToCpu(req.modelUrl)
-      activations = await infer(model, samples, onProgress)
+      activations = await infer(model, input, onProgress)
     }
   }
   const t2 = performance.now()
@@ -216,10 +234,13 @@ async function runTranscription(req: Extract<WorkerRequest, { type: 'transcribe'
 
   const { frames, onsets } = activations
   const raw: RawActivations | undefined = req.debugRaw
-    ? { nFrames: frames.length, frames: flatten(frames), onsets: flatten(onsets) }
+    ? { nFrames: frames.length, frames: flatten(frames), onsets: flatten(onsets), timeScale }
     : undefined
 
-  const notes = decodeNotes(frames, onsets, decoderParams(opts))
+  // Times back in input seconds, then loudness-based velocities from the (untouched) input samples.
+  const decoded = scaleNoteTimes(decodeNotes(frames, onsets, decoderParams(opts)), timeScale)
+  const offset = tuning && tuning.confidence >= TUNING_MIN_CONFIDENCE ? tuning.cents : 0
+  const notes = withVelocities(decoded, samples, MODEL_SAMPLE_RATE, offset)
   const t3 = performance.now()
   progress(1, 'extracting-notes')
 
@@ -232,6 +253,7 @@ async function runTranscription(req: Extract<WorkerRequest, { type: 'transcribe'
       renderer,
       timings: { loadMs: Math.round(t1 - t0), inferenceMs: Math.round(t2 - t1), decodeMs: Math.round(t3 - t2) },
       raw,
+      tuning,
     },
     raw ? [raw.frames.buffer, raw.onsets.buffer] : [],
   )

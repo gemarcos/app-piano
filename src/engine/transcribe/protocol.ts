@@ -16,6 +16,8 @@ export type WorkerRequest =
       debugRaw?: boolean
       /** Test harness only: backend to use when the model is first loaded. */
       backend?: TranscriberBackend
+      /** Test harness only: 'off' disables tuning compensation, a number forces that correction (cents). */
+      tuning?: 'auto' | 'off' | number
     }
 
 /** Model activations, row-major [frames × 88] (debug / calibration). */
@@ -23,6 +25,15 @@ export interface RawActivations {
   nFrames: number
   frames: Float32Array
   onsets: Float32Array
+  /** Multiply decoded note times by this to get input seconds (tuning compensation stretches the audio). */
+  timeScale: number
+}
+
+/** Global tuning found in the input and the correction that was applied before inference (cents). */
+export interface TuningInfo {
+  cents: number
+  confidence: number
+  applied: number
 }
 
 export interface JobTimings {
@@ -43,5 +54,6 @@ export type WorkerResponse =
       renderer?: string
       timings: JobTimings
       raw?: RawActivations
+      tuning?: TuningInfo
     }
   | { type: 'error'; id: number; message: string; detail?: string }

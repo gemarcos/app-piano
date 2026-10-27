@@ -16,7 +16,7 @@ import type { RawActivations } from '../../src/engine/transcribe/protocol'
 import { decodeNotes } from '../../src/engine/transcribe/decode'
 import { decoderParams, type DecoderParams } from '../../src/engine/transcribe/params'
 import type { NoteEvent } from '../../src/types'
-import { evaluateNotes, type Metrics, type TruthNote } from './metrics'
+import { evaluateDetailed, evaluateNotes, type DetailedMetrics, type Metrics, type TruthNote } from './metrics'
 
 const FIXTURES = '/test/fixtures/'
 
@@ -27,6 +27,10 @@ export interface RunOptions {
   raw?: boolean
   /** Backend for the first model load of the worker (later runs reuse it). */
   backend?: TranscriberBackend
+  /** Onset tolerance in seconds (default 0.06; the realistic benchmark under real/ uses 0.05). */
+  tolerance?: number
+  /** Tuning compensation: 'auto' (default, as shipped), 'off', or a forced correction in cents. */
+  tuning?: 'auto' | 'off' | number
 }
 
 export interface RunResult {
@@ -45,15 +49,27 @@ export interface RunResult {
   stages: Partial<Record<TranscribeStage, [number, number]>>
   progressMonotonic: boolean
   metrics: Metrics | null
+  /** Error breakdown (realistic benchmark only). */
+  detailed?: DetailedMetrics
+  /** Ground-truth metadata of the realistic benchmark. */
+  info?: { condition?: string; transpose?: number; residualCents?: number; description?: string }
+  tuning?: { cents: number; confidence: number; applied: number }
 }
 
 interface Truth {
   name: string
   bpm: number
   notes: TruthNote[]
+  condition?: string
+  transpose?: number
+  residualCents?: number
+  description?: string
 }
 
 const rawStore = new Map<string, { raw: RawActivations; frames: number[][]; onsets: number[][] }>()
+
+const scaled = (notes: NoteEvent[], scale: number) =>
+  scale === 1 ? notes : notes.map((n) => ({ ...n, start: n.start * scale, duration: n.duration * scale }))
 const truthStore = new Map<string, Truth | null>()
 
 function truthName(fixture: string): string {
@@ -87,7 +103,14 @@ async function prepare(fixture: string) {
   return { media, samples, fetchMs: t1 - t0, decodeMs: t2 - t1, resampleMs: t3 - t2 }
 }
 
-async function transcribeSamples(samples: Float32Array, sensitivity: number, minNoteMs: number, debugRaw: boolean, backend?: TranscriberBackend) {
+async function transcribeSamples(
+  samples: Float32Array,
+  sensitivity: number,
+  minNoteMs: number,
+  debugRaw: boolean,
+  backend?: TranscriberBackend,
+  tuning?: 'auto' | 'off' | number,
+) {
   const stages: Partial<Record<TranscribeStage, [number, number]>> = {}
   let last = -1
   let monotonic = true
@@ -102,7 +125,7 @@ async function transcribeSamples(samples: Float32Array, sensitivity: number, min
       const seen = stages[stage]
       stages[stage] = seen ? [seen[0], fraction] : [fraction, fraction]
     },
-    { debugRaw, backend, onDetails: (d) => (details = d) },
+    { debugRaw, backend, tuning, onDetails: (d) => (details = d) },
   )
   const notes = await job.promise
   const transcribeMs = performance.now() - t0
@@ -115,12 +138,14 @@ async function run(fixture: string, options: RunOptions = {}): Promise<RunResult
   const { media, samples, fetchMs, decodeMs, resampleMs } = await prepare(fixture)
   let peak = 0
   for (const v of samples) peak = Math.max(peak, Math.abs(v))
-  const t = await transcribeSamples(samples, sensitivity, minNoteMs, Boolean(options.raw), options.backend)
+  const t = await transcribeSamples(samples, sensitivity, minNoteMs, Boolean(options.raw), options.backend, options.tuning)
   if (t.details?.raw) {
     const raw = t.details.raw
     rawStore.set(fixture, { raw, frames: toRows(raw.frames, raw.nFrames), onsets: toRows(raw.onsets, raw.nFrames) })
   }
   const truth = await loadTruth(fixture)
+  const realBenchmark = fixture.startsWith('real/')
+  const tolerance = options.tolerance ?? (realBenchmark ? 0.05 : 0.06)
   const result: RunResult = {
     fixture,
     kind: media.kind,
@@ -144,7 +169,13 @@ async function run(fixture: string, options: RunOptions = {}): Promise<RunResult
     },
     stages: t.stages,
     progressMonotonic: t.monotonic,
-    metrics: truth ? evaluateNotes(t.notes, truth.notes) : null,
+    metrics: truth ? evaluateNotes(t.notes, truth.notes, tolerance) : null,
+    tuning: t.details?.tuning,
+  }
+  if (truth && realBenchmark) {
+    const detailed = evaluateDetailed(t.notes, truth.notes, tolerance)
+    result.detailed = { ...detailed, falsePositives: detailed.falsePositives.slice(0, 40), falseNegatives: detailed.falseNegatives.slice(0, 40) }
+    result.info = { condition: truth.condition, transpose: truth.transpose, residualCents: truth.residualCents, description: truth.description }
   }
   return result
 }
@@ -162,6 +193,8 @@ export interface SweepGrid {
 
 export interface SweepRow {
   params: DecoderParams & { minNoteMs: number; sensitivity?: number }
+  /** Duration errors (realistic benchmark only, see metrics.ts). */
+  durationErrors?: Record<string, number>
   f1: Record<string, number>
   precision: Record<string, number>
   recall: Record<string, number>
@@ -177,7 +210,9 @@ async function sweep(fixtures: string[], grid: SweepGrid): Promise<SweepRow[]> {
     const row: SweepRow = { params, f1: {}, precision: {}, recall: {}, meanF1: 0 }
     fixtures.forEach((f, i) => {
       const cached = rawStore.get(f)!
-      const m = evaluateNotes(decodeNotes(cached.frames, cached.onsets, params), truths[i]?.notes ?? [])
+      const notes = scaled(decodeNotes(cached.frames, cached.onsets, params), cached.raw.timeScale ?? 1)
+      const m = evaluateNotes(notes, truths[i]?.notes ?? [], f.startsWith('real/') ? 0.05 : 0.06)
+      if (f.startsWith('real/')) (row.durationErrors ??= {})[f] = evaluateDetailed(notes, truths[i]?.notes ?? []).breakdown.durationErrors
       row.f1[f] = m.f1
       row.precision[f] = m.precision
       row.recall[f] = m.recall

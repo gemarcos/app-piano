@@ -99,6 +99,12 @@ export interface TimedNote {
 
 const round3 = (v: number) => Math.round(v * 1000) / 1000
 
+/** Multiplies note times by `scale` (tuning compensation stretched the audio by 1 / scale), rounded to ms. */
+export function scaleNoteTimes(notes: NoteEvent[], scale: number): NoteEvent[] {
+  if (!(scale > 0) || Math.abs(scale - 1) < 1e-9) return notes
+  return notes.map((n) => ({ ...n, start: round3(n.start * scale), duration: Math.max(0.001, round3(n.duration * scale)) }))
+}
+
 /** Piano range only, velocity clamped to 0..1, times rounded to ms, sorted by start then pitch. */
 export function finalizeNotes(raw: readonly TimedNote[]): NoteEvent[] {
   const out: NoteEvent[] = []
