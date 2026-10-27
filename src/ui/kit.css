@@ -1,0 +1,142 @@
+/*
+ * UI kit tokens (extends src/styles/tokens.css, which is lead-owned).
+ * Every kit color lives here or in tokens.css; components never hard-code colors.
+ */
+
+:root {
+  /* Raised / interactive surfaces */
+  --raised: #ffffff;              /* segmented indicator, raised pills */
+  --knob: #ffffff;                /* toggle knob, slider thumbs */
+  --track: #e2e3ed;               /* slider track, toggle off */
+  --press: rgba(21, 21, 40, 0.05);/* pressed row highlight */
+  --fill: rgba(30, 30, 70, 0.06); /* translucent track: segmented, stepper (works on page and cards) */
+  --glass-border: rgba(255, 255, 255, 0.8);
+  --glass-blur: 24px;
+  --bar-bg: rgba(242, 242, 249, 0.8); /* sticky top bar when scrolled */
+  --bg-top: #f6f6fb;              /* first stop of --bg-gradient */
+  --bg-bottom: #e7e8f2;           /* last stop of --bg-gradient (bottom bars fade into it) */
+  --page-outer: #e2e3ed;          /* desktop: page around the app column */
+  --danger-ink: #ffffff;
+
+  /* Elevation extras */
+  --shadow-ink: 0 10px 24px rgba(21, 21, 26, 0.16), 0 2px 6px rgba(21, 21, 26, 0.1);
+  --shadow-ink-sm: 0 6px 16px -6px rgba(21, 21, 26, 0.35);
+  --shadow-accent: 0 10px 24px rgba(79, 107, 246, 0.3), 0 2px 6px rgba(79, 107, 246, 0.18);
+  --shadow-knob: 0 2px 6px rgba(30, 30, 70, 0.16), 0 0 0 0.5px rgba(30, 30, 70, 0.08);
+  --shadow-float: 0 16px 40px rgba(40, 40, 90, 0.14), 0 3px 10px rgba(40, 40, 90, 0.06);
+
+  /* Vinyl & turntable hardware */
+  --vinyl: #111115;
+  --vinyl-edge: #26262e;
+  --vinyl-groove: rgba(255, 255, 255, 0.055);
+  --vinyl-sheen: rgba(255, 255, 255, 0.2);
+  --vinyl-label: #f2f1ed;
+  --vinyl-label-ink: rgba(21, 21, 26, 0.14);
+  --vinyl-label-text: #3a3a44;
+  --vinyl-shadow: 0 18px 36px rgba(24, 24, 60, 0.26), 0 4px 10px rgba(24, 24, 60, 0.14);
+  --vinyl-rim: rgba(255, 255, 255, 0);
+  --arm: #1c1c22;
+  --arm-shadow: rgba(24, 24, 60, 0.28);
+  --metal-hi: #ffffff;
+  --metal: #d9dbe5;
+  --metal-lo: #a3a6b5;
+
+  /* Generated covers */
+  --cover-staff: rgba(21, 21, 40, 0.11);
+  --cover-note: rgba(79, 107, 246, 0.34);
+
+  /* Waveform */
+  --wave: #c3c5d4;
+  --wave-dim: #dfe0ea;
+
+  /* Layers */
+  --z-bar: 20;
+  --z-tabbar: 40;
+  --z-sheet: 60;
+  --z-dialog: 70;
+  --z-toast: 90;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --raised: #2b2d39;
+    --knob: #f2f3f7;
+    --track: #2b2d3a;
+    --press: rgba(255, 255, 255, 0.05);
+    --fill: rgba(255, 255, 255, 0.065);
+    --glass-border: rgba(255, 255, 255, 0.07);
+    --bar-bg: rgba(20, 21, 28, 0.8);
+    --bg-top: #181a22;
+    --bg-bottom: #0c0d11;
+    --page-outer: #08090c;
+    --danger-ink: #1a0b0c;
+    --shadow-ink: 0 10px 24px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+    --shadow-ink-sm: 0 6px 16px -6px rgba(0, 0, 0, 0.6);
+    --shadow-accent: 0 10px 24px rgba(123, 140, 255, 0.2), 0 2px 6px rgba(0, 0, 0, 0.3);
+    --shadow-knob: 0 2px 6px rgba(0, 0, 0, 0.45), 0 0 0 0.5px rgba(0, 0, 0, 0.3);
+    --shadow-float: 0 16px 40px rgba(0, 0, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.3);
+    --vinyl: #08080b;
+    --vinyl-edge: #1d1d24;
+    --vinyl-groove: rgba(255, 255, 255, 0.045);
+    --vinyl-sheen: rgba(255, 255, 255, 0.13);
+    --vinyl-label: #e4e3de;
+    --vinyl-label-ink: rgba(21, 21, 26, 0.16);
+    --vinyl-shadow: 0 18px 36px rgba(0, 0, 0, 0.55), 0 4px 10px rgba(0, 0, 0, 0.4);
+    --vinyl-rim: rgba(255, 255, 255, 0.07);
+    --arm: #d4d6df;
+    --arm-shadow: rgba(0, 0, 0, 0.5);
+    --metal-hi: #f0f1f5;
+    --metal: #9b9eae;
+    --metal-lo: #5e6172;
+    --cover-staff: rgba(255, 255, 255, 0.09);
+    --cover-note: rgba(123, 140, 255, 0.42);
+    --wave: #3d4052;
+    --wave-dim: #25272f;
+  }
+}
+
+:root[data-theme='dark'] {
+  --raised: #2b2d39;
+  --knob: #f2f3f7;
+  --track: #2b2d3a;
+  --press: rgba(255, 255, 255, 0.05);
+  --fill: rgba(255, 255, 255, 0.065);
+  --glass-border: rgba(255, 255, 255, 0.07);
+  --bar-bg: rgba(20, 21, 28, 0.8);
+  --bg-top: #181a22;
+  --bg-bottom: #0c0d11;
+  --page-outer: #08090c;
+  --danger-ink: #1a0b0c;
+  --shadow-ink: 0 10px 24px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-ink-sm: 0 6px 16px -6px rgba(0, 0, 0, 0.6);
+  --shadow-accent: 0 10px 24px rgba(123, 140, 255, 0.2), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-knob: 0 2px 6px rgba(0, 0, 0, 0.45), 0 0 0 0.5px rgba(0, 0, 0, 0.3);
+  --shadow-float: 0 16px 40px rgba(0, 0, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.3);
+  --vinyl: #08080b;
+  --vinyl-edge: #1d1d24;
+  --vinyl-groove: rgba(255, 255, 255, 0.045);
+  --vinyl-sheen: rgba(255, 255, 255, 0.13);
+  --vinyl-label: #e4e3de;
+  --vinyl-label-ink: rgba(21, 21, 26, 0.16);
+  --vinyl-shadow: 0 18px 36px rgba(0, 0, 0, 0.55), 0 4px 10px rgba(0, 0, 0, 0.4);
+  --vinyl-rim: rgba(255, 255, 255, 0.07);
+  --arm: #d4d6df;
+  --arm-shadow: rgba(0, 0, 0, 0.5);
+  --metal-hi: #f0f1f5;
+  --metal: #9b9eae;
+  --metal-lo: #5e6172;
+  --cover-staff: rgba(255, 255, 255, 0.09);
+  --cover-note: rgba(123, 140, 255, 0.42);
+  --wave: #3d4052;
+  --wave-dim: #25272f;
+}
+
+/* Generated cover tones: derived from base tokens, so they follow the theme. */
+:root {
+  --cover-tone-0: linear-gradient(150deg, var(--accent-soft) 0%, var(--surface) 100%);
+  --cover-tone-1: linear-gradient(160deg, var(--surface) 0%, var(--surface-3) 100%);
+  --cover-tone-2: linear-gradient(140deg, color-mix(in srgb, var(--accent) 20%, var(--surface)) 0%, var(--accent-soft) 100%);
+  --cover-tone-3: radial-gradient(120% 120% at 15% 10%, var(--surface) 0%, var(--accent-soft) 75%);
+  --cover-tone-4: linear-gradient(150deg, var(--surface-2) 0%, color-mix(in srgb, var(--accent) 12%, var(--surface-3)) 100%);
+  --cover-tone-5: linear-gradient(165deg, color-mix(in srgb, var(--ink) 5%, var(--surface)) 0%, var(--surface-2) 100%);
+}

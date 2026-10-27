@@ -1,0 +1,29 @@
+.ui-wave {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.ui-wave__canvas {
+  display: block;
+  width: 100%;
+}
+
+/* ---------- LiveBars ---------- */
+
+.ui-livebars {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--ink-2);
+  contain: layout style;
+}
+
+.ui-livebars__bar {
+  flex: none;
+  width: 3px;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: currentColor;
+}

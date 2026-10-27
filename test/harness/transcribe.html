@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Same base as the app's index.html, so the model URL resolves to /models/basic-pitch/model.json -->
+    <base href="/" />
+    <link rel="icon" href="data:," />
+    <title>Pauta · transcription harness</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        font: 14px/1.5 ui-monospace, monospace;
+        background: #eeeef5;
+        color: #15151c;
+      }
+    </style>
+  </head>
+  <body>
+    <pre id="out">loading</pre>
+    <script type="module" src="/test/harness/transcribe.ts"></script>
+  </body>
+</html>

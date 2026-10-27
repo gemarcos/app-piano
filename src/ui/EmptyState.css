@@ -1,0 +1,40 @@
+.ui-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1 0 auto;
+  min-height: 46vh;
+  padding: var(--s-10) var(--s-6);
+  text-align: center;
+}
+
+.ui-empty__img {
+  width: min(64%, 200px);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-md);
+  margin-bottom: var(--s-8);
+}
+
+.ui-empty__art {
+  display: grid;
+  place-items: center;
+  margin-bottom: var(--s-6);
+  color: var(--ink-3);
+}
+
+.ui-empty__title {
+  max-width: 26ch;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  color: var(--ink-2);
+  text-wrap: balance;
+}
+
+.ui-empty__action {
+  margin-top: var(--s-6);
+}

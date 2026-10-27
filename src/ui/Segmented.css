@@ -1,0 +1,89 @@
+.ui-seg {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  gap: 2px;
+  max-width: 100%;
+  padding: 3px;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+}
+
+.ui-seg--md {
+  height: 40px;
+}
+
+.ui-seg--sm {
+  height: 32px;
+}
+
+.ui-seg--full {
+  display: flex;
+  width: 100%;
+}
+
+.ui-seg--full .ui-seg__item {
+  flex: 1 1 0;
+}
+
+.ui-seg__item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--ink-2);
+  white-space: nowrap;
+  touch-action: manipulation;
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.ui-seg--sm .ui-seg__item {
+  padding: 0 12px;
+  font-size: var(--fs-caption);
+}
+
+.ui-seg__item.is-icon {
+  padding: 0 12px;
+}
+
+.ui-seg__item.is-selected {
+  color: var(--ink);
+}
+
+.ui-seg__item:focus-visible {
+  outline-offset: 0;
+}
+
+.ui-seg__thumb {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-pill);
+  background: var(--raised);
+  box-shadow: var(--shadow-sm);
+}
+
+.ui-seg__content {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ui-seg__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (hover: hover) {
+  .ui-seg__item:not(.is-selected):hover {
+    color: var(--ink);
+  }
+}

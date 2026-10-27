@@ -1,0 +1,165 @@
+/* Design tokens. Components must use these variables, never raw colors. */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg: #eeeef5;
+  --bg-gradient: radial-gradient(120% 80% at 50% 0%, #f6f6fb 0%, #eeeef5 55%, #e7e8f2 100%);
+  --surface: #ffffff;
+  --surface-2: #f4f5fa;          /* inputs, search pill, chips */
+  --surface-3: #eaebf3;          /* pressed / track */
+  --surface-glass: rgba(255, 255, 255, 0.72);
+  --scrim: rgba(20, 20, 40, 0.28);
+
+  /* Ink */
+  --ink: #15151a;
+  --ink-2: #5c5f6e;
+  --ink-3: #a1a3b3;
+  --ink-inverse: #ffffff;
+  --line: #e4e5ee;
+  --line-strong: #d3d5e2;
+
+  /* Accent (indigo-blue) */
+  --accent: #4f6bf6;
+  --accent-strong: #3d57e0;
+  --accent-soft: #e8ecff;
+  --accent-ink: #ffffff;
+  --accent-gradient: linear-gradient(135deg, #5b7cfa 0%, #6a5cf6 100%);
+
+  /* Feedback */
+  --danger: #e5484d;
+  --danger-soft: #fdecec;
+  --success: #2f9e6b;
+  --recording: #e5484d;
+
+  /* Score */
+  --score-ink: #15151a;
+  --score-highlight: #4f6bf6;
+  --score-paper: #ffffff;
+
+  /* Depth */
+  --shadow-sm: 0 1px 2px rgba(30, 30, 70, 0.04), 0 2px 8px rgba(30, 30, 70, 0.05);
+  --shadow-md: 0 8px 24px rgba(40, 40, 90, 0.08), 0 2px 6px rgba(40, 40, 90, 0.04);
+  --shadow-lg: 0 24px 60px rgba(40, 40, 90, 0.14), 0 6px 16px rgba(40, 40, 90, 0.06);
+  --shadow-neu: 8px 8px 18px rgba(150, 152, 186, 0.3), -8px -8px 18px rgba(255, 255, 255, 0.95);
+  --shadow-neu-sm: 4px 4px 10px rgba(150, 152, 186, 0.28), -4px -4px 10px rgba(255, 255, 255, 0.95);
+  --shadow-neu-inset: inset 4px 4px 10px rgba(150, 152, 186, 0.28), inset -4px -4px 10px rgba(255, 255, 255, 0.9);
+
+  /* Shape */
+  --r-xs: 8px;
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-xl: 32px;
+  --r-pill: 999px;
+
+  /* Space (4px base) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-14: 56px;
+  --s-18: 72px;
+  --gutter: 20px;
+
+  /* Type */
+  --font: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fs-display: 32px;
+  --fs-title: 24px;
+  --fs-h2: 18px;
+  --fs-body: 15px;
+  --fs-caption: 13px;
+  --fs-micro: 11px;
+
+  /* Icons (Untitled UI icons ship stroke-width 2; CSS overrides it) */
+  --icon-stroke: 1.8;
+
+  /* Motion */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 180ms;
+  --dur: 280ms;
+  --dur-slow: 450ms;
+
+  /* Layout */
+  --app-max: 480px;
+  --tabbar-h: 72px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #0f1015;
+    --bg-gradient: radial-gradient(120% 80% at 50% 0%, #181a22 0%, #0f1015 60%, #0c0d11 100%);
+    --surface: #17181f;
+    --surface-2: #1e2029;
+    --surface-3: #262833;
+    --surface-glass: rgba(23, 24, 31, 0.72);
+    --scrim: rgba(0, 0, 0, 0.5);
+    --ink: #f2f3f7;
+    --ink-2: #a3a6b6;
+    --ink-3: #6b6e80;
+    --ink-inverse: #15151a;
+    --line: #262833;
+    --line-strong: #33364a;
+    --accent: #7b8cff;
+    --accent-strong: #95a3ff;
+    --accent-soft: #23284a;
+    --accent-ink: #0f1015;
+    --accent-gradient: linear-gradient(135deg, #4a63e6 0%, #5a49d8 100%);
+    --danger: #ff6b6f;
+    --danger-soft: #3a1d20;
+    --success: #4cc38a;
+    --recording: #ff6b6f;
+    --score-ink: #e9eaf0;
+    --score-highlight: #8b9bff;
+    --score-paper: #17181f;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.5), 0 6px 16px rgba(0, 0, 0, 0.3);
+    --shadow-neu: 8px 8px 18px rgba(0, 0, 0, 0.55), -8px -8px 18px rgba(255, 255, 255, 0.035);
+    --shadow-neu-sm: 4px 4px 10px rgba(0, 0, 0, 0.5), -4px -4px 10px rgba(255, 255, 255, 0.03);
+    --shadow-neu-inset: inset 4px 4px 10px rgba(0, 0, 0, 0.5), inset -4px -4px 10px rgba(255, 255, 255, 0.03);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0f1015;
+  --bg-gradient: radial-gradient(120% 80% at 50% 0%, #181a22 0%, #0f1015 60%, #0c0d11 100%);
+  --surface: #17181f;
+  --surface-2: #1e2029;
+  --surface-3: #262833;
+  --surface-glass: rgba(23, 24, 31, 0.72);
+  --scrim: rgba(0, 0, 0, 0.5);
+  --ink: #f2f3f7;
+  --ink-2: #a3a6b6;
+  --ink-3: #6b6e80;
+  --ink-inverse: #15151a;
+  --line: #262833;
+  --line-strong: #33364a;
+  --accent: #7b8cff;
+  --accent-strong: #95a3ff;
+  --accent-soft: #23284a;
+  --accent-ink: #0f1015;
+  --accent-gradient: linear-gradient(135deg, #4a63e6 0%, #5a49d8 100%);
+  --danger: #ff6b6f;
+  --danger-soft: #3a1d20;
+  --success: #4cc38a;
+  --recording: #ff6b6f;
+  --score-ink: #e9eaf0;
+  --score-highlight: #8b9bff;
+  --score-paper: #17181f;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.5), 0 6px 16px rgba(0, 0, 0, 0.3);
+  --shadow-neu: 8px 8px 18px rgba(0, 0, 0, 0.55), -8px -8px 18px rgba(255, 255, 255, 0.035);
+  --shadow-neu-sm: 4px 4px 10px rgba(0, 0, 0, 0.5), -4px -4px 10px rgba(255, 255, 255, 0.03);
+  --shadow-neu-inset: inset 4px 4px 10px rgba(0, 0, 0, 0.5), inset -4px -4px 10px rgba(255, 255, 255, 0.03);
+}

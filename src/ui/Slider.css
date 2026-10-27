@@ -1,0 +1,140 @@
+.ui-slider {
+  --thumb: 26px;
+  --track-h: 6px;
+  --control-h: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+}
+
+.ui-slider__control {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--control-h);
+}
+
+.ui-slider__track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: var(--track-h);
+  margin-top: calc(var(--track-h) / -2);
+  border-radius: var(--r-pill);
+  background: var(--track);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ui-slider__fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--p, 0));
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.ui-slider--range .ui-slider__fill {
+  left: calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--pa, 0));
+  width: calc((100% - var(--thumb)) * (var(--pb, 1) - var(--pa, 0)));
+  border-radius: 0;
+}
+
+.ui-slider__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ui-slider__input:focus-visible {
+  outline: none;
+}
+
+.ui-slider__input::-webkit-slider-runnable-track {
+  height: var(--control-h);
+  background: transparent;
+  border: 0;
+}
+
+.ui-slider__input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--thumb);
+  height: var(--thumb);
+  margin-top: calc((var(--control-h) - var(--thumb)) / 2);
+  border: 0;
+  border-radius: 50%;
+  background: var(--knob);
+  box-shadow: var(--shadow-knob);
+  transition:
+    transform var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+
+.ui-slider__input:active::-webkit-slider-thumb {
+  transform: scale(1.1);
+}
+
+.ui-slider__input:focus-visible::-webkit-slider-thumb {
+  box-shadow: var(--shadow-knob), 0 0 0 3px var(--accent);
+}
+
+.ui-slider__input::-moz-range-track {
+  height: var(--control-h);
+  background: transparent;
+  border: 0;
+}
+
+.ui-slider__input::-moz-range-thumb {
+  width: var(--thumb);
+  height: var(--thumb);
+  border: 0;
+  border-radius: 50%;
+  background: var(--knob);
+  box-shadow: var(--shadow-knob);
+}
+
+.ui-slider__input:focus-visible::-moz-range-thumb {
+  box-shadow: var(--shadow-knob), 0 0 0 3px var(--accent);
+}
+
+/* Range: only the thumbs take pointer input, so both stay reachable */
+.ui-slider--range .ui-slider__input {
+  pointer-events: none;
+}
+
+.ui-slider--range .ui-slider__input::-webkit-slider-thumb {
+  pointer-events: auto;
+}
+
+.ui-slider--range .ui-slider__input::-moz-range-thumb {
+  pointer-events: auto;
+}
+
+.ui-slider__value {
+  flex: none;
+  min-width: 44px;
+  text-align: right;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.ui-slider.is-disabled {
+  opacity: 0.4;
+}
+
+.ui-slider.is-disabled .ui-slider__input {
+  cursor: default;
+}

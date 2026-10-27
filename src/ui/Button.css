@@ -1,0 +1,241 @@
+/* ---------- Button (pill) ---------- */
+
+.ui-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  max-width: 100%;
+  border-radius: var(--r-pill);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    opacity var(--dur-fast) var(--ease);
+}
+
+.ui-btn__content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ui-btn__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* optical centering of the bold glyphs */
+  padding-bottom: 1px;
+}
+
+.ui-btn--sm {
+  height: 36px;
+  padding: 0 14px;
+  font-size: var(--fs-caption);
+}
+
+.ui-btn--sm .ui-btn__content {
+  gap: 6px;
+}
+
+.ui-btn--md {
+  height: 44px;
+  padding: 0 20px;
+  font-size: var(--fs-body);
+}
+
+.ui-btn--lg {
+  height: 56px;
+  padding: 0 28px;
+  font-size: 16px;
+}
+
+.ui-btn--full {
+  display: flex;
+  width: 100%;
+}
+
+.ui-btn--ink {
+  background: var(--ink);
+  color: var(--ink-inverse);
+  box-shadow: var(--shadow-ink-sm);
+}
+
+.ui-btn--ink.ui-btn--lg {
+  box-shadow: var(--shadow-ink);
+}
+
+.ui-btn--accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: var(--shadow-accent);
+}
+
+.ui-btn--secondary {
+  background: var(--surface-2);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.ui-btn--ghost {
+  background: transparent;
+  color: var(--ink-2);
+}
+
+.ui-btn--ghost:active:not(:disabled) {
+  background: var(--press);
+}
+
+.ui-btn--danger {
+  background: var(--danger);
+  color: var(--danger-ink);
+}
+
+.ui-btn:disabled {
+  cursor: default;
+  opacity: 0.4;
+  box-shadow: none;
+}
+
+.ui-btn.is-loading {
+  opacity: 1;
+}
+
+.ui-btn.is-loading .ui-btn__content {
+  visibility: hidden;
+}
+
+.ui-btn__spinner {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+@media (hover: hover) {
+  .ui-btn--ghost:hover:not(:disabled) {
+    background: var(--press);
+    color: var(--ink);
+  }
+  .ui-btn--secondary:hover:not(:disabled) {
+    background: var(--surface-3);
+  }
+}
+
+/* ---------- IconButton (round) ---------- */
+
+.ui-iconbtn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  color: var(--ink);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    opacity var(--dur-fast) var(--ease);
+}
+
+.ui-iconbtn--sm {
+  width: 36px;
+  height: 36px;
+}
+
+/* keeps a 44px hit target for the small size */
+.ui-iconbtn--sm::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+}
+
+.ui-iconbtn--md {
+  width: 44px;
+  height: 44px;
+}
+
+.ui-iconbtn--lg {
+  width: 56px;
+  height: 56px;
+}
+
+.ui-iconbtn--xl {
+  width: 76px;
+  height: 76px;
+}
+
+.ui-iconbtn--ghost {
+  background: transparent;
+}
+
+.ui-iconbtn--ghost:active:not(:disabled) {
+  background: var(--press);
+}
+
+.ui-iconbtn--ghost.is-active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.ui-iconbtn--surface {
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.ui-iconbtn--surface.is-active {
+  color: var(--accent);
+}
+
+.ui-iconbtn--neu {
+  background: linear-gradient(145deg, var(--bg-top) 0%, var(--bg) 100%);
+  color: var(--ink-2);
+  box-shadow: var(--shadow-neu-sm);
+}
+
+.ui-iconbtn--neu.ui-iconbtn--lg,
+.ui-iconbtn--neu.ui-iconbtn--xl {
+  box-shadow: var(--shadow-neu);
+}
+
+.ui-iconbtn--neu.is-active {
+  color: var(--accent);
+  background: var(--bg);
+  box-shadow: var(--shadow-neu-inset);
+}
+
+.ui-iconbtn--ink {
+  background: var(--ink);
+  color: var(--ink-inverse);
+  box-shadow: var(--shadow-ink);
+}
+
+.ui-iconbtn--accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: var(--shadow-accent);
+}
+
+.ui-iconbtn:disabled {
+  cursor: default;
+  opacity: 0.36;
+}
+
+@media (hover: hover) {
+  .ui-iconbtn--ghost:hover:not(:disabled):not(.is-active) {
+    background: var(--press);
+  }
+}

@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pauta · Guía de estilo</title>
+<!-- Live design tokens from the app (light + dark via prefers-color-scheme) -->
+<link rel="stylesheet" href="../../src/styles/tokens.css">
+<style>
+@font-face {
+  font-family: 'Plus Jakarta Sans Variable';
+  font-style: normal;
+  font-display: block;
+  font-weight: 200 800;
+  src: url('../../node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans Variable';
+  font-style: normal;
+  font-display: block;
+  font-weight: 200 800;
+  src: url('../../node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  background-image: var(--bg-gradient);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--fs-body);
+  line-height: 1.45;
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, p { margin: 0; }
+
+.ic { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.ic-16 { width: 16px; height: 16px; }
+.ic-20 { width: 20px; height: 20px; }
+.ic-28 { width: 28px; height: 28px; }
+.ic-solid { fill: currentColor; }
+
+.sg { padding: 28px var(--gutter) 28px; }
+
+/* Header */
+.sg-eyebrow { display: flex; align-items: center; gap: 8px; font-size: var(--fs-caption); font-weight: 700; color: var(--accent); letter-spacing: 0.02em; }
+.sg-logo { width: 26px; height: 26px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; }
+.sg-logo::after { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--accent-gradient); }
+.sg-title { margin-top: 14px; font-size: var(--fs-display); font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; }
+.sg-sub { margin-top: 6px; color: var(--ink-2); }
+
+/* Sections */
+.sg-section { margin-top: 26px; }
+.sg-h { margin: 0 0 12px 4px; font-size: var(--fs-micro); font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3); }
+.sg-card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-md); padding: 18px; }
+.sg-card + .sg-card { margin-top: 12px; }
+
+/* Palette */
+.sg-swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 10px; }
+.sg-sw-chip { height: 46px; border-radius: var(--r-md); box-shadow: inset 0 0 0 1px var(--line); }
+.sg-sw-name { margin-top: 7px; font-size: 12px; font-weight: 700; line-height: 1.2; }
+.sg-sw-hex { margin-top: 2px; font-size: 10.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+
+/* Type scale */
+.sg-type-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.sg-type-row:first-child { padding-top: 2px; }
+.sg-type-row:last-child { border-bottom: 0; padding-bottom: 2px; }
+.sg-type-meta { flex: none; font-size: var(--fs-micro); color: var(--ink-3); font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.sg-type-meta b { display: block; color: var(--ink-2); font-weight: 700; }
+.t-display { font-size: var(--fs-display); font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; }
+.t-title { font-size: var(--fs-title); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+.t-h2 { font-size: var(--fs-h2); font-weight: 700; letter-spacing: -0.01em; }
+.t-body { font-size: var(--fs-body); font-weight: 500; color: var(--ink); max-width: 240px; }
+.t-caption { font-size: var(--fs-caption); font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+/* Radii */
+.sg-radii { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; text-align: center; }
+.sg-radius { height: 52px; background: var(--accent-soft); border: 1.5px solid var(--accent); }
+.sg-radius-l { margin-top: 8px; font-size: var(--fs-micro); color: var(--ink-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Depth */
+.sg-depth { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; text-align: center; padding: 18px 4px 0; }
+.sg-depth-tile { height: 92px; display: grid; place-items: center; }
+.sg-depth-card { width: 100%; height: 84px; border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-md); }
+.sg-depth-neu { width: 80px; height: 80px; border-radius: 50%; background: var(--bg); box-shadow: var(--shadow-neu); display: grid; place-items: center; color: var(--ink-2); }
+.sg-depth-inset { width: 80px; height: 80px; border-radius: 50%; background: var(--bg); box-shadow: var(--shadow-neu-inset); display: grid; place-items: center; color: var(--ink-3); }
+.sg-depth-l { margin-top: 10px; font-size: var(--fs-caption); font-weight: 700; }
+.sg-depth-s { font-size: var(--fs-micro); color: var(--ink-3); font-weight: 600; }
+
+/* Controls */
+.sg-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sg-row + .sg-row { margin-top: 16px; }
+.sg-btn { height: 52px; padding: 0 24px 0 20px; border-radius: var(--r-pill); display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: var(--fs-body); border: 0; font-family: inherit; }
+.sg-btn-ink { background: var(--ink); color: var(--ink-inverse); box-shadow: var(--shadow-md); }
+.sg-btn-soft { background: var(--surface-2); color: var(--ink); }
+.sg-iconbtn { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); color: var(--ink); margin-left: auto; }
+.sg-search { height: 48px; border-radius: var(--r-pill); background: var(--surface-2); display: flex; align-items: center; gap: 10px; padding: 0 18px; color: var(--ink-3); width: 100%; font-weight: 500; }
+.sg-chip { height: 36px; padding: 0 15px; border-radius: var(--r-pill); display: inline-flex; align-items: center; font-size: var(--fs-caption); font-weight: 700; background: var(--surface-2); color: var(--ink-2); }
+.sg-chip.is-on { background: var(--accent-soft); color: var(--accent); }
+.sg-seg { display: inline-flex; padding: 4px; border-radius: var(--r-pill); background: var(--surface-2); }
+.sg-seg span { height: 34px; padding: 0 14px; border-radius: var(--r-pill); display: grid; place-items: center; font-size: var(--fs-caption); font-weight: 700; color: var(--ink-2); }
+.sg-seg span.is-on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+.sg-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-weight: 600; }
+.sg-toggle-row + .sg-toggle-row { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 6px; }
+.sg-toggle { width: 50px; height: 30px; border-radius: var(--r-pill); background: var(--surface-3); position: relative; flex: none; }
+.sg-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(20, 20, 40, 0.25); }
+.sg-toggle.is-on { background: var(--accent); }
+.sg-toggle.is-on::after { left: 23px; }
+.sg-slider-head { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 12px; }
+.sg-slider-head span:last-child { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.sg-slider { position: relative; height: 6px; border-radius: var(--r-pill); background: var(--surface-3); }
+.sg-slider i { position: absolute; left: 0; top: 0; bottom: 0; width: 58%; border-radius: inherit; background: var(--accent); }
+.sg-slider b { position: absolute; left: 58%; top: 50%; width: 24px; height: 24px; margin: -12px 0 0 -12px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-md), 0 0 0 1px var(--line); }
+
+/* Transport (neumorphic, sits on the page background) */
+.sg-transport { display: flex; align-items: center; justify-content: center; gap: 22px; padding: 14px 0 6px; }
+.sg-neu-pill { width: 72px; height: 48px; border-radius: var(--r-pill); background: var(--bg); box-shadow: var(--shadow-neu-sm); display: grid; place-items: center; color: var(--ink-2); }
+.sg-play-ring { width: 92px; height: 92px; border-radius: 50%; background: var(--bg); box-shadow: var(--shadow-neu); display: grid; place-items: center; }
+.sg-play { width: 66px; height: 66px; border-radius: 50%; background: var(--accent-gradient); color: #fff; display: grid; place-items: center; box-shadow: 0 10px 22px color-mix(in srgb, var(--accent) 40%, transparent); }
+.sg-play .ic { margin-left: 3px; }
+
+/* List rows */
+.sg-list { padding: 8px; }
+.sg-li { display: flex; align-items: center; gap: 14px; padding: 10px; border-radius: var(--r-md); }
+.sg-li.is-on { background: var(--surface-2); }
+.sg-li-text { flex: 1; min-width: 0; }
+.sg-li-title { font-weight: 700; letter-spacing: -0.005em; }
+.sg-li-sub { font-size: var(--fs-caption); color: var(--ink-2); }
+.sg-li-time { font-size: var(--fs-caption); color: var(--ink-3); font-variant-numeric: tabular-nums; font-weight: 600; }
+.sg-li-icon { color: var(--ink-3); }
+.sg-li-icon.is-on { color: var(--accent); }
+.sg-cover { width: 54px; height: 54px; flex: none; border-radius: var(--r-md); display: grid; place-items: center; }
+.sg-cover-accent { background: var(--accent-gradient); color: #fff; }
+.sg-cover-soft { background: var(--surface-3); color: var(--ink-2); }
+.sg-cover-round { border-radius: 50%; background:
+  radial-gradient(circle, var(--surface-2) 0 3px, transparent 3.5px),
+  radial-gradient(circle, transparent 0 9px, rgba(0,0,0,0) 9px),
+  radial-gradient(circle, #6a5cf6 0 10px, transparent 10.5px),
+  repeating-radial-gradient(circle, #1b1b21 0 1px, #0f0f13 1px 2.4px);
+  box-shadow: var(--shadow-sm); }
+.sg-bars-mini { display: flex; align-items: center; gap: 2px; height: 18px; color: var(--accent); }
+.sg-bars-mini i { width: 3px; border-radius: 2px; background: currentColor; }
+
+/* Progress + waveform */
+.sg-progress { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; }
+.sg-ring { position: relative; width: 96px; height: 96px; }
+.sg-ring svg { width: 96px; height: 96px; transform: rotate(-90deg); }
+.sg-ring-track { stroke: var(--surface-3); }
+.sg-ring-fill { stroke: var(--accent); }
+.sg-ring-val { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 700; font-size: var(--fs-h2); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.sg-wave { display: flex; align-items: center; gap: 4px; height: 56px; }
+.sg-wave i { flex: 1; border-radius: 3px; background: var(--ink-3); opacity: 0.55; }
+.sg-wave i.p { background: var(--accent); opacity: 1; }
+.sg-now .sg-wave { height: 40px; margin: 14px 6px 0; }
+.sg-wave-meta { display: flex; justify-content: space-between; margin: 8px 6px 0; font-size: var(--fs-caption); color: var(--ink-2); font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* Tab bar */
+.sg-tabbar-wrap { padding: 26px 6px 6px; display: flex; justify-content: center; }
+.sg-tabbar { display: flex; align-items: center; gap: 6px; padding: 8px; border-radius: var(--r-pill); background: var(--surface-glass); backdrop-filter: blur(18px); box-shadow: var(--shadow-lg); border: 1px solid var(--line); }
+.sg-tab { height: 48px; min-width: 56px; padding: 0 16px; border-radius: var(--r-pill); display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ink-3); font-weight: 700; font-size: var(--fs-caption); }
+.sg-tab.is-on { background: var(--ink); color: var(--ink-inverse); }
+
+/* Icons */
+.sg-icons { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px 4px; text-align: center; }
+.sg-icon-tile { width: 48px; height: 48px; margin: 0 auto; border-radius: var(--r-md); background: var(--surface-2); display: grid; place-items: center; color: var(--ink); }
+.sg-icon-l { margin-top: 6px; font-size: 10.5px; color: var(--ink-2); font-weight: 600; }
+
+/* Vinyl */
+.sg-deck { position: relative; height: 244px; border-radius: var(--r-md); background: var(--surface-2); overflow: hidden; }
+.sg-vinyl { position: absolute; left: 22px; top: 50%; width: 212px; height: 212px; margin-top: -106px; border-radius: 50%;
+  background:
+    conic-gradient(from 210deg, rgba(255,255,255,0) 0deg, rgba(255,255,255,0.13) 22deg, rgba(255,255,255,0) 50deg, rgba(255,255,255,0) 180deg, rgba(255,255,255,0.08) 202deg, rgba(255,255,255,0) 232deg),
+    repeating-radial-gradient(circle at 50% 50%, #1c1c22 0 1.1px, #0e0e12 1.1px 2.7px);
+  box-shadow: 0 16px 32px rgba(15, 15, 35, 0.28), 0 0 0 5px #0b0b0f inset, 0 0 0 1px rgba(255, 255, 255, 0.07); }
+.sg-vinyl::before { content: ''; position: absolute; inset: 33%; border-radius: 50%; background: var(--accent-gradient); box-shadow: 0 0 0 4px rgba(0,0,0,0.25); }
+.sg-vinyl::after { content: ''; position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--surface-2); }
+.sg-arm-base { position: absolute; right: 22px; top: 14px; width: 52px; height: 52px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-neu-sm); }
+.sg-arm-base::after { content: ''; position: absolute; inset: 17px; border-radius: 50%; background: var(--line-strong); }
+.sg-arm { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.sg-arm-rod { stroke: var(--ink-2); stroke-width: 5; stroke-linecap: round; fill: none; }
+.sg-arm-head { fill: var(--ink); }
+.sg-now { text-align: center; margin-top: 16px; }
+.sg-now-t { font-size: var(--fs-h2); font-weight: 700; letter-spacing: -0.01em; }
+.sg-now-s { font-size: var(--fs-caption); color: var(--ink-2); margin-top: 2px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M9 21v-7.4c0-.5601 0-.8401.109-1.054a1 1 0 0 1 .437-.437C9.76 12 10.04 12 10.6 12h2.8c.5601 0 .8401 0 1.054.109a1 1 0 0 1 .437.437c.109.2139.109.4939.109 1.054V21M11.0177 2.764 4.2354 8.0391c-.4534.3527-.68.529-.8434.7498a2 2 0 0 0-.318.6502C3 9.7035 3 9.9907 3 10.565V17.8c0 1.1201 0 1.6801.218 2.108.1917.3763.4977.6823.874.874C4.5198 21 5.08 21 6.2 21h11.6c1.1201 0 1.6802 0 2.108-.218a2 2 0 0 0 .874-.874C21 19.4801 21 18.9201 21 17.8v-7.2349c0-.5744 0-.8616-.074-1.126a2 2 0 0 0-.318-.6502c-.1633-.2208-.39-.3971-.8434-.7498L12.9823 2.764c-.3513-.2732-.527-.4099-.721-.4624a1 1 0 0 0-.5226 0c-.194.0525-.3697.1891-.721.4624"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="m12 21-.1001-.1501c-.6946-1.0419-1.0419-1.5629-1.5008-1.9401a4 4 0 0 0-1.3775-.7372C8.4533 18 7.8271 18 6.5748 18H5.2c-1.1201 0-1.6802 0-2.108-.218a2 2 0 0 1-.874-.874C2 16.4802 2 15.9201 2 14.8V6.2c0-1.1201 0-1.6802.218-2.108a2 2 0 0 1 .874-.874C3.5198 3 4.08 3 5.2 3h.4c2.2402 0 3.3603 0 4.216.436a4 4 0 0 1 1.748 1.748C12 6.0397 12 7.1598 12 9.4M12 21V9.4M12 21l.1001-.1501c.6946-1.0419 1.0419-1.5629 1.5008-1.9401a4 4 0 0 1 1.3775-.7372C15.5467 18 16.1729 18 17.4252 18H18.8c1.1201 0 1.6802 0 2.108-.218a2 2 0 0 0 .874-.874C22 16.4802 22 15.9201 22 14.8V6.2c0-1.1201 0-1.6802-.218-2.108a2 2 0 0 0-.874-.874C20.4802 3 19.9201 3 18.8 3h-.4c-2.2402 0-3.3603 0-4.216.436a4 4 0 0 0-1.748 1.748C12 6.0397 12 7.1598 12 9.4"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12 15c1.6569 0 3-1.3431 3-3s-1.3431-3-3-3-3 1.3431-3 3 1.3431 3 3 3"/><path d="M18.7273 14.7273a1.5 1.5 0 0 0 .3 1.6545l.0545.0546a1.818 1.818 0 0 1 0 2.5727 1.8184 1.8184 0 0 1-2.5727 0l-.0546-.0546a1.5 1.5 0 0 0-1.6545-.3 1.5 1.5 0 0 0-.9091 1.3728v.1545a1.8182 1.8182 0 1 1-3.6364 0V20.1a1.5 1.5 0 0 0-.9818-1.3727 1.5 1.5 0 0 0-1.6545.3l-.0546.0545a1.818 1.818 0 0 1-1.9826.3947 1.82 1.82 0 0 1-.59-.3947 1.818 1.818 0 0 1-.5333-1.2863 1.818 1.818 0 0 1 .5332-1.2864l.0545-.0546a1.5 1.5 0 0 0 .3-1.6545 1.5 1.5 0 0 0-1.3727-.9091h-.1545a1.818 1.818 0 0 1-1.2857-3.1038 1.818 1.818 0 0 1 1.2857-.5326H3.9a1.5 1.5 0 0 0 1.3727-.9818 1.5 1.5 0 0 0-.3-1.6545l-.0545-.0546a1.818 1.818 0 0 1 0-2.5727 1.818 1.818 0 0 1 2.5727 0l.0545.0545a1.5 1.5 0 0 0 1.6546.3h.0727a1.5 1.5 0 0 0 .9091-1.3727v-.1545a1.8182 1.8182 0 0 1 3.6364 0V3.9a1.5 1.5 0 0 0 .9091 1.3727 1.5 1.5 0 0 0 1.6545-.3l.0546-.0545a1.817 1.817 0 0 1 1.2863-.5333 1.818 1.818 0 0 1 1.2864.5333 1.819 1.819 0 0 1 .3946 1.9826 1.82 1.82 0 0 1-.3946.5901l-.0546.0545a1.501 1.501 0 0 0-.3 1.6546v.0727a1.5 1.5 0 0 0 1.3728.9091h.1545a1.8183 1.8183 0 0 1 0 3.6364H20.1a1.5 1.5 0 0 0-1.3727.9091"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><path d="M19 10v2c0 3.866-3.134 7-7 7m-7-9v2c0 3.866 3.134 7 7 7m0 0v3m-4 0h8m-4-7c-1.6569 0-3-1.3431-3-3V5c0-1.6568 1.3431-3 3-3s3 1.3432 3 3v7c0 1.6569-1.3431 3-3 3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v1.2c0 1.6802 0 2.5202-.327 3.162a3 3 0 0 1-1.311 1.311C18.7202 21 17.8802 21 16.2 21H7.8c-1.6802 0-2.5202 0-3.162-.327a3 3 0 0 1-1.311-1.311C3 18.7202 3 17.8802 3 16.2V15m14-7-5-5m0 0L7 8m5-5v12"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M5 4.9895c0-.9711 0-1.4567.2025-1.7244a1 1 0 0 1 .7379-.395c.335-.02.739.2494 1.5471.7881l10.5156 7.0104c.6677.4451 1.0015.6677 1.1178.9482a1 1 0 0 1 0 .7662c-.1163.2805-.4501.503-1.1178.9482L7.4875 20.3415c-.808.5387-1.212.8081-1.5471.7881a1 1 0 0 1-.738-.3949C5 20.467 5 19.9814 5 19.0103z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M9.5 15V9m5 6V9m7.5 3c0 5.5228-4.4772 10-10 10S2 17.5228 2 12 6.4772 2 12 2s10 4.4772 10 10"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M5 19V5m11.4005 1.0796-5.8388 4.671c-.5338.4271-.8007.6406-.8974.8986a1 1 0 0 0 0 .7016c.0967.258.3636.4715.8974.8986l5.8388 4.671c.8322.6657 1.2482.9986 1.5984.999a1 1 0 0 0 .7826-.3762C19 18.2695 19 17.7367 19 16.671V7.329c0-1.0657 0-1.5985-.2185-1.8722a1 1 0 0 0-.7826-.3762c-.3502.0004-.7662.3333-1.5984.999"/></symbol>
+  <symbol id="i-fwd" viewBox="0 0 24 24"><path d="M19 5v14M7.5995 17.9204l5.8388-4.671c.5338-.4271.8007-.6406.8974-.8986a1 1 0 0 0 0-.7016c-.0967-.258-.3636-.4715-.8974-.8986l-5.8388-4.671c-.8322-.6657-1.2482-.9986-1.5984-.999a1 1 0 0 0-.7826.3762C5 5.7304 5 6.2633 5 7.329v9.342c0 1.0657 0 1.5985.2185 1.8722a1 1 0 0 0 .7826.3762c.3502-.0004.7662-.3333 1.5984-.999"/></symbol>
+  <symbol id="i-repeat" viewBox="0 0 24 24"><path d="m17 2 4 4m0 0-4 4m4-4H7.8c-1.6802 0-2.5202 0-3.162.327a3 3 0 0 0-1.311 1.311C3 8.2798 3 9.1198 3 10.8v.2m0 7h13.2c1.6802 0 2.5202 0 3.162-.327a3 3 0 0 0 1.311-1.311C21 15.7202 21 14.8802 21 13.2V13M3 18l4 4m-4-4 4-4"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M5 21v-7m0-4V3m7 18v-9m0-4V3m7 18v-5m0-4V3M2 14h6m1-6h6m1 8h6"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M11.9932 5.1358C9.9938 2.7984 6.6598 2.1696 4.1547 4.31s-2.8577 5.719-.8905 8.2504c1.6356 2.1047 6.5856 6.5437 8.2079 7.9804.1815.1608.2723.2411.3781.2727a.504.504 0 0 0 .2859 0c.1058-.0316.1966-.1119.3781-.2727 1.6223-1.4367 6.5723-5.8757 8.2079-7.9804 1.9672-2.5314 1.6576-6.1325-.8905-8.2504-2.5481-2.1178-5.8391-1.5116-7.8384.8258"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><path d="m21 21-4.35-4.35M19 11c0 4.4183-3.5817 8-8 8s-8-3.5817-8-8 3.5817-8 8-8 8 3.5817 8 8"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M9 18V6.3554c0-.4816 0-.7223.0876-.9176a1 1 0 0 1 .3587-.4234c.1782-.1185.4157-.1581.8907-.2373l8.8-1.4666c.6409-.1069.9614-.1603 1.2112-.0675a1 1 0 0 1 .5192.4399C21 3.9139 21 4.2389 21 4.8887V16M9 18c0 1.6568-1.3431 3-3 3s-3-1.3432-3-3 1.3431-3 3-3 3 1.3431 3 3m12-2c0 1.6568-1.3431 3-3 3s-3-1.3432-3-3 1.3431-3 3-3 3 1.3431 3 3"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><path d="M12 13c.5523 0 1-.4477 1-1s-.4477-1-1-1-1 .4477-1 1 .4477 1 1 1m7 0c.5523 0 1-.4477 1-1s-.4477-1-1-1-1 .4477-1 1 .4477 1 1 1M5 13c.5523 0 1-.4477 1-1s-.4477-1-1-1-1 .4477-1 1 .4477 1 1 1"/></symbol>
+</svg>
+
+<main class="sg">
+  <header>
+    <div class="sg-eyebrow"><span class="sg-logo"></span>Pauta</div>
+    <h1 class="sg-title">Guía de estilo</h1>
+    <p class="sg-sub">Claro, tranquilo y con un solo acento.</p>
+  </header>
+
+  <section class="sg-section">
+    <h2 class="sg-h">Colores</h2>
+    <div class="sg-card">
+      <div class="sg-swatches">
+        <div data-token="--bg"><div class="sg-sw-chip" style="background:var(--bg)"></div><div class="sg-sw-name">Fondo</div><div class="sg-sw-hex">#EEEEF5</div></div>
+        <div data-token="--surface"><div class="sg-sw-chip" style="background:var(--surface)"></div><div class="sg-sw-name">Superficie</div><div class="sg-sw-hex">#FFFFFF</div></div>
+        <div data-token="--surface-2"><div class="sg-sw-chip" style="background:var(--surface-2)"></div><div class="sg-sw-name">Relleno</div><div class="sg-sw-hex">#F4F5FA</div></div>
+        <div data-token="--ink"><div class="sg-sw-chip" style="background:var(--ink)"></div><div class="sg-sw-name">Tinta</div><div class="sg-sw-hex">#15151A</div></div>
+        <div data-token="--ink-2"><div class="sg-sw-chip" style="background:var(--ink-2)"></div><div class="sg-sw-name">Tinta secundaria</div><div class="sg-sw-hex">#5C5F6E</div></div>
+        <div data-token="--ink-3"><div class="sg-sw-chip" style="background:var(--ink-3)"></div><div class="sg-sw-name">Tinta suave</div><div class="sg-sw-hex">#A1A3B3</div></div>
+        <div data-token="--accent"><div class="sg-sw-chip" style="background:var(--accent)"></div><div class="sg-sw-name">Acento</div><div class="sg-sw-hex">#4F6BF6</div></div>
+        <div data-token="--accent-soft"><div class="sg-sw-chip" style="background:var(--accent-soft)"></div><div class="sg-sw-name">Acento suave</div><div class="sg-sw-hex">#E8ECFF</div></div>
+        <div data-token="--accent-gradient"><div class="sg-sw-chip" style="background:var(--accent-gradient)"></div><div class="sg-sw-name">Degradado</div><div class="sg-sw-hex">#5B7CFA · #6A5CF6</div></div>
+        <div data-token="--line"><div class="sg-sw-chip" style="background:var(--line)"></div><div class="sg-sw-name">Línea</div><div class="sg-sw-hex">#E4E5EE</div></div>
+        <div data-token="--recording"><div class="sg-sw-chip" style="background:var(--recording)"></div><div class="sg-sw-name">Grabando</div><div class="sg-sw-hex">#E5484D</div></div>
+        <div data-token="--success"><div class="sg-sw-chip" style="background:var(--success)"></div><div class="sg-sw-name">Listo</div><div class="sg-sw-hex">#2F9E6B</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sg-section">
+    <h2 class="sg-h">Tipografía · Plus Jakarta Sans</h2>
+    <div class="sg-card">
+      <div class="sg-type-row"><span class="t-display">Pauta</span><span class="sg-type-meta"><b>Display</b>32 · 700</span></div>
+      <div class="sg-type-row"><span class="t-title">Biblioteca</span><span class="sg-type-meta"><b>Título</b>24 · 700</span></div>
+      <div class="sg-type-row"><span class="t-h2">Claro de luna</span><span class="sg-type-meta"><b>Subtítulo</b>18 · 700</span></div>
+      <div class="sg-type-row"><span class="t-body">Escucha una canción y obtén su partitura.</span><span class="sg-type-meta"><b>Cuerpo</b>15 · 500</span></div>
+      <div class="sg-type-row"><span class="t-caption">3:42 · 72 ppm · Do mayor</span><span class="sg-type-meta"><b>Pie</b>13 · 500</span></div>
+    </div>
+  </section>
+
+  <section class="sg-section">
+    <h2 class="sg-h">Formas y sombras</h2>
+    <div class="sg-card">
+      <div class="sg-radii">
+        <div><div class="sg-radius" style="border-radius:var(--r-xs)"></div><div class="sg-radius-l">8</div></div>
+        <div><div class="sg-radius" style="border-radius:var(--r-sm)"></div><div class="sg-radius-l">12</div></div>
+        <div><div class="sg-radius" style="border-radius:var(--r-md)"></div><div class="sg-radius-l">16</div></div>
+        <div><div class="sg-radius" style="border-radius:var(--r-lg)"></div><div class="sg-radius-l">24</div></div>
+        <div><div class="sg-radius" style="border-radius:var(--r-xl)"></div><div class="sg-radius-l">32</div></div>
+        <div><div class="sg-radius" style="border-radius:var(--r-pill)"></div><div class="sg-radius-l">Píldora</div></div>
+      </div>
+    </div>
+    <div class="sg-depth">
+      <div><div class="sg-depth-tile"><div class="sg-depth-card"></div></div><div class="sg-depth-l">Tarjeta</div><div class="sg-depth-s">sombra suave</div></div>
+      <div><div class="sg-depth-tile"><div class="sg-depth-neu"><svg class="ic ic-28"><use href="#i-mic"/></svg></div></div><div class="sg-depth-l">Neumórfico</div><div class="sg-depth-s">en relieve</div></div>
+      <div><div class="sg-depth-tile"><div class="sg-depth-inset"><svg class="ic ic-28"><use href="#i-mic"/></svg></div></div><div class="sg-depth-l">Pulsado</div><div class="sg-depth-s">hundido</div></div>
+    </div>
+  </section>
+
+  <section class="sg-section">
+    <h2 class="sg-h">Controles</h2>
+    <div class="sg-card">
+      <div class="sg-row">
+        <span class="sg-btn sg-btn-ink"><svg class="ic ic-20"><use href="#i-mic"/></svg>Escuchar</span>
+        <span class="sg-btn sg-btn-soft"><svg class="ic ic-20"><use href="#i-upload"/></svg>Importar</span>
+      </div>
+      <div class="sg-row">
+        <div class="sg-search"><svg class="ic ic-20"><use href="#i-search"/></svg>Buscar partituras</div>
+      </div>
+      <div class="sg-row">
+        <span class="sg-chip is-on">Todas</span><span class="sg-chip">Favoritas</span><span class="sg-chip">Recientes</span><span class="sg-chip">Demos</span>
+      </div>
+      <div class="sg-row">
+        <span class="sg-seg"><span class="is-on">Do Re Mi</span><span>C D E</span></span>
+        <span class="sg-iconbtn" aria-label="Ajustes"><svg class="ic ic-20"><use href="#i-sliders"/></svg></span>
+      </div>
+    </div>
+    <div class="sg-card">
+      <div class="sg-toggle-row"><span>Metrónomo</span><span class="sg-toggle is-on"></span></div>
+      <div class="sg-toggle-row"><span>Cuenta previa</span><span class="sg-toggle"></span></div>
+      <div style="margin-top:18px">
+        <div class="sg-slider-head"><span>Velocidad</span><span>0,75×</span></div>
+        <div class="sg-slider"><i></i><b></b></div>
+      </div>
+    </div>
+    <div class="sg-transport">
+      <span class="sg-neu-pill"><svg class="ic ic-20"><use href="#i-back"/></svg></span>
+      <span class="sg-play-ring"><span class="sg-play"><svg class="ic ic-28 ic-solid"><use href="#i-play"/></svg></span></span>
+      <span class="sg-neu-pill"><svg class="ic ic-20"><use href="#i-fwd"/></svg></span>
+    </div>
+  </section>
+
+  <section class="sg-section">
+    <h2 class="sg-h">Listas</h2>
+    <div class="sg-card sg-list">
+      <div class="sg-li">
+        <span class="sg-cover sg-cover-accent"><svg class="ic"><use href="#i-note"/></svg></span>
+        <div class="sg-li-text"><div class="sg-li-title">Claro de luna</div><div class="sg-li-sub">Debussy</div></div>
+        <span class="sg-li-time">3:42</span>
+        <svg class="ic ic-20 sg-li-icon is-on ic-solid"><use href="#i-heart"/></svg>
+      </div>
+      <div class="sg-li is-on">
+        <span class="sg-cover sg-cover-round"></span>
+        <div class="sg-li-text"><div class="sg-li-title">Para Elisa</div><div class="sg-li-sub">Beethoven</div></div>
+        <span class="sg-bars-mini"><i style="height:8px"></i><i style="height:16px"></i><i style="height:11px"></i><i style="height:14px"></i></span>
+        <svg class="ic ic-20 sg-li-icon"><use href="#i-dots"/></svg>
+      </div>
+    </div>
+  </section>
+
+  <section class="sg-section">
+    <h2 class="sg-h">Iconos · Untitled UI</h2>
+    <div class="sg-card">
+      <div class="sg-icons">
+        <div><div class="sg-icon-tile"><svg class="ic"><use href="#i-home"/></svg></div><div class="sg-icon-l">Inicio</div></div>
+        <div><div class="sg-icon-tile"><svg class="ic"><use href="#i-book"/></svg></div><div class="sg-icon-l">Biblioteca</div></div>
+        <div><div class="sg-icon-tile"><svg class="ic"><use href="#i-settings"/></svg></div><div class="sg-icon-l">Ajustes</div></div>
+        <div><div class="sg-icon-tile"><svg class="ic"><use href="#i-mic"/></svg></div><div class="sg-icon-l">Escuchar</div></div>
+        <div><div class="sg-icon-tile"><svg class="ic"><use href="#i-upload"/></svg></div><div class="sg-icon-l">Importar</div></div>
+        <div><div class="sg-icon-tile"><svg class="ic"><use href="#i-search"/></svg></div><div class="sg-icon-l">Buscar</div></div>
+        <div><div class="sg-icon-tile"><svg class="ic"><use href="#i-play"/></svg></div><div class="sg-icon-l">Reproducir</div></div>
+        <div><div class="sg-icon-tile"><svg class="ic"><use href="#i-pause"/></svg></div><div class="sg-icon-l">Pausa</div></div>
+        <div><div class="sg-icon-tile"><svg class="ic"><use href="#i-back"/></svg></div><div class="sg-icon-l">Anterior</div></div>
+        <div><div class="sg-icon-tile"><svg class="ic"><use href="#i-fwd"/></svg></div><div class="sg-icon-l">Siguiente</div></div>
+        <div><div class="sg-icon-tile"><svg class="ic"><use href="#i-repeat"/></svg></div><div class="sg-icon-l">Bucle</div></div>
+        <div><div class="sg-icon-tile"><svg class="ic"><use href="#i-heart"/></svg></div><div class="sg-icon-l">Favorita</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sg-section">
+    <h2 class="sg-h">Vinilo</h2>
+    <div class="sg-card">
+      <div class="sg-deck">
+        <div class="sg-vinyl"></div>
+        <div class="sg-arm-base"></div>
+        <svg class="sg-arm" viewBox="0 0 354 244" aria-hidden="true">
+          <path class="sg-arm-rod" d="M306 40 L298 132 L236 176"/>
+          <rect class="sg-arm-head" x="216" y="166" width="30" height="17" rx="5" transform="rotate(-35 231 174.5)"/>
+        </svg>
+      </div>
+      <div class="sg-now">
+        <div class="sg-now-t">Claro de luna</div>
+        <div class="sg-now-s">Debussy</div>
+        <div class="sg-wave">
+          <i class="p" style="height:30%"></i><i class="p" style="height:55%"></i><i class="p" style="height:80%"></i><i class="p" style="height:45%"></i><i class="p" style="height:65%"></i><i class="p" style="height:100%"></i><i class="p" style="height:70%"></i><i class="p" style="height:40%"></i><i class="p" style="height:58%"></i><i style="height:86%"></i><i style="height:50%"></i><i style="height:30%"></i><i style="height:62%"></i><i style="height:90%"></i><i style="height:44%"></i><i style="height:26%"></i><i style="height:52%"></i><i style="height:35%"></i><i style="height:64%"></i><i style="height:40%"></i>
+        </div>
+        <div class="sg-wave-meta"><span>0:32</span><span>2:48</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sg-tabbar-wrap">
+    <div class="sg-tabbar">
+      <span class="sg-tab is-on"><svg class="ic ic-20"><use href="#i-home"/></svg>Inicio</span>
+      <span class="sg-tab"><svg class="ic"><use href="#i-book"/></svg></span>
+      <span class="sg-tab"><svg class="ic"><use href="#i-settings"/></svg></span>
+    </div>
+  </div>
+</main>
+
+<script>
+  // Show the live hex value of each token (keeps the guide honest if tokens change).
+  const css = getComputedStyle(document.documentElement)
+  for (const el of document.querySelectorAll('[data-token]')) {
+    const v = css.getPropertyValue(el.dataset.token).trim()
+    const out = el.querySelector('.sg-sw-hex')
+    if (!v || !out) continue
+    const hexes = v.match(/#[0-9a-f]{3,8}/gi)
+    if (hexes) out.textContent = hexes.slice(0, 2).map((h) => h.toUpperCase()).join(' · ')
+  }
+</script>
+</body>
+</html>

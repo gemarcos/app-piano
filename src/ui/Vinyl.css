@@ -1,0 +1,230 @@
+.ui-vinyl {
+  position: relative;
+  flex: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ui-vinyl.is-clickable {
+  cursor: pointer;
+}
+
+.ui-vinyl:focus-visible {
+  outline: none;
+}
+
+.ui-vinyl:focus-visible .ui-vinyl__record {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.ui-vinyl__deck {
+  position: absolute;
+}
+
+/* Neumorphic base with a recessed well the record sits in */
+.ui-vinyl__plinth {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(145deg, var(--bg-top) 0%, var(--bg) 100%);
+  box-shadow: var(--shadow-neu);
+}
+
+.ui-vinyl__well {
+  position: absolute;
+  inset: 3%;
+  border-radius: 50%;
+  box-shadow: var(--shadow-neu-inset);
+}
+
+.ui-vinyl__ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.ui-vinyl__ring-track {
+  fill: none;
+  stroke: var(--line);
+}
+
+.ui-vinyl__ring-arc {
+  fill: none;
+  stroke: var(--accent);
+  stroke-linecap: round;
+  transition:
+    stroke-dashoffset 0.6s var(--ease),
+    opacity var(--dur-fast) var(--ease);
+}
+
+.ui-vinyl__record {
+  position: absolute;
+  border-radius: 50%;
+  box-shadow: var(--vinyl-shadow), 0 0 0 1px var(--vinyl-rim);
+}
+
+.ui-vinyl__disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    /* faint asymmetric pressing marks: make the rotation perceptible */
+    conic-gradient(
+      from 20deg,
+      var(--vinyl-groove) 0deg,
+      transparent 50deg,
+      transparent 140deg,
+      var(--vinyl-groove) 170deg,
+      transparent 215deg,
+      transparent 300deg,
+      var(--vinyl-groove) 360deg
+    ),
+    /* smooth gaps between tracks */
+    radial-gradient(
+      circle closest-side,
+      transparent 0 55%,
+      var(--vinyl) 55.5% 56.6%,
+      transparent 57.2% 71%,
+      var(--vinyl) 71.5% 72.4%,
+      transparent 73% 85%,
+      var(--vinyl) 85.5% 86.2%,
+      transparent 86.8%
+    ),
+    /* fine grooves */
+    repeating-radial-gradient(circle at center, var(--vinyl-groove) 0 0.6px, transparent 1px 2.4px),
+    /* body with a lighter lead-in rim */
+    radial-gradient(circle closest-side, var(--vinyl) 0 95.5%, var(--vinyl-edge) 97.5%, var(--vinyl) 99.5%);
+}
+
+.ui-vinyl__label {
+  position: absolute;
+  left: 32%;
+  top: 32%;
+  width: 36%;
+  height: 36%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--vinyl-label);
+  color: var(--vinyl-label-text);
+}
+
+.ui-vinyl__label img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ui-vinyl__label-art {
+  width: 100%;
+  height: 100%;
+}
+
+.ui-vinyl__label-ring {
+  fill: none;
+  stroke: var(--vinyl-label-ink);
+  stroke-width: 1;
+}
+
+.ui-vinyl__label-print {
+  fill: none;
+  stroke: var(--vinyl-label-ink);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+}
+
+.ui-vinyl__label-print.is-short {
+  stroke-width: 2.4;
+}
+
+.ui-vinyl__label-dot {
+  fill: var(--accent);
+}
+
+/* Static specular highlight: stays put while the record turns */
+.ui-vinyl__sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background: conic-gradient(
+    from 296deg,
+    transparent 0deg,
+    var(--vinyl-sheen) 30deg,
+    transparent 64deg,
+    transparent 180deg,
+    var(--vinyl-sheen) 210deg,
+    transparent 244deg,
+    transparent 360deg
+  );
+  -webkit-mask-image: radial-gradient(circle closest-side, transparent 0 37%, black 40% 96%, transparent 98.5%);
+  mask-image: radial-gradient(circle closest-side, transparent 0 37%, black 40% 96%, transparent 98.5%);
+  opacity: 0.75;
+}
+
+.ui-vinyl__spindle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3.6%;
+  height: 3.6%;
+  min-width: 5px;
+  min-height: 5px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--metal-hi) 0%, var(--metal) 55%, var(--metal-lo) 100%);
+  box-shadow: 0 1px 2px var(--arm-shadow);
+}
+
+/* ---------- Tonearm ---------- */
+
+.ui-vinyl__armbase,
+.ui-vinyl__arm,
+.ui-vinyl__arm svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.ui-vinyl__plate {
+  fill: var(--bg);
+  filter: drop-shadow(2px 3px 3px var(--arm-shadow));
+}
+
+.ui-vinyl__post {
+  fill: var(--metal);
+  filter: drop-shadow(0.5px 1px 0.8px var(--arm-shadow));
+}
+
+.ui-vinyl__arm {
+  filter: drop-shadow(1.5px 3px 2.5px var(--arm-shadow));
+}
+
+.ui-vinyl__tube {
+  stroke: var(--arm);
+  stroke-width: 1.55;
+  stroke-linecap: round;
+}
+
+.ui-vinyl__lift {
+  stroke: var(--arm);
+  stroke-width: 0.8;
+  stroke-linecap: round;
+}
+
+.ui-vinyl__head {
+  fill: var(--arm);
+}
+
+.ui-vinyl__hub {
+  fill: var(--arm);
+}

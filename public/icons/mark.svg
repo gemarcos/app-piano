@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Monochrome brand mark (no tile). Use as a CSS mask with background: currentColor to tint it. -->
+  <defs>
+    <mask id="pauta-mark">
+      <rect width="512" height="512" fill="#fff"/>
+      <circle cx="300" cy="256" r="106" fill="#000"/>
+    </mask>
+    <mask id="pauta-hole">
+      <rect width="512" height="512" fill="#fff"/>
+      <circle cx="300" cy="256" r="19" fill="#000"/>
+      <circle cx="300" cy="256" r="60" fill="none" stroke="#000" stroke-opacity=".3" stroke-width="3"/>
+    </mask>
+  </defs>
+  <path d="M40 184H472M40 220H472M40 256H472M40 292H472M40 328H472" stroke="#000" stroke-opacity=".9" stroke-width="10" stroke-linecap="round" mask="url(#pauta-mark)"/>
+  <circle cx="300" cy="256" r="90" fill="#000" mask="url(#pauta-hole)"/>
+</svg>

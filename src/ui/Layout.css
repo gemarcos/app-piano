@@ -1,0 +1,213 @@
+/* ---------- AppFrame ---------- */
+
+.ui-frame {
+  position: relative;
+  width: 100%;
+  max-width: var(--app-max);
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+}
+
+@media (min-width: 520px) {
+  .ui-frame {
+    background: var(--bg-gradient);
+    background-color: var(--bg);
+    background-attachment: fixed;
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+/* ---------- Page ---------- */
+
+.ui-page {
+  --page-pad: 0px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: var(--safe-top);
+  padding-bottom: calc(var(--safe-bottom) + var(--s-8));
+}
+
+.ui-page--padded {
+  --page-pad: var(--gutter);
+  padding-inline: var(--gutter);
+}
+
+.ui-page--tabbar {
+  padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--s-10));
+}
+
+.ui-page:has(> .ui-bottombar) {
+  padding-bottom: 0;
+}
+
+/* ---------- TopBar ---------- */
+
+.ui-topbar {
+  position: relative;
+  z-index: var(--z-bar);
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 56px;
+  margin-inline: calc(var(--page-pad, 0px) * -1);
+  padding: 4px var(--gutter);
+  transition:
+    background-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.ui-topbar__left,
+.ui-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1 1 0;
+  min-width: max-content;
+}
+
+.ui-topbar__left {
+  margin-left: -10px;
+}
+
+.ui-topbar__right {
+  justify-content: flex-end;
+  margin-right: -10px;
+}
+
+.ui-topbar__center {
+  flex: 0 1 auto;
+  min-width: 0;
+  text-align: center;
+}
+
+.ui-topbar__title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ui-topbar__subtitle {
+  margin-top: 1px;
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Large: "Explore"-style title on the left */
+.ui-topbar--large {
+  align-items: flex-start;
+  min-height: 72px;
+  padding-top: 14px;
+  padding-bottom: 6px;
+}
+
+.ui-topbar--large .ui-topbar__left,
+.ui-topbar--large .ui-topbar__right {
+  flex: none;
+  min-width: 0;
+  /* centers 44px buttons on the first title line */
+  margin-top: -4px;
+}
+
+.ui-topbar--large .ui-topbar__heading {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ui-topbar--large .ui-topbar__title {
+  font-size: var(--fs-display);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.ui-topbar--large .ui-topbar__subtitle {
+  margin-top: 4px;
+  font-size: var(--fs-body);
+}
+
+/* Sticky: covers the status-bar area and frosts once the page scrolls */
+.ui-topbar--sticky {
+  position: sticky;
+  top: 0;
+  margin-top: calc(var(--safe-top) * -1);
+  padding-top: calc(var(--safe-top) + 4px);
+}
+
+.ui-topbar--sticky.ui-topbar--large {
+  padding-top: calc(var(--safe-top) + 14px);
+}
+
+.ui-topbar--sticky.is-scrolled {
+  background: var(--bar-bg);
+  -webkit-backdrop-filter: saturate(1.6) blur(18px);
+  backdrop-filter: saturate(1.6) blur(18px);
+  box-shadow: 0 1px 0 var(--line);
+}
+
+/* ---------- BottomBar ---------- */
+
+.ui-bottombar {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-bar);
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-top: auto;
+  margin-inline: calc(var(--page-pad, 0px) * -1);
+  padding: var(--s-6) var(--gutter) calc(var(--safe-bottom) + var(--s-4));
+  background: linear-gradient(to bottom, transparent 0, var(--bg-bottom) var(--s-6));
+}
+
+.ui-bottombar > .ui-btn {
+  flex: 1 1 0;
+}
+
+/* ---------- SectionHeader ---------- */
+
+.ui-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-height: 36px;
+  margin-bottom: var(--s-2);
+}
+
+.ui-section__title {
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+.ui-section__action {
+  margin-right: -8px;
+  padding: 8px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
+  transition: color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
+}
+
+.ui-section__action:active {
+  background: var(--press);
+}
+
+@media (hover: hover) {
+  .ui-section__action:hover {
+    color: var(--ink);
+  }
+}

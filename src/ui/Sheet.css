@@ -1,0 +1,193 @@
+.ui-sheet-root {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.ui-sheet-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ui-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--app-max);
+  max-height: calc(100dvh - var(--safe-top) - 24px);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  outline: none;
+}
+
+/* Fills the gap below the panel while the spring settles or the sheet is dragged up */
+.ui-sheet::after {
+  content: '';
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: var(--surface);
+}
+
+.ui-sheet--tall {
+  height: calc(100dvh - var(--safe-top) - 24px);
+}
+
+.ui-sheet__grab {
+  flex: none;
+  padding: 8px var(--gutter) 0;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ui-sheet__grab:active {
+  cursor: grabbing;
+}
+
+.ui-sheet__handle {
+  display: block;
+  width: 36px;
+  height: 5px;
+  margin: 0 auto 10px;
+  border-radius: var(--r-pill);
+  background: var(--line-strong);
+}
+
+.ui-sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-height: 40px;
+  padding-bottom: var(--s-2);
+}
+
+.ui-sheet__title {
+  min-width: 0;
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+.ui-sheet__close.ui-iconbtn {
+  width: 32px;
+  height: 32px;
+  margin-right: -4px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+
+.ui-sheet__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--s-2) var(--gutter) calc(var(--safe-bottom) + var(--s-6));
+}
+
+.ui-sheet__body.has-footer {
+  padding-bottom: var(--s-3);
+}
+
+.ui-sheet__footer {
+  flex: none;
+  display: flex;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--gutter) calc(var(--safe-bottom) + var(--s-4));
+}
+
+.ui-sheet__footer > .ui-btn {
+  flex: 1 1 0;
+}
+
+/* Grouped rows inside a sheet: quiet grey cards instead of white-on-white */
+.ui-sheet .ui-group__card {
+  background: var(--surface-2);
+  box-shadow: none;
+}
+
+/* ---------- ActionSheet ---------- */
+
+.ui-actionsheet .ui-sheet__body {
+  padding-top: 0;
+}
+
+.ui-actionsheet__title {
+  padding: 0 var(--s-4) var(--s-3);
+  text-align: center;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-actionsheet__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0 calc(var(--s-2) * -1) var(--s-4);
+}
+
+.ui-actionsheet__item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 54px;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-md);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.ui-actionsheet__item .ui-icon {
+  color: var(--ink-2);
+}
+
+.ui-actionsheet__item:active:not(:disabled) {
+  background: var(--press);
+}
+
+.ui-actionsheet__item.is-danger,
+.ui-actionsheet__item.is-danger .ui-icon {
+  color: var(--danger);
+}
+
+.ui-actionsheet__item:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.ui-actionsheet__item:focus-visible {
+  outline-offset: -2px;
+}
+
+.ui-actionsheet__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .ui-actionsheet__item:hover:not(:disabled) {
+    background: var(--press);
+  }
+}

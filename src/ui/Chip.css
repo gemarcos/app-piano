@@ -1,0 +1,67 @@
+.ui-chip {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--ink-2);
+  white-space: nowrap;
+  touch-action: manipulation;
+  transition:
+    background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.ui-chip .ui-icon {
+  margin-left: -2px;
+}
+
+.ui-chip.is-selected {
+  background: var(--ink);
+  color: var(--ink-inverse);
+  box-shadow: none;
+}
+
+.ui-chip:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+@media (hover: hover) {
+  .ui-chip:not(.is-selected):not(:disabled):hover {
+    color: var(--ink);
+  }
+}
+
+/* ---------- ChipRow ---------- */
+
+.ui-chiprow {
+  margin-inline: calc(var(--page-pad, 0px) * -1);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black var(--s-4), black calc(100% - var(--s-4)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, black var(--s-4), black calc(100% - var(--s-4)), transparent 100%);
+}
+
+.ui-chiprow::-webkit-scrollbar {
+  display: none;
+}
+
+.ui-chiprow__inner {
+  display: flex;
+  gap: var(--s-2);
+  width: max-content;
+  /* vertical room so chip shadows are not clipped */
+  padding: 6px var(--page-pad, 0px) 10px;
+}

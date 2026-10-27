@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Pauta</title>
+  <defs>
+    <linearGradient id="pauta-bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5B7CFA"/>
+      <stop offset="1" stop-color="#6A5CF6"/>
+    </linearGradient>
+    <mask id="pauta-gap">
+      <rect width="512" height="512" fill="#fff"/>
+      <circle cx="300" cy="256" r="106" fill="#000"/>
+    </mask>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#pauta-bg)"/>
+  <path d="M0 184H512M0 220H512M0 256H512M0 292H512M0 328H512" stroke="#fff" stroke-opacity=".9" stroke-width="10" mask="url(#pauta-gap)"/>
+  <circle cx="300" cy="256" r="90" fill="#fff"/>
+  <circle cx="300" cy="256" r="60" fill="none" stroke="url(#pauta-bg)" stroke-opacity=".3" stroke-width="3"/>
+  <circle cx="300" cy="256" r="19" fill="url(#pauta-bg)"/>
+</svg>

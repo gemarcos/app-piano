@@ -1,0 +1,238 @@
+/* Owner: ui. Resets, base typography and a few utilities. Colors come from tokens.css / ui/kit.css. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  scrollbar-gutter: stable;
+  background-color: var(--bg);
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--bg);
+  background-image: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--fs-body);
+  line-height: 1.45;
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+
+/* Desktop: the app is a centered column on a quieter page background */
+@media (min-width: 520px) {
+  html,
+  body {
+    background-color: var(--page-outer);
+    background-image: none;
+  }
+}
+
+#root {
+  min-height: 100%;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+blockquote,
+ul,
+ol {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: 0;
+  background: none;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+a {
+  color: inherit;
+}
+
+img,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+img {
+  -webkit-user-drag: none;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+/* Untitled UI icons ship stroke-width 2: unify it */
+.ui-icon {
+  flex: none;
+}
+
+.ui-icon path,
+.ui-icon circle,
+.ui-icon line,
+.ui-icon polyline,
+.ui-icon polygon,
+.ui-icon rect,
+.ui-icon ellipse {
+  stroke-width: var(--icon-stroke);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Overlays lock the page scroll (set by the UI kit) */
+html.ui-scroll-locked,
+html.ui-scroll-locked body {
+  overflow: hidden;
+}
+
+/* ---------- Utilities ---------- */
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Type scale */
+.ui-t-display {
+  font-size: var(--fs-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.ui-t-title {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.ui-t-h2 {
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+
+.ui-t-body {
+  font-size: var(--fs-body);
+  font-weight: 500;
+}
+
+.ui-t-caption {
+  font-size: var(--fs-caption);
+  font-weight: 500;
+}
+
+.ui-t-micro {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.ui-t-muted {
+  color: var(--ink-2);
+}
+
+.ui-t-faint {
+  color: var(--ink-3);
+}
+
+/* Layout helpers */
+.ui-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap, var(--s-4));
+}
+
+.ui-row-flex {
+  display: flex;
+  align-items: center;
+  gap: var(--gap, var(--s-3));
+}
+
+.ui-spacer {
+  flex: 1 1 auto;
+}
+
+/* Reduced motion (OS or in-app setting mirrored to <html data-reduce-motion>) */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+:root[data-reduce-motion] *,
+:root[data-reduce-motion] *::before,
+:root[data-reduce-motion] *::after {
+  scroll-behavior: auto !important;
+}

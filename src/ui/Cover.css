@@ -1,0 +1,72 @@
+.ui-cover {
+  position: relative;
+  display: block;
+  flex: none;
+  overflow: hidden;
+  background: var(--surface-3);
+  isolation: isolate;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.ui-cover__inner {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: inherit;
+  animation: ui-cover-spin 16s linear infinite;
+  animation-play-state: paused;
+}
+
+.ui-cover.is-spinning .ui-cover__inner {
+  animation-play-state: running;
+}
+
+.ui-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.ui-cover img.is-loaded {
+  opacity: 1;
+}
+
+.ui-cover__art {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.ui-cover__art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ui-cover__staff {
+  stroke: var(--cover-staff);
+  stroke-width: 1;
+}
+
+.ui-cover__note {
+  fill: var(--cover-note);
+}
+
+@keyframes ui-cover-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-cover__inner {
+    animation: none;
+  }
+}
+
+:root[data-reduce-motion] .ui-cover__inner {
+  animation: none;
+}

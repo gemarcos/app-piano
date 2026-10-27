@@ -1,0 +1,73 @@
+.ui-tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--safe-bottom) + 14px);
+  z-index: var(--z-tabbar);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.ui-tabbar--static {
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  z-index: auto;
+}
+
+.ui-tabbar__pill {
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  border-radius: var(--r-pill);
+  background: var(--surface-glass);
+  -webkit-backdrop-filter: saturate(1.6) blur(var(--glass-blur));
+  backdrop-filter: saturate(1.6) blur(var(--glass-blur));
+  box-shadow: var(--shadow-float), inset 0 0 0 1px var(--glass-border);
+  pointer-events: auto;
+}
+
+.ui-tabbar__item {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 48px;
+  border-radius: var(--r-pill);
+  color: var(--ink-3);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--dur) var(--ease);
+}
+
+.ui-tabbar__item.is-active {
+  color: var(--ink);
+}
+
+.ui-tabbar__item .ui-icon {
+  position: relative;
+  z-index: 1;
+}
+
+.ui-tabbar__item:active .ui-icon {
+  transform: scale(0.92);
+}
+
+.ui-tabbar__item .ui-icon {
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.ui-tabbar__indicator {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+}
+
+@media (hover: hover) {
+  .ui-tabbar__item:not(.is-active):hover {
+    color: var(--ink-2);
+  }
+}
