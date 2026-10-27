@@ -1,0 +1,25 @@
+/* Owner: library. Filter + sort sheet. */
+
+.lib-filter + .lib-filter {
+  margin-top: var(--s-6);
+}
+
+.lib-filter__title {
+  padding: 0 var(--s-1) var(--s-3);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink-3);
+}
+
+.lib-filter__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+/* On the white sheet, idle chips sit on the kit's translucent fill (like Segmented) instead of a shadow. */
+.lib-filter__chips .ui-chip:not(.is-selected) {
+  background: var(--fill);
+  box-shadow: none;
+}

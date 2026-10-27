@@ -1,0 +1,342 @@
+/* Owner: library. Library items: list row, grid tile, their controls and the loading skeleton. */
+
+/* ---------- Shared item controls ---------- */
+
+.lib-more.ui-iconbtn,
+.lib-fav.ui-iconbtn {
+  color: var(--ink-3);
+}
+
+.lib-fav.is-fav.ui-iconbtn {
+  color: var(--accent);
+}
+
+.lib-fav.is-fav .ui-icon path {
+  fill: currentColor;
+}
+
+.lib-fav.is-pop .ui-icon {
+  animation: lib-pop 0.44s var(--ease);
+}
+
+@keyframes lib-pop {
+  0% {
+    transform: scale(0.55);
+  }
+  55% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ---------- List row ---------- */
+
+.lib-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: var(--s-2);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.lib-row:has(> .lib-row__main:active) {
+  transform: scale(0.985);
+}
+
+.lib-row__main {
+  display: flex;
+  align-items: center;
+  gap: var(--lib-row-gap);
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--s-3) var(--s-1) var(--s-3) var(--s-3);
+  border-radius: var(--r-lg);
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+.lib-row__main:focus-visible {
+  outline-offset: -2px;
+}
+
+.lib-row__text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.lib-row__title,
+.lib-row__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lib-row__title {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  line-height: 1.3;
+}
+
+.lib-row__meta {
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--ink-3);
+}
+
+@media (hover: hover) {
+  .lib-row:has(> .lib-row__main:hover) {
+    box-shadow: var(--shadow-md);
+  }
+}
+
+/* ---------- Grid tile (cover card with a glass caption) ---------- */
+
+.lib-tile {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  background: var(--surface-3);
+  box-shadow: var(--shadow-sm);
+  isolation: isolate;
+  transition:
+    transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.lib-tile:has(> .lib-tile__main:active) {
+  transform: scale(0.975);
+}
+
+.lib-tile__main {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: inherit;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+.lib-tile__main:focus-visible {
+  outline-offset: -3px;
+}
+
+.lib-tile__cover.ui-cover {
+  position: absolute;
+  inset: 0;
+}
+
+/* Frosted band across the bottom of the cover (ref-3 "Popular Song" cards). */
+.lib-tile__caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 10px 12px 11px;
+  background: var(--surface-glass);
+  -webkit-backdrop-filter: saturate(1.5) blur(var(--glass-blur));
+  backdrop-filter: saturate(1.5) blur(var(--glass-blur));
+  box-shadow: inset 0 1px 0 var(--glass-border);
+}
+
+/* One line, so every band in a row has the same height (the full title is in the actions and the viewer). */
+.lib-tile__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  line-height: 1.3;
+}
+
+.lib-tile__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--ink-2);
+}
+
+.lib-tile__fav.ui-iconbtn {
+  position: absolute;
+  top: var(--s-2);
+  right: var(--s-2);
+  background: var(--surface-glass);
+  -webkit-backdrop-filter: saturate(1.5) blur(var(--glass-blur));
+  backdrop-filter: saturate(1.5) blur(var(--glass-blur));
+  box-shadow: inset 0 0 0 1px var(--glass-border);
+  color: var(--ink-2);
+}
+
+/* Tiles open their actions with a long press or right click; the button only shows for keyboard focus. */
+.lib-tile__more.ui-iconbtn {
+  position: absolute;
+  top: var(--s-2);
+  left: var(--s-2);
+  background: var(--surface-glass);
+  color: var(--ink-2);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lib-tile__more.ui-iconbtn:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: hover) {
+  .lib-tile:has(> .lib-tile__main:hover) {
+    box-shadow: var(--shadow-md);
+  }
+}
+
+/* ---------- Loading skeleton ---------- */
+
+.lib-skeleton {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--s-2);
+  animation: lib-fade-in 0.3s var(--ease) 0.15s both;
+}
+
+.lib-skel-block {
+  display: block;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.lib-skel-block--search {
+  height: 48px;
+}
+
+.lib-skel-chips {
+  display: flex;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+  padding: 6px 0 10px;
+  overflow: hidden;
+}
+
+.lib-skel-block--chip {
+  flex: none;
+  height: 36px;
+}
+
+.lib-skel-items.lib-list,
+.lib-skel-items.lib-grid {
+  margin-top: var(--s-4);
+}
+
+.lib-skel {
+  display: block;
+  background: var(--surface-3);
+  animation: lib-pulse 1.6s ease-in-out infinite;
+}
+
+.lib-skel-row {
+  display: flex;
+  align-items: center;
+  gap: var(--lib-row-gap);
+  padding: var(--s-3);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.lib-skel-row__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lib-skel--cover {
+  width: var(--lib-cover);
+  height: var(--lib-cover);
+  flex: none;
+  border-radius: var(--r-sm);
+}
+
+.lib-skel--line {
+  width: 58%;
+  height: 11px;
+  border-radius: var(--r-pill);
+}
+
+.lib-skel--short {
+  width: 36%;
+}
+
+.lib-skel--tile {
+  aspect-ratio: 4 / 5;
+  border-radius: var(--r-lg);
+}
+
+/* Also used by the empty states in LibraryScreen.css (keyframes are global). */
+@keyframes lib-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lib-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lib-skel,
+  .lib-fav.is-pop .ui-icon {
+    animation: none;
+  }
+  .lib-row:has(> .lib-row__main:active),
+  .lib-tile:has(> .lib-tile__main:active) {
+    transform: none;
+  }
+}
+
+:root[data-reduce-motion] .lib-skel,
+:root[data-reduce-motion] .lib-fav.is-pop .ui-icon {
+  animation: none;
+}
+
+:root[data-reduce-motion] .lib-row:has(> .lib-row__main:active),
+:root[data-reduce-motion] .lib-tile:has(> .lib-tile__main:active) {
+  transform: none;
+}

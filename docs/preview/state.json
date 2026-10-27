@@ -1,7 +1,7 @@
 {
   "project": "Pauta",
-  "nextBoard": 5,
-  "nextMotion": 4,
+  "nextBoard": 6,
+  "nextMotion": 5,
   "seen": {
     "assets-board-dark.png": 1793101996952,
     "assets-board.png": 1793101996952,
@@ -40,16 +40,29 @@
     "engine-score-nombres-antes-ahora.png": 1793105563877,
     "engine-score-oda-dark.png": 1793105319998,
     "engine-score-preludio-dark.png": 1793106082668,
-    "engine-score-preludio.png": 1793106077164
+    "engine-score-preludio.png": 1793106077164,
+    "library-actions-dark.png": 1793109748699,
+    "library-actions.png": 1793109742939,
+    "library-empty-dark.png": 1793109759314,
+    "library-empty.png": 1793109753963,
+    "library-filters-dark.png": 1793109737865,
+    "library-filters.png": 1793109732454,
+    "library-grid-dark.png": 1793109727195,
+    "library-grid.png": 1793109721237,
+    "library-list-dark.png": 1793109714366,
+    "library-list.png": 1793109707270,
+    "library-no-results-dark.png": 1793109769980,
+    "library-no-results.png": 1793109765038
   },
   "reportsSeen": {
     "assets.json": 1793101996926,
     "ui.json": 1793101996926,
     "engine-audio.json": 1793105109490,
     "settings.json": 1793105187968,
-    "engine-score.json": 1793106375753
+    "engine-score.json": 1793106375753,
+    "library.json": 1793110000376
   },
-  "journalSeen": 6,
+  "journalSeen": 10,
   "deliveries": [
     {
       "when": "earlier",
@@ -94,12 +107,34 @@
         "engine-score-preludio(-dark).png",
         "engine-audio report (87 % vs 78 % F1 on piano-sound fixtures)"
       ]
+    },
+    {
+      "when": "2026-10-27 15:02",
+      "files": [
+        "docs/preview/05-avance.jpg",
+        "docs/preview/motion-04-biblioteca.mp4",
+        "docs/preview/motion-04-biblioteca-dark.mp4"
+      ],
+      "caption": "Avance 5: ya está la Biblioteca (lista, cuadrícula, filtros, acciones y estado vacío), en claro y oscuro; vídeos de la entrada en la pestaña y los filtros.",
+      "sources": [
+        "library-list(-dark).png",
+        "library-grid(-dark).png",
+        "library-filters.png",
+        "library-actions-dark.png",
+        "library-empty(-dark).png"
+      ]
     }
   ],
-  "updatedAt": "2026-10-27T13:06:43.887Z",
+  "updatedAt": "2026-10-27T14:07:05.442Z",
   "shown": [
     "audio-calibration-stat",
     "engine-score-demos",
+    "library-actions",
+    "library-empty",
+    "library-filters",
+    "library-grid",
+    "library-list",
+    "library-tab-filter-video",
     "note-names-before-after",
     "settings-about",
     "settings-about-transition-video",

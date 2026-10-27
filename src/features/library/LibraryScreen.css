@@ -1,0 +1,105 @@
+/* Owner: library. Layout of the Biblioteca screen. Colors from tokens only. */
+
+.lib-page {
+  --lib-cover: 56px;
+  --lib-row-gap: 14px;
+}
+
+@media (max-width: 359px) {
+  .lib-page {
+    --lib-cover: 48px;
+    --lib-row-gap: 12px;
+  }
+}
+
+.lib-search {
+  margin-top: var(--s-2);
+}
+
+.lib-chips {
+  margin-top: var(--s-2);
+}
+
+/* ---------- Top bar: filter button with an "active" dot ---------- */
+
+.lib-filterbtn {
+  position: relative;
+  display: inline-flex;
+}
+
+.lib-filterbtn__dot {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--bg-top);
+  pointer-events: none;
+}
+
+/* ---------- Collections ---------- */
+
+.lib-list,
+.lib-grid {
+  /* popLayout takes leaving items out of the flow relative to this box */
+  position: relative;
+  margin-top: var(--s-4);
+}
+
+.lib-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.lib-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+
+.lib-item {
+  min-width: 0;
+}
+
+/* ---------- Empty and no results ---------- */
+
+/* Fades in after a beat: the first-run seed can briefly report an empty list. */
+.lib-empty,
+.lib-noresults {
+  animation: lib-fade-in 0.42s var(--ease) 0.12s both;
+}
+
+.lib-empty__img {
+  display: block;
+  width: min(78vw, 300px);
+  height: auto;
+  aspect-ratio: 9 / 7;
+  object-fit: cover;
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-md);
+}
+
+.lib-empty .ui-empty__art {
+  margin-bottom: var(--s-8);
+}
+
+/* The photo is bright: soften it a little on the dark page. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .lib-empty__img {
+    filter: brightness(0.86);
+  }
+}
+
+:root[data-theme='dark'] .lib-empty__img {
+  filter: brightness(0.86);
+}
+
+/* Close to the search and chips that caused it, not adrift mid-screen. */
+.lib-noresults.ui-empty {
+  flex: none;
+  min-height: 0;
+  padding-top: 14vh;
+}
