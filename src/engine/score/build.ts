@@ -215,7 +215,12 @@ export function buildScore(notes: NoteEvent[], params: ScoreParams, analysis: An
     shiftMeasures = q.shiftMeasures
     const sorted = sortByOnset(q.notes)
     assignHands(sorted, p.splitPoint)
-    const simple = simplify(sorted, { difficulty: p.difficulty, maxPolyphony: p.maxPolyphony, beatTicks: beatTicksOf(ts) })
+    const simple = simplify(sorted, {
+      difficulty: p.difficulty,
+      maxPolyphony: p.maxPolyphony,
+      beatTicks: beatTicksOf(ts),
+      measureTicks: tpm,
+    })
     segsR = chordStream(simple.filter((n) => n.right), grid)
     segsL = chordStream(simple.filter((n) => !n.right), grid)
   } catch {

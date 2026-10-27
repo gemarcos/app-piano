@@ -2,7 +2,7 @@
 import type { Score, ScoreEvent } from '../../types'
 import { beatTicksOf, meterParts } from './constants'
 import { normalizeKey } from './keys'
-import { AccidentalState, spellPitch } from './spelling'
+import { AccidentalState, spellChord } from './spelling'
 
 const TYPES: Record<number, [string, number]> = {
   1: ['16th', 0],
@@ -139,9 +139,8 @@ export function scoreToMusicXml(score: Score): string {
         prevTie[si] = tieStart
         const [type, dots] = TYPES[ev.duration] ?? ['quarter', 0]
         const pitches = [...ev.pitches].sort((a, b) => a - b)
-        pitches.forEach((p, pi) => {
-          const sp = spellPitch(p, key)
-          const alter = acc.visit(sp, tieStop && ev.start === 0)
+        spellChord(pitches, key).forEach((sp, pi) => {
+          const alter = acc.visit(sp, tieStop)
           let n = '      <note>'
           if (pi > 0) n += '<chord/>'
           n += `<pitch><step>${sp.step}</step>${sp.alter !== 0 ? `<alter>${sp.alter}</alter>` : ''}<octave>${sp.octave}</octave></pitch>`

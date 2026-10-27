@@ -1,12 +1,12 @@
 {
   "project": "Pauta",
-  "nextBoard": 4,
-  "nextMotion": 3,
+  "nextBoard": 5,
+  "nextMotion": 4,
   "seen": {
     "assets-board-dark.png": 1793101996952,
     "assets-board.png": 1793101996952,
     "assets-icons.png": 1793101996952,
-    "engine-score-oda.png": 1793101996966,
+    "engine-score-oda.png": 1793105316664,
     "ui-actionsheet-dark.png": 1793101996966,
     "ui-actionsheet.png": 1793101996966,
     "ui-confirm-dark.png": 1793101996966,
@@ -34,14 +34,22 @@
     "settings-main-dark.png": 1793105025553,
     "settings-main-full-dark.png": 1793105028433,
     "settings-main-full.png": 1793105014564,
-    "settings-main.png": 1793105011662
+    "settings-main.png": 1793105011662,
+    "engine-score-minueto-dark.png": 1793105326561,
+    "engine-score-minueto.png": 1793105323513,
+    "engine-score-nombres-antes-ahora.png": 1793105563877,
+    "engine-score-oda-dark.png": 1793105319998,
+    "engine-score-preludio-dark.png": 1793106082668,
+    "engine-score-preludio.png": 1793106077164
   },
   "reportsSeen": {
     "assets.json": 1793101996926,
     "ui.json": 1793101996926,
-    "engine-audio.json": 1793105109490
+    "engine-audio.json": 1793105109490,
+    "settings.json": 1793105187968,
+    "engine-score.json": 1793106375753
   },
-  "journalSeen": 4,
+  "journalSeen": 6,
   "deliveries": [
     {
       "when": "earlier",
@@ -70,13 +78,34 @@
         "settings-about.png",
         "settings-about-dark.png"
       ]
+    },
+    {
+      "when": "2026-10-27 13:56",
+      "files": [
+        "docs/preview/04-avance.jpg",
+        "docs/preview/motion-03-acerca-de.mp4",
+        "docs/preview/motion-03-acerca-de-dark.mp4"
+      ],
+      "caption": "Avance 4: los nombres de nota ya son más pequeños (antes y ahora) y las tres partituras de ejemplo, en claro y oscuro; vídeos del paso de Ajustes a Acerca de.",
+      "sources": [
+        "engine-score-nombres-antes-ahora.png",
+        "engine-score-oda(-dark).png",
+        "engine-score-minueto(-dark).png",
+        "engine-score-preludio(-dark).png",
+        "engine-audio report (87 % vs 78 % F1 on piano-sound fixtures)"
+      ]
     }
   ],
-  "updatedAt": "2026-10-27T12:45:51.913Z",
+  "updatedAt": "2026-10-27T13:06:43.887Z",
   "shown": [
+    "audio-calibration-stat",
+    "engine-score-demos",
+    "note-names-before-after",
     "settings-about",
+    "settings-about-transition-video",
     "settings-main",
     "theme-switch-video"
   ],
-  "notes": "Pending ideas: engine-score demos with smaller note names (light/dark); Acerca de push transition video once worth it; settings-clear-confirm(-dark) not shown (confirm dialog already in kit)."
+  "notes": "Videos: record from a production build of the current code in the liaison temp dist (node node_modules/vite/bin/vite.js build --outDir <temp>/dist) served by preview.mjs on 5190; the dev server drops frames on page transitions. Next ideas: library/viewer/capture screens as they appear; sheets and cover->viewer transitions as videos.",
+  "tooling": "Liaison temp scripts: scan.mjs, diff.py, board.mjs (spec JSON), rec.mjs (scenario JSON), preview.mjs (vite preview of temp build on 5190), strip.py."
 }

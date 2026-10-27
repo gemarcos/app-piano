@@ -39,8 +39,12 @@ export {
   measureDurationSeconds,
 } from './build'
 
-/** ABC notation for abcjs (grand staff, L:1/16, correct key-aware accidentals, ties across barlines). */
-export { scoreToAbc } from './abc'
+/**
+ * ABC notation for abcjs (grand staff, L:1/16, correct key-aware accidentals, ties across barlines).
+ * With note names it sets a small %%annotationfont (ABC_ANNOTATION_SIZE pt, ABC_ANNOTATION_FONT).
+ * suggestMeasuresPerLine: bars per system for a width (abcjs units ~ CSS px at zoom 1) and density.
+ */
+export { scoreToAbc, suggestMeasuresPerLine, ABC_ANNOTATION_SIZE, ABC_ANNOTATION_FONT } from './abc'
 export type { AbcOptions } from './abc'
 
 /** MusicXML 4.0 partwise document (one piano part, two staves). */
@@ -58,9 +62,10 @@ export { keyName, transposeKey, allKeys, keyFromPc, keyFromFifths, normalizeKey,
 
 /**
  * pitchName: "Do4", "Fa#3" (latin) or "C4", "F#3" (english), spelled according to the key when given.
- * spellPitch: { step, alter, octave } for engraving.
+ * spellPitch: { step, alter, octave } for engraving. spellChord: the same for a chord (ascending
+ * pitches), never putting two notes on one letter and octave.
  */
-export { pitchName, pitchClassName, spellPitch } from './spelling'
+export { pitchName, pitchClassName, spellPitch, spellChord } from './spelling'
 export type { SpelledPitch } from './spelling'
 
 /** Notatable pieces of a span inside one measure (used by the Score model; exposed for tests/tools). */

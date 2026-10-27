@@ -73,7 +73,7 @@ function analyze(notes: NoteEvent[]): AnalysisResult {
   const period = 60 / bpm
 
   // 4. Meter and downbeat from beat accents (bass notes, long notes, loud chords).
-  const accents = beatAccents(onsets, grid.phase, period, percentile(pitches, 0.1))
+  const accents = beatAccents(onsets, grid.phase, period)
   const timeSignature = chooseMeter(accents.values)
   const perBar = timeSignature === '3/4' ? 3 : 4
   const downbeat = chooseDownbeat(accents.values, perBar)
@@ -138,19 +138,39 @@ interface BeatAccents {
   firstIndex: number
 }
 
-/** Accent per beat slot: onset strength boosted by bass notes (near the lowest pitches) and long notes. */
-function beatAccents(onsets: Onset[], phase: number, period: number, bassRef: number): BeatAccents {
+/** Lowest pitch among the onsets within +-`window` seconds of each onset (sliding window). */
+function localLowest(onsets: Onset[], window: number): number[] {
+  const out = new Array<number>(onsets.length)
+  let a = 0
+  let b = 0
+  for (let i = 0; i < onsets.length; i++) {
+    while (onsets[a].t < onsets[i].t - window) a++
+    while (b + 1 < onsets.length && onsets[b + 1].t <= onsets[i].t + window) b++
+    let low = Infinity
+    for (let j = a; j <= b; j++) low = Math.min(low, onsets[j].low)
+    out[i] = low
+  }
+  return out
+}
+
+/**
+ * Accent per beat slot: onset strength boosted by bass notes and long notes. "Bass" is relative to
+ * the lowest pitch within two beats (a global percentile mistakes the accompaniment chords of a
+ * waltz, which outnumber its bass notes, for bass).
+ */
+function beatAccents(onsets: Onset[], phase: number, period: number): BeatAccents {
   const firstIndex = Math.round((onsets[0].t - phase) / period)
   const lastIndex = Math.round((onsets[onsets.length - 1].t - phase) / period)
   const values = new Array<number>(Math.max(1, lastIndex - firstIndex + 1)).fill(0)
   const tol = period * 0.2
-  for (const o of onsets) {
+  const lowest = localLowest(onsets, 2 * period)
+  onsets.forEach((o, i) => {
     const k = Math.round((o.t - phase) / period)
-    if (Math.abs(o.t - (phase + k * period)) > tol) continue
-    const bass = clamp(1 - (o.low - bassRef) / 7, 0, 1)
+    if (Math.abs(o.t - (phase + k * period)) > tol) return
+    const bass = clamp(1 - (o.low - lowest[i]) / 7, 0, 1)
     const long = clamp(o.dur / (2 * period), 0, 1)
     values[k - firstIndex] += o.w * (1 + bass + 0.5 * long)
-  }
+  })
   return { values, firstIndex }
 }
 

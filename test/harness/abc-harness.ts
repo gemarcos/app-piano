@@ -1,10 +1,11 @@
 // Owner: engine-score. Visual check of the ABC output with abcjs (not part of the app bundle).
 // URL: /test/harness/abc.html?case=<slug|stress|six-eight>&naming=latin|english|none&hands=both|right|left
-//      &difficulty=original|intermedio|facil&bars=2&transpose=0&dark=1
+//      &difficulty=original|intermedio|facil&bars=<n, default suggestMeasuresPerLine>&transpose=0&dark=1
+//      &annot=12 (note names at the old abcjs default: Helvetica 12 pt, for before/after comparisons)
 import '@fontsource-variable/plus-jakarta-sans'
 import '../../src/styles/tokens.css'
 import abcjs from 'abcjs'
-import { buildScore, defaultParams, keyName, scoreToAbc } from '../../src/engine/score'
+import { buildScore, defaultParams, keyName, scoreToAbc, suggestMeasuresPerLine } from '../../src/engine/score'
 import type { AbcOptions } from '../../src/engine/score'
 import { demoAnalysis, demoParams, demoPieces } from '../../src/data/demos'
 import type { AnalysisResult, Difficulty, NoteEvent, NoteNaming, Score } from '../../src/types'
@@ -13,9 +14,10 @@ const q = new URLSearchParams(location.search)
 const naming = (q.get('naming') ?? 'latin') as NoteNaming
 const hands = (q.get('hands') ?? 'both') as AbcOptions['hands']
 const difficulty = (q.get('difficulty') ?? 'original') as Difficulty
-const bars = Number(q.get('bars') ?? 2)
+const bars = q.get('bars') ? Number(q.get('bars')) : null
 const transpose = Number(q.get('transpose') ?? 0)
 const only = q.get('case')
+const annot = q.get('annot') ? Number(q.get('annot')) : null
 if (q.get('dark') === '1') document.documentElement.dataset.theme = 'dark'
 
 const css = `
@@ -27,8 +29,10 @@ const css = `
   .chip { font-size: 12px; font-weight: 600; color: var(--ink-2); background: var(--surface-2); border-radius: 999px; padding: 4px 10px; font-variant-numeric: tabular-nums; }
   .paper { background: var(--score-paper); color: var(--score-ink); border-radius: 24px; box-shadow: var(--shadow-sm); padding: 14px 8px 6px; }
   .paper svg { display: block; }
+  /* Note names one step quieter than the notes. */
+  .paper .abcjs-annotation { fill: var(--ink-2); }
 `
-document.head.append(Object.assign(document.createElement('style'), { textContent: css }))
+document.head.append(Object.assign(document.createElement('style'), { textContent: annot ? css + '.paper .abcjs-annotation { fill: currentColor; }' : css }))
 
 interface Case {
   slug: string
@@ -104,19 +108,25 @@ for (const c of cases()) {
   for (const text of [keyName(c.score.key, naming), c.score.timeSignature, `${c.score.bpm} ppm`, `${c.score.measureCount} compases`]) {
     meta.append(Object.assign(document.createElement('span'), { className: 'chip', textContent: text }))
   }
+  // abcjs 'resize' turns its target into an aspect-ratio box (padding-bottom %, overflow hidden):
+  // the target must have no padding of its own, or the bottom of the score is clipped.
   const paper = Object.assign(document.createElement('div'), { className: 'paper' })
+  const target = document.createElement('div')
+  paper.append(target)
   section.append(head, paper)
   root.append(section)
-  const abc = scoreToAbc(c.score, { noteNaming: naming, hands, measuresPerLine: bars, printTempo: false })
-  const tune = abcjs.renderAbc(paper, abc, {
+  const perLine = bars ?? suggestMeasuresPerLine(c.score, 330, { noteNames: naming !== 'none' })
+  const font = annot ? { annotationSize: annot, annotationFont: 'Helvetica' } : {}
+  const abc = scoreToAbc(c.score, { noteNaming: naming, hands, measuresPerLine: perLine, printTempo: false, ...font })
+  const tune = abcjs.renderAbc(target, abc, {
     responsive: 'resize',
     foregroundColor: 'currentColor',
     add_classes: true,
     staffwidth: 330,
     paddingtop: 0,
-    paddingbottom: 28,
+    paddingbottom: 12,
     paddingleft: 0,
-    paddingright: 0,
+    paddingright: 10,
   })
   const warnings = tune[0]?.warnings ?? []
   if (warnings.length) console.error(`[${c.slug}] abc warnings`, warnings)

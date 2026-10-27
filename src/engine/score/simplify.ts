@@ -103,8 +103,13 @@ function skyline(notes: QNote[]): QNote[] {
   return out
 }
 
-/** Fácil, left hand: lowest note per beat, held while it repeats (or still sounds) until the bass changes. */
-function bassLine(notes: QNote[], beatTicks: number): QNote[] {
+/**
+ * Fácil, left hand: lowest note per beat, held until the next bass note (repeats inside a bar merge
+ * into one longer note; a new bar restrikes it). Across an empty stretch it is held to the end of
+ * its bar, or longer while it still sounds, so long silences in the bass stay rests.
+ */
+function bassLine(notes: QNote[], beatTicks: number, measureTicks: number): QNote[] {
+  const beatsPerBar = Math.max(1, Math.round(measureTicks / beatTicks))
   const lowest = new Map<number, QNote>()
   for (const n of notes) {
     const beat = Math.floor(n.on / beatTicks)
@@ -117,11 +122,12 @@ function bassLine(notes: QNote[], beatTicks: number): QNote[] {
     const beat = beats[i]
     const src = lowest.get(beat)!
     const nextBeat = i + 1 < beats.length ? beats[i + 1] : Infinity
-    // Hold through empty beats while the source note still sounds.
     const soundsUntil = Math.ceil(src.off / beatTicks)
-    const endBeat = Math.min(nextBeat, Math.max(beat + 1, soundsUntil))
+    const barEnd = (Math.floor(beat / beatsPerBar) + 1) * beatsPerBar
+    const endBeat = Math.min(nextBeat, Math.max(beat + 1, soundsUntil, barEnd))
     const last = out.length > 0 ? out[out.length - 1] : undefined
-    if (last && last.pitch === src.pitch && last.off === beat * beatTicks) {
+    const sameBar = last !== undefined && Math.floor(last.on / measureTicks) === Math.floor((beat * beatTicks) / measureTicks)
+    if (last && sameBar && last.pitch === src.pitch && last.off === beat * beatTicks) {
       last.off = endBeat * beatTicks
       continue
     }
@@ -134,6 +140,7 @@ export interface SimplifyOptions {
   difficulty: Difficulty
   maxPolyphony: number
   beatTicks: number
+  measureTicks: number
 }
 
 /** Difficulty transforms + polyphony cap. Input: hands assigned, sorted by onset. */
@@ -142,7 +149,7 @@ export function simplify(notes: QNote[], opts: SimplifyOptions): QNote[] {
   if (opts.difficulty === 'intermedio') return capPolyphony(simplifyIntermedio(notes), Math.min(cap, 3))
   if (opts.difficulty === 'facil') {
     const right = skyline(notes.filter((n) => n.right))
-    const left = bassLine(notes.filter((n) => !n.right), opts.beatTicks)
+    const left = bassLine(notes.filter((n) => !n.right), opts.beatTicks, opts.measureTicks)
     return sortByOnset([...left, ...right])
   }
   return capPolyphony(notes, cap)

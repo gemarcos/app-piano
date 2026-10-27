@@ -74,6 +74,60 @@ export function spellPitch(midi: Midi, key?: KeySignature | null): SpelledPitch 
   return { step: LETTERS[li], alter, octave }
 }
 
+/** The same pitch written on the neighbouring letter (dir +1 = letter above, -1 = below), or null. */
+function onLetter(midi: number, sp: SpelledPitch, dir: 1 | -1): SpelledPitch | null {
+  let li = LETTERS.indexOf(sp.step) + dir
+  let octave = sp.octave
+  if (li > 6) {
+    li = 0
+    octave++
+  } else if (li < 0) {
+    li = 6
+    octave--
+  }
+  const alter = midi - ((octave + 1) * 12 + NATURAL_PC[li])
+  return Math.abs(alter) <= 2 ? { step: LETTERS[li], alter, octave } : null
+}
+
+/** Staff position (diatonic steps from C-1). */
+const position = (sp: SpelledPitch) => sp.octave * 7 + LETTERS.indexOf(sp.step)
+
+/**
+ * Spells the pitches of a chord (ascending) like spellPitch, except that the notes always climb the
+ * staff: no two share a letter and octave. When the key spelling collides, the cheapest respelling
+ * on a neighbouring letter wins (fewest accidental signs): F + F# in C major -> F + Gb,
+ * Eb + E -> D# + E, B + B# in D# minor -> B + C.
+ */
+export function spellChord(pitches: readonly Midi[], key?: KeySignature | null): SpelledPitch[] {
+  const k = normalizeKey(key)
+  const midis = pitches.map((p) => Math.round(Number.isFinite(p) ? p : 60))
+  const base = midis.map((m) => spellPitch(m, k))
+  let climbs = true
+  for (let i = 1; i < base.length; i++) if (position(base[i]) <= position(base[i - 1])) climbs = false
+  if (climbs) return base
+  // Rare: choose among {key spelling, letter above, letter below} per note with a small DP.
+  const sig = keySignatureAlters(k.fifths)
+  const cost = (sp: SpelledPitch, j: number) => (sp.alter !== sig[LETTERS.indexOf(sp.step)] ? 2 : 0) + Math.abs(sp.alter) + (j > 0 ? 0.5 : 0)
+  const cands = midis.map((m, i) => [base[i], onLetter(m, base[i], 1), onLetter(m, base[i], -1)])
+  let prev: { total: number; path: SpelledPitch[] }[] = [{ total: 0, path: [] }]
+  for (let i = 0; i < midis.length; i++) {
+    const next: { total: number; path: SpelledPitch[] }[] = []
+    cands[i].forEach((sp, j) => {
+      if (!sp) return
+      let best: { total: number; path: SpelledPitch[] } | null = null
+      for (const s of prev) {
+        const last = s.path[s.path.length - 1]
+        if (last && position(last) >= position(sp)) continue
+        if (!best || s.total < best.total) best = s
+      }
+      if (best) next.push({ total: best.total + cost(sp, j), path: [...best.path, sp] })
+    })
+    if (next.length === 0) return base
+    prev = next
+  }
+  return prev.reduce((a, b) => (b.total < a.total ? b : a)).path
+}
+
 /** Name without octave ("Fa#", "Sib" / "F#", "Bb"); 'none' behaves like latin. */
 export function pitchClassName(midi: Midi, naming: NoteNaming, key?: KeySignature | null): string {
   const sp = spellPitch(midi, key)
@@ -88,11 +142,13 @@ export function pitchName(midi: Midi, naming: NoteNaming, key?: KeySignature): s
 
 /**
  * Engraving accidentals for one staff: the key signature plus accidentals that last until the end
- * of the bar, per letter and octave. Call newBar() at every barline.
+ * of the bar, per letter and octave (the ABC rule abcjs follows). Call newBar() at every barline.
  */
 export class AccidentalState {
   private readonly sig: number[]
   private readonly bar = new Map<number, number>()
+  /** Alterations brought into the bar by notes tied over the barline (letter+octave -> alter). */
+  private readonly carried = new Map<number, number>()
 
   constructor(key: KeySignature) {
     this.sig = keySignatureAlters(normalizeKey(key).fifths)
@@ -100,19 +156,27 @@ export class AccidentalState {
 
   newBar(): void {
     this.bar.clear()
+    this.carried.clear()
   }
 
   /**
    * Returns the alteration to print for this note (null = none) and updates the bar state.
-   * A note tied over the barline prints nothing and leaves the state alone (standard engraving;
-   * abcjs also takes a tied note's pitch from the first note of the tie).
+   * The continuation of a tie prints nothing and leaves the state alone (standard engraving;
+   * abcjs also takes a tied note's pitch from the first note of the tie). An accidental carried
+   * over the barline by a tie does not apply to later notes of the bar: the same pitch is
+   * restated, and the key-signature pitch gets a courtesy accidental.
    */
-  visit(sp: SpelledPitch, tiedOverBarline = false): number | null {
-    if (tiedOverBarline) return null
+  visit(sp: SpelledPitch, tieContinuation = false): number | null {
     const li = LETTERS.indexOf(sp.step)
     const id = li * 32 + sp.octave + 8
+    if (tieContinuation) {
+      if (!this.bar.has(id) && sp.alter !== this.sig[li]) this.carried.set(id, sp.alter)
+      return null
+    }
     const current = this.bar.has(id) ? this.bar.get(id)! : this.sig[li]
-    if (current === sp.alter) return null
+    const courtesy = this.carried.has(id) && this.carried.get(id) !== sp.alter
+    this.carried.delete(id)
+    if (current === sp.alter && !courtesy) return null
     this.bar.set(id, sp.alter)
     return sp.alter
   }

@@ -222,17 +222,23 @@ export function levelRatios(onsets: Onset[], bpm: number, phase: number): LevelR
   const total = par[0] + par[1] + off
   const eps = 1e-6 + 0.02 * total
   const first = Math.round((onsets[0].t - phase) / period)
-  const slots = Math.round((onsets[onsets.length - 1].t - phase) / period) - first + 1
+  const last = Math.round((onsets[onsets.length - 1].t - phase) / period)
+  const slots = last - first + 1
+  let filled = 0
+  for (const k of hit) if (k >= first && k <= last) filled++
   return {
     alt: Math.max(...par) / Math.max(Math.min(...par), eps),
     alt3: Math.max(...tri) / Math.max(Math.min(...tri), eps),
     sub: (par[0] + par[1]) / Math.max(off, eps),
-    empty: slots > 0 ? Math.max(0, 1 - hit.size / slots) : 1,
+    empty: slots > 0 ? Math.max(0, 1 - filled / slots) : 1,
   }
 }
 
-/** Off-beats nearly as strong as beats: the beat is probably twice as fast. */
-const SUB_FREE = 1.8
+/**
+ * Off-beats nearly as strong as beats: the beat is probably twice as fast. (2.0 rather than 1.8:
+ * fast melodies over a bass on beats 1 and 3 were read at half speed; see the analysis tests.)
+ */
+const SUB_FREE = 2.0
 /** Beats alternating strong / weak this much: the beat is probably half as fast. */
 const ALT_FREE = 1.6
 /** One strong beat in three: the grid is probably three times too fast. */

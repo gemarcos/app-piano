@@ -127,6 +127,9 @@ const minuet: DemoPiece = {
 // J. S. Bach, Prelude in C major, BWV 846 (Well-Tempered Clavier I), bars 1-8. Every half bar:
 // left hand holds the bass (half note) and the second note (from the second sixteenth); the right
 // hand plays the three upper notes twice in sixteenths after an eighth rest.
+// No single split point reproduces Bach's hands (E4 is a left-hand note in bars 1, 4 and 5 and a
+// right-hand one in bar 8). Split 62 keeps the bass as half notes on the lower staff in bars 1-7,
+// with the second note leading the upper figure, and gives bar 8 exactly as written.
 const PRELUDE_BPM = 66
 const PRELUDE_BARS = [
   'C4 E4 G4 C5 E5',
@@ -161,11 +164,20 @@ const prelude: DemoPiece = {
   bpm: PRELUDE_BPM,
   timeSignature: '4/4',
   key: keyFromFifths(0, 'major'),
-  splitPoint: 65,
+  splitPoint: 62,
   notes: merge(preludeVoice('bass', -0.06), preludeVoice('second', -0.12), preludeVoice('upper', -0.04)),
 }
 
 export const demoPieces: DemoPiece[] = [ode, minuet, prelude]
+
+/** Library item ids of the demos are DEMO_ID_PREFIX + slug ('demo-oda-alegria'). */
+export const DEMO_ID_PREFIX = 'demo-'
+
+/** The demo behind a library id ('demo-minueto-sol') or a slug ('minueto-sol'), if any. */
+export function findDemo(idOrSlug: string): DemoPiece | undefined {
+  const slug = typeof idOrSlug === 'string' && idOrSlug.startsWith(DEMO_ID_PREFIX) ? idOrSlug.slice(DEMO_ID_PREFIX.length) : idOrSlug
+  return demoPieces.find((d) => d.slug === slug)
+}
 
 /** Analysis for a demo: its known tempo, meter and key, first downbeat at 0 s. */
 export function demoAnalysis(demo: DemoPiece): AnalysisResult {
