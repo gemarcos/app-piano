@@ -18,6 +18,17 @@ export interface VoicedStaff extends Staff {
   voice2?: Measure[]
 }
 
+/** A ScoreEvent as built by engine-score (requested for types.ts as ScoreEvent.sounding). */
+export interface EngineEvent extends ScoreEvent {
+  /**
+   * Attack events only, parallel to pitches: ticks from this attack that each key keeps sounding
+   * without the pedal, when that outlasts the written (tied) length. Notation is articulated (a
+   * pianist's reading); playback plays the note this long so legato and held notes still sound held.
+   * Absent = as written (then Score.pedals alone adds the ringing).
+   */
+  sounding?: number[]
+}
+
 /** The voices of a staff: [measures] or [measures, voice2]. */
 export function staffVoices(staff: Staff): Measure[][] {
   const v2 = (staff as VoicedStaff).voice2
@@ -37,6 +48,11 @@ export interface PlayedNote {
   staff: 0 | 1
   /** 1 = main voice (Staff.measures), 2 = second voice (Staff.voice2). */
   voice: 1 | 2
+  /**
+   * Ticks the key sounds from the attack without pedal, when longer than `ticks` (the written
+   * length): playback should hold the note this long (EngineEvent.sounding). Absent = `ticks`.
+   */
+  sounding?: number
 }
 
 /**
@@ -70,6 +86,8 @@ export function scoreNotes(score: Score): PlayedNote[] {
               staff: si as 0 | 1,
               voice: (vi + 1) as 1 | 2,
             }
+            const sounding = (ev as EngineEvent).sounding?.[k]
+            if (typeof sounding === 'number' && Number.isFinite(sounding) && sounding > 0) n.sounding = sounding
             out.push(n)
             next.set(p, n)
           })
@@ -79,6 +97,7 @@ export function scoreNotes(score: Score): PlayedNote[] {
       }
     })
   })
+  for (const n of out) if (n.sounding !== undefined && n.sounding <= n.ticks) delete n.sounding
   return out.sort((a, b) => a.tick - b.tick || a.pitch - b.pitch || a.staff - b.staff)
 }
 

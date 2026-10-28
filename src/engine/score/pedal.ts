@@ -8,6 +8,7 @@
 // harmony), the pedal changed there (legato pedalling). Stretches between changes that show the
 // evidence become pedal spans; tick spans are snapped to the beat (or the eighth) grid.
 import type { PedalSpan } from '../../types'
+import { SIXTEENTH } from './constants'
 import { CHORD_WINDOW, type SourceNote } from './quantize'
 
 /** A pedal-down stretch in source seconds. */
@@ -165,7 +166,7 @@ export function inferPedalSeconds(source: SourceNote[]): PedalSeconds[] {
 export function pedalTicks(spans: PedalSeconds[], toTick: (seconds: number) => number, beatTicks: number, totalTicks: number): PedalSpan[] {
   const snap = (x: number) => {
     const beat = Math.round(x / beatTicks) * beatTicks
-    return Math.abs(beat - x) <= 1 ? beat : Math.round(x / 2) * 2
+    return Math.abs(beat - x) <= SIXTEENTH ? beat : Math.round(x / (2 * SIXTEENTH)) * 2 * SIXTEENTH
   }
   const out: PedalSpan[] = []
   for (const s of spans) {
@@ -173,7 +174,7 @@ export function pedalTicks(spans: PedalSeconds[], toTick: (seconds: number) => n
     const end = Math.min(totalTicks, snap(toTick(s.end)))
     const prev = out[out.length - 1]
     if (prev && start < prev.end) start = prev.end
-    if (end - start < 2) continue
+    if (end - start < 2 * SIXTEENTH) continue
     out.push({ start, end })
   }
   return out

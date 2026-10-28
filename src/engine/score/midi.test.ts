@@ -55,7 +55,7 @@ describe('scoreToMidi', () => {
         expect(midi.header.timeSignatures[0].timeSignature).toEqual(ts.split('/').map(Number))
         for (const s of [0, 1] as const) {
           const back = midi.tracks[s].notes
-            .map((n) => ({ pitch: n.midi, start: n.ticks / perTick, ticks: n.durationTicks / perTick }))
+            .map((n) => ({ pitch: n.midi, start: Math.round((n.ticks / perTick) * 1e6) / 1e6, ticks: Math.round((n.durationTicks / perTick) * 1e6) / 1e6 }))
             .sort((x, y) => x.start - y.start || x.pitch - y.pitch)
           expect(back, `${ts} ${difficulty} staff ${s}`).toEqual(staffNotes(score, s))
           // Velocities are the score's own (7-bit MIDI resolution).

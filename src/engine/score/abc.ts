@@ -1,7 +1,7 @@
 // Owner: engine-score. Score -> ABC notation for abcjs (grand staff, L:1/16).
 import type { Hands, KeySignature, Measure, NoteNaming, Score, ScoreEvent, Staff, TimeSignature } from '../../types'
-import { beatTicksOf } from './constants'
-import { splitDuration } from './durations'
+import { SIXTEENTH, TICKS_PER_QUARTER, beatTicksOf } from './constants'
+import { isTripletEdge, splitDuration } from './durations'
 import { abcKey, normalizeKey } from './keys'
 import { pickupTicks, spellingContext, staffVoices, trimLead } from './notes'
 import { AccidentalState, choiceOf, pitchClassName, spellChord, type SpellingChoice } from './spelling'
@@ -61,7 +61,43 @@ function noteLetter(step: string, octave: number): string {
   return step + ','.repeat(Math.max(0, 4 - octave))
 }
 
-const len = (ticks: number) => (ticks === 1 ? '' : String(ticks))
+/** ABC length (L:1/16) of a straight duration in ticks. */
+const len = (ticks: number) => {
+  const d = ticks / SIXTEENTH
+  return d === 1 ? '' : String(d)
+}
+
+interface Tuplet {
+  /** Index of the first event of the group, the header, and the written length of each event. */
+  first: number
+  header: string
+  write: (ticks: number) => string
+}
+
+/**
+ * Tuplet groups of a measure: a quarter beat holding an event edge off the sixteenth grid is a
+ * triplet beat. Eighth triplets (all lengths in 4-tick units) are written (3:2:n, sixteenth
+ * triplets / sextuplets (2-tick units) (6:4:n; n = events in the beat.
+ */
+function tupletsOf(events: readonly ScoreEvent[]): (Tuplet | null)[] {
+  const out: (Tuplet | null)[] = events.map(() => null)
+  const beats = new Map<number, number[]>()
+  events.forEach((ev, i) => {
+    const b = Math.floor(ev.start / TICKS_PER_QUARTER)
+    const list = beats.get(b) ?? []
+    list.push(i)
+    beats.set(b, list)
+  })
+  for (const list of beats.values()) {
+    if (!list.some((i) => isTripletEdge(events[i].start) || isTripletEdge(events[i].start + events[i].duration))) continue
+    const eighths = list.every((i) => events[i].duration % 4 === 0 && events[i].start % 4 === 0)
+    const t: Tuplet = eighths
+      ? { first: list[0], header: `(3:2:${list.length}`, write: (ticks) => String((ticks / 4) * 2) }
+      : { first: list[0], header: `(6:4:${list.length}`, write: (ticks) => (ticks === 2 ? '' : String(ticks / 2)) }
+    for (const i of list) out[i] = t
+  }
+  return out
+}
 
 /**
  * Which events of a measure get a note name. Tie continuations never do. In a sixteenth-note beat
@@ -87,9 +123,9 @@ export function namedEvents(events: readonly ScoreEvent[], beatTicks: number, pr
     if (list) list.push(i)
     else perBeat.set(b, [i])
   })
-  const maxPerBeat = Math.max(1, Math.floor(beatTicks / 2))
+  const maxPerBeat = Math.max(1, Math.floor(beatTicks / (2 * SIXTEENTH)))
   for (const list of perBeat.values()) {
-    const dense = list.length > maxPerBeat || list.some((i) => events[i].start % 2 === 1)
+    const dense = list.length > maxPerBeat || list.some((i) => events[i].start % (2 * SIXTEENTH) !== 0)
     if (dense) for (const i of list.slice(1)) named[i] = false
   }
   return named
@@ -187,16 +223,20 @@ class StaffWriter {
     }
     return evs.map((events, v) => {
       let line = ''
+      const tuplets = tupletsOf(events)
       events.forEach((ev, i) => {
+        const tup = tuplets[i]
+        const length = tup ? tup.write(ev.duration) : len(ev.duration)
         let token: string
-        if (ev.pitches.length === 0) token = (v === 0 ? 'z' : 'x') + len(ev.duration)
+        if (ev.pitches.length === 0) token = (v === 0 ? 'z' : 'x') + length
         else {
           const body = signs[v][i].length > 1 ? `[${signs[v][i].join('')}]` : signs[v][i][0]
           const annotation = named[v][i] ? chordNames([...ev.pitches, ...extra[v][i]], this.naming, this.key, contexts[v][i]) : ''
-          token = annotation + body + len(ev.duration) + (ev.tie ? '-' : '')
+          token = annotation + body + length + (ev.tie ? '-' : '')
         }
-        // Beams break at beats; rests always stand alone.
-        const joined = i > 0 && ev.start % beat !== 0 && ev.pitches.length > 0 && events[i - 1].pitches.length > 0
+        if (tup && tup.first === i) token = tup.header + token
+        // Beams break at beats; rests stand alone except inside a tuplet group.
+        const joined = i > 0 && ((tup && tup.first !== i) || (ev.start % beat !== 0 && ev.pitches.length > 0 && events[i - 1].pitches.length > 0))
         line += (i === 0 || joined ? '' : ' ') + token
       })
       const last = events[events.length - 1]

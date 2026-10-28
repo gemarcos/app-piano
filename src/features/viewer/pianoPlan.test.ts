@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Measure, Score, ScoreEvent, Staff } from '../../types'
-import { DEFAULT_VELOCITY } from '../../engine/score'
+import { DEFAULT_VELOCITY, SIXTEENTH } from '../../engine/score'
 import {
   NO_DAMPER_FROM,
   TAU_RESTRIKE,
@@ -20,8 +20,9 @@ import {
 /** 120 bpm: one tick (sixteenth) = 0.125 s, one 4/4 measure = 2 s. */
 const SPT = 0.125
 
+// Positions below are in sixteenths; the Score uses ticks (TICKS_PER_QUARTER = 12).
 function ev(start: number, duration: number, pitches: number[], extra: Partial<ScoreEvent> = {}): ScoreEvent {
-  return { start, duration, pitches, ...extra }
+  return { start: start * SIXTEENTH, duration: duration * SIXTEENTH, pitches, ...extra }
 }
 
 function staff(hand: 'right' | 'left', measures: ScoreEvent[][], voice2?: ScoreEvent[][]): Staff {
@@ -37,7 +38,7 @@ function score(right: Staff, left: Staff, extra: Partial<Score> = {}): Score {
     bpm: 120,
     timeSignature: '4/4',
     key: { tonic: 'C', mode: 'major', fifths: 0 },
-    ticksPerMeasure: 16,
+    ticksPerMeasure: 16 * SIXTEENTH,
     measureCount: right.measures.length,
     durationSeconds: right.measures.length * 2,
     startSeconds: 0,
@@ -80,6 +81,13 @@ describe('playNotes', () => {
     expect(notes.find((n) => n.pitch === 64)?.accent).toBe(0.5)
   })
 
+  it('holds a key as long as it sounded without pedal (ScoreEvent.sounding), never shorter than written', () => {
+    // Written as a quarter (articulated), sounded a whole bar: playback keeps the legato.
+    const held = staff('right', [[ev(0, 4, [60], { sounding: [16 * SIXTEENTH] } as Partial<ScoreEvent>), ev(4, 12, [])]])
+    const notes = playNotes(score(held, staff('left', [[ev(0, 16, [])]])))
+    expect(notes.map((n) => [n.pitch, n.start, n.end])).toEqual([[60, 0, 2]])
+  })
+
   it('filters by hand', () => {
     expect(playNotes(s, 'right').every((n) => n.staff === 0)).toBe(true)
     expect(playNotes(s, 'left').map((n) => n.pitch)).toEqual([48, 43])
@@ -99,7 +107,7 @@ describe('playNotes', () => {
   })
 
   it('converts pedal spans to seconds', () => {
-    expect(pedalSeconds({ bpm: 120, pedals: [{ start: 16, end: 24 }, { start: 0, end: 8 }] })).toEqual([
+    expect(pedalSeconds({ bpm: 120, pedals: [{ start: 16 * SIXTEENTH, end: 24 * SIXTEENTH }, { start: 0, end: 8 * SIXTEENTH }] })).toEqual([
       [0, 1],
       [2, 3],
     ])

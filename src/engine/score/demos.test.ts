@@ -94,7 +94,7 @@ describe('demo notation', () => {
       const score = scoreOf(slug)
       const events = score.staves.flatMap((s) => s.measures.flatMap((m) => m.events))
       expect(events.some((e) => e.tie)).toBe(false)
-      expect(events.some((e) => e.duration === 1 || e.duration === 3)).toBe(false) // no sixteenths
+      expect(events.some((e) => e.duration === 3 || e.duration === 9)).toBe(false) // no sixteenths
       const written = demo.notes.map((n) => `${n.pitch}@${ticksOf(n.start, demo.bpm)}+${ticksOf(n.duration, demo.bpm)}`).sort()
       const notated = [...staffNotes(score, 0), ...staffNotes(score, 1)].map((n) => `${n.pitch}@${n.start}+${n.ticks}`).sort()
       expect(notated, slug).toEqual(written)
@@ -103,14 +103,14 @@ describe('demo notation', () => {
 
   it('writes the Prelude as half-note basses under a sixteenth figure', () => {
     const score = scoreOf('preludio-do')
-    for (const m of score.staves[1].measures.slice(0, 7)) expect(m.events.map((e) => e.duration)).toEqual([8, 8])
+    for (const m of score.staves[1].measures.slice(0, 7)) expect(m.events.map((e) => e.duration / 3)).toEqual([8, 8])
     for (const m of score.staves[0].measures) {
       const notes = m.events.filter((e) => e.pitches.length > 0)
-      expect(notes.every((e) => e.duration === 1 && e.pitches.length === 1)).toBe(true)
+      expect(notes.every((e) => e.duration === 3 && e.pitches.length === 1)).toBe(true)
     }
     // Bar 8 as written: eighth rest + E G C E G C in the right hand, B3 + C4 in the left.
     expect(score.staves[0].measures[7].events.map((e) => (e.pitches.length ? e.pitches[0] : 'z'))).toEqual(['z', 64, 67, 72, 64, 67, 72, 'z', 64, 67, 72, 64, 67, 72])
-    expect(score.staves[1].measures[7].events.map((e) => [e.pitches[0], e.duration])).toEqual([
+    expect(score.staves[1].measures[7].events.map((e) => [e.pitches[0], e.duration / 3])).toEqual([
       [59, 1],
       [60, 3],
       [60, 4],

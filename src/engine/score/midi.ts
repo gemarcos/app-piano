@@ -1,7 +1,7 @@
 // Owner: engine-score. Score -> Standard MIDI File (one track per hand, piano).
 import { Midi } from '@tonejs/midi'
 import type { Score } from '../../types'
-import { meterParts } from './constants'
+import { TICKS_PER_QUARTER, meterParts } from './constants'
 import { scoreNotes } from './notes'
 
 export const MIDI_TRACK_NAMES = ['Mano derecha', 'Mano izquierda'] as const
@@ -23,7 +23,7 @@ export function scoreToMidi(score: Score): Uint8Array {
   midi.header.setTempo(bpm)
   midi.header.timeSignatures.push({ ticks: 0, timeSignature: meterParts(score.timeSignature) })
   midi.header.update()
-  const perTick = midi.header.ppq / 4
+  const perTick = midi.header.ppq / TICKS_PER_QUARTER
   const tracks = MIDI_TRACK_NAMES.map((name, si) => {
     const track = midi.addTrack()
     track.name = name

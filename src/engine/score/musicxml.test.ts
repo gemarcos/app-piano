@@ -33,6 +33,8 @@ for f in sys.argv[2:]:
     doc = md.parse(f)
     tpm = int(sys.argv[1])
     measures, notes, pedals = [], {'1': [], '2': []}, []
+    div = int(text(doc, 'divisions'))
+    k = 12.0 / div  # divisions -> ticks (12 per quarter)
     for mi, m in enumerate(doc.getElementsByTagName('measure')):
         pos, last, totals, backups = 0, 0, {}, []
         implicit = m.getAttribute('implicit') == 'yes'
@@ -41,13 +43,13 @@ for f in sys.argv[2:]:
             if child.nodeType != child.ELEMENT_NODE:
                 continue
             if child.tagName == 'backup':
-                d = int(text(child, 'duration')); backups.append(d); pos -= d
+                d = round(int(text(child, 'duration')) * k); backups.append(d); pos -= d
             elif child.tagName == 'direction':
                 for ped in child.getElementsByTagName('pedal'):
                     off = text(child, 'offset')
-                    found.append({'type': ped.getAttribute('type'), 'at': pos + (int(off) if off else 0)})
+                    found.append({'type': ped.getAttribute('type'), 'at': pos + (round(int(off) * k) if off else 0)})
             elif child.tagName == 'note':
-                d = int(text(child, 'duration')); staff = text(child, 'staff'); voice = text(child, 'voice')
+                d = round(int(text(child, 'duration')) * k); staff = text(child, 'staff'); voice = text(child, 'voice')
                 chord = bool(child.getElementsByTagName('chord'))
                 start = last if chord else pos
                 if not chord:
@@ -66,7 +68,7 @@ for f in sys.argv[2:]:
             if 'type' in n:
                 pedals.append({'type': n['type'], 'tick': base + n['at']})
             else:
-                notes[n['staff']].append({'pitch': n['pitch'], 'start': base + n['start'], 'ticks': n['ticks'], 'ties': n['ties'], 'tied': n['tied']})
+                notes[n['staff']].append({'pitch': n['pitch'], 'start': round((base + n['start']) / 3.0, 6), 'ticks': round(n['ticks'] / 3.0, 6), 'ties': n['ties'], 'tied': n['tied']})
         measures.append({'totals': totals, 'backups': backups, 'implicit': implicit, 'number': m.getAttribute('number')})
     out.append({'measures': measures, 'notes': notes, 'pedals': pedals})
 print(json.dumps(out))
@@ -106,8 +108,8 @@ function merged(notes: Checked['notes']['1']): StaffNote[] {
     expect(n.ties).toEqual(n.tied) // <tie> (sound) and <tied> (notation) agree
     const prev = open.get(n.pitch)
     if (n.ties.includes('stop')) {
-      expect(prev && prev.start + prev.ticks === n.start).toBe(true)
-      prev!.ticks += n.ticks
+      expect(prev !== undefined && Math.abs(prev.start + prev.ticks - n.start) < 1e-4).toBe(true)
+      prev!.ticks = Math.round((prev!.ticks + n.ticks) * 1e6) / 1e6
     } else {
       const note = { pitch: n.pitch, start: n.start, ticks: n.ticks }
       out.push(note)
@@ -220,8 +222,9 @@ describe.skipIf(!python)('scoreToMusicXml well-formedness (Python minidom)', () 
           expect(m.implicit).toBe(mi === 0 && lead > 0)
           expect(m.number).toBe(String(lead > 0 ? mi : mi + 1))
         })
-        expect(merged(parsed.notes['1']), `${ts} #${i} RH`).toEqual(staffNotes(score, 0))
-        expect(merged(parsed.notes['2']), `${ts} #${i} LH`).toEqual(staffNotes(score, 1))
+        const r4 = (list: StaffNote[]) => list.map((n) => ({ pitch: n.pitch, start: Math.round(n.start * 1e4) / 1e4, ticks: Math.round(n.ticks * 1e4) / 1e4 }))
+        expect(r4(merged(parsed.notes['1'])), `${ts} #${i} RH`).toEqual(r4(staffNotes(score, 0)))
+        expect(r4(merged(parsed.notes['2'])), `${ts} #${i} LH`).toEqual(r4(staffNotes(score, 1)))
       })
     }
   })

@@ -1,7 +1,12 @@
 // Owner: engine-score. Splitting spans into notatable, metrically conventional values.
 import { describe, expect, it } from 'vitest'
 import type { TimeSignature } from '../../types'
-import { NOTE_VALUES, TIME_SIGNATURES, splitDuration, ticksPerMeasureOf } from './index'
+import { NOTE_VALUES as TICK_VALUES, TIME_SIGNATURES, splitDuration as splitTicks, ticksPerMeasureOf as tpmTicks } from './index'
+
+// The metric rules are checked in sixteenths (3 ticks each).
+const splitDuration = (s: number, d: number, ts: TimeSignature, rest?: boolean) => splitTicks(s * 3, d * 3, ts, rest).map((x) => x / 3)
+const ticksPerMeasureOf = (ts: TimeSignature) => tpmTicks(ts) / 3
+const NOTE_VALUES = TICK_VALUES.map((v) => v / 3)
 
 describe('splitDuration', () => {
   it('keeps single values that show the meter', () => {

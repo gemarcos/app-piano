@@ -5,9 +5,10 @@
 // interpolated between beats and scaled by params.bpm / analysis.bpm, so a user who halves or
 // doubles "Tempo base" still gets half or twice as many score beats per tracked beat.
 import type { AnalysisResult, Score } from '../../types'
+import { TICKS_PER_QUARTER } from './constants'
 
 export interface TimeMap {
-  /** Fractional ticks (one sixteenth = 1) from the downbeat at params.beatOffset. */
+  /** Fractional ticks (TICKS_PER_QUARTER per quarter) from the downbeat at params.beatOffset. */
   toTick(seconds: number): number
   /** Inverse of toTick. */
   toSeconds(tick: number): number
@@ -71,14 +72,14 @@ export function createTimeMap(p: { bpm: number; beatOffset: number }, analysis?:
     const first = edgePeriod(beats, false)
     const last = edgePeriod(beats, true)
     const zero = beatPosition(beats, first, last, offset)
-    const ticksPerBeat = (4 * bpm) / ref
+    const ticksPerBeat = (TICKS_PER_QUARTER * bpm) / ref
     return {
       warped: true,
       toTick: (t) => (beatPosition(beats, first, last, t) - zero) * ticksPerBeat,
       toSeconds: (tick) => beatTime(beats, first, last, zero + tick / ticksPerBeat),
     }
   }
-  const perTick = 60 / bpm / 4
+  const perTick = 60 / bpm / TICKS_PER_QUARTER
   return {
     warped: false,
     toTick: (t) => (t - offset) / perTick,

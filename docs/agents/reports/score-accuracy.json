@@ -80,5 +80,150 @@
     "C:/Users/Marcos/AppData/Local/Temp/pauta/score-accuracy/round3-liebe-dark.png",
     "C:/Users/Marcos/AppData/Local/Temp/pauta/score-accuracy/round3-sextillos.png",
     "C:/Users/Marcos/AppData/Local/Temp/pauta/score-accuracy/round3-sextillos-dark.png"
-  ]
+  ],
+  "round4": {
+    "summary": "ROUND 4 (agent score-readability; client feedback 2026-10-28 08:50 and 2026-10-27 21:15: reduce the elongated notes everywhere). (1) Triplets finished: TICKS_PER_QUARTER 12 (a sixteenth = 3 ticks, a sixteenth triplet = 2); each quarter beat takes a straight or a triplet grid by onset fit; written as ABC (3:2:n / (6:4:n, MusicXML divisions 12 with <time-modification>, MIDI ppq/12. The slow sextuplet reading wins the tempo choice: sextupletBallad reads 60 bpm 4/4 Eb major with sixteenth sextuplets (test passes for 3 seeds; the it.todo is gone). Triplet detection is now tempo-aware (onsets must sit more than 30 ms off the sixteenth grid, and a triplet beat needs 3+ onsets): false triplet beats on the Liebestraum recording 15 -> 10 (piano model, own beats), 14 -> 4 with the reference notes. (2) Readable durations everywhere (new engrave.ts): each note is written up to the next note of its own voice; under the pedal, or when the hand's earlier notes ring on (an undetected pedal), a note that is not held also ends by the next onset of either hand or its beat end; every articulated note is ONE simple value (the longest that fits; a rest fills the rest), so nothing articulated is tied across a beat or a barline. Held only with evidence: the held voice of a two-voice staff (new skyline rule: a right-hand melody note at the top of a figure a minor third or more below it for 1.5 beats and 1.15x louder gets its own voice even under the pedal), a key that really sounds that long without pedal and without ringing neighbours, and the final chord. A hand cannot hold a key over a note more than a tenth away (the written note ends there). Held notes end on the beat when within a sixteenth of it. Playback keeps the sound: Score.pedals as before, plus EngineEvent.sounding / PlayedNote.sounding (ticks a key sounded without pedal), which pianoPlan now plays. (3) Beat phase: no change survived (see known_issues).",
+    "results": {
+      "metric_notes": "Local-only evaluation (deleted from the repo; copy in C:/Users/Marcos/AppData/Local/Temp/pauta/score-readability/tools/eval.test.ts.txt). ties/n = tied continuations per written note, all voices. dur1.5 = matched notes (pitch, +-100 ms through the score's own time map) whose written length in seconds is within x1.5 of the reference length (Liebestraum: Krueger MIDI durations; realistic: the fixtures' notated durations). pos = share of reference notes at their written position under the best constant (scale, offset), 1/12-beat bins. Not the round-3 definitions: HEAD is re-measured with the same code.",
+      "liebestraum_piano_model": {
+        "HEAD": {
+          "ties": 0.336,
+          "dur1.5": 0.59,
+          "pos": 0.03,
+          "bpm": 146,
+          "meter": "4/4",
+          "key": "A"
+        },
+        "now": {
+          "ties": 0.041,
+          "dur1.5": 0.55,
+          "pos": 0.03
+        },
+        "oracle_beats_HEAD": {
+          "ties": 0.235,
+          "dur1.5": 0.6,
+          "pos": 0.55
+        },
+        "oracle_beats_now": {
+          "ties": 0.027,
+          "dur1.5": 0.64,
+          "pos": 0.55
+        }
+      },
+      "liebestraum_basic_pitch": {
+        "HEAD": {
+          "ties": 0.442,
+          "dur1.5": 0.53,
+          "pos": 0.05
+        },
+        "now": {
+          "ties": 0.061,
+          "dur1.5": 0.46,
+          "pos": 0.05
+        },
+        "oracle_beats_HEAD": {
+          "ties": 0.249,
+          "dur1.5": 0.51,
+          "pos": 0.4
+        },
+        "oracle_beats_now": {
+          "ties": 0.022,
+          "dur1.5": 0.51,
+          "pos": 0.4
+        }
+      },
+      "liebestraum_reference_notes_as_input": {
+        "HEAD": {
+          "ties": 0.335,
+          "dur1.5": 0.75
+        },
+        "now": {
+          "ties": 0.031,
+          "dur1.5": 0.6
+        }
+      },
+      "realistic_benchmark_mean_12": {
+        "truth_notes": {
+          "HEAD": {
+            "ties": 0.113,
+            "dur1.5": 0.713,
+            "pos": 0.862
+          },
+          "now": {
+            "ties": 0.048,
+            "dur1.5": 0.714,
+            "pos": 0.884
+          }
+        },
+        "piano_model": {
+          "HEAD": {
+            "ties": 0.189,
+            "dur1.5": 0.612,
+            "pos": 0.768
+          },
+          "now": {
+            "ties": 0.099,
+            "dur1.5": 0.627,
+            "pos": 0.768
+          }
+        },
+        "basic_pitch": {
+          "HEAD": {
+            "ties": 0.133,
+            "dur1.5": 0.614,
+            "pos": 0.729
+          },
+          "now": {
+            "ties": 0.066,
+            "dur1.5": 0.616,
+            "pos": 0.729
+          }
+        },
+        "tempo_right": "11/12 truth, 10/12 piano, 10/12 fast (unchanged)"
+      }
+    },
+    "files": [
+      "src/engine/score/engrave.ts (new: Segment, articulate, chordStream, cutUnisons, markFree, simpleValues, tripletBeats; chordStream/cutUnisons moved here from build.ts)",
+      "src/engine/score/build.ts (engraving pipeline, ScoreEvent.sounding on attack events)",
+      "src/engine/score/voices.ts (skyline held melody in the right hand, ringing guard for the 'longer' rule; the old articulate moved to engrave.ts)",
+      "src/engine/score/quantize.ts (QNote.sound / free, tempo-aware triplet beats, faster collision search)",
+      "src/engine/score/notes.ts (EngineEvent, PlayedNote.sounding)",
+      "src/engine/score/index.ts (EngineEvent type export)",
+      "src/engine/score/build.test.ts, quality.test.ts (sounding, readable durations, skyline voice, hand reach, no tuplets at a fast tempo, sextuplet test)",
+      "src/features/viewer/pianoPlan.ts + pianoPlan.test.ts (one line: play PlayedNote.sounding when longer than the written length; outside engine ownership, see requests)",
+      "inherited triplet diff kept after review: constants, durations, abc, musicxml, midi, timemap, pedal, analysis, beats, test-helpers, abc/build/demos/durations/midi/musicxml tests, src/data/demos.ts, src/types.ts comment, viewer timeline/pianoPlan tests",
+      "src/engine/score/zz-liebe.test.ts deleted"
+    ],
+    "public_api_notes": "Ticks: TICKS_PER_QUARTER = 12 (SIXTEENTH = 3; sixteenth triplet = 2; TUPLET_VALUES). Every tick consumer goes through engine helpers (secondsPerTick, ticksPerMeasure, beatTicksOf, sourceSecondsAt / tickAtSourceSeconds); nothing persisted stores ticks (ScoreDoc keeps notes + params; loops are in measures). Written lengths are articulated everywhere: renderers must not read the written length as the sounding length. New: EngineEvent extends ScoreEvent { sounding?: number[] } (attack events only, ticks from the attack per pitch, present when the key sounded longer than written without pedal); PlayedNote.sounding?: number (from scoreNotes, only when > ticks). MIDI and MusicXML keep the written lengths (plus CC64 / pedal marks).",
+    "requests": [
+      {
+        "owner": "lead",
+        "request": "src/types.ts: add ScoreEvent.sounding?: number[] with the doc comment of EngineEvent (src/engine/score/notes.ts). docs/BRIEF.md section 4 still says 'Tick = one sixteenth, TICKS_PER_QUARTER = 4': it is now 12 (sixteenth 3 ticks, 4/4 bar 48 ticks)."
+      },
+      {
+        "owner": "piano-sound / viewer",
+        "request": "One line changed in src/features/viewer/pianoPlan.ts (playNotes: end = tick + max(ticks, sounding)) plus a test, so playback keeps legato and held notes that sound without a detected pedal now that the notation is articulated. Review or take it over."
+      }
+    ],
+    "known_issues": [
+      "Target dur1.5 >= 0.75 NOT reached on Liebestraum: 0.55 piano / 0.46 Basic Pitch with the engine's beats (HEAD 0.59 / 0.53), 0.64 / 0.51 with the reference beats (HEAD 0.60 / 0.51). Among notes at the right position the rule reaches 0.71 (piano, reference beats). The one-value rule shortens off-beat notes to the beat, and with the wrong beat map many notes look off-beat. Allowing one tie into the beat gave 0.60 but 0.13 ties per note, so it was rejected (the client's priority is no ties). Even the reference notes with the reference beats cap near 0.74: performed eighths at 0.67-0.78 of a beat quantize to sixteenths.",
+      "Ties target met: Liebestraum 0.041 piano / 0.061 Basic Pitch (0.34 / 0.44 at HEAD by this count; round 3 reported 0.28 with another count). Realistic mean 0.099 piano; outliers: Gymnopedie (hands split a chord; the final chord tied over 3 bars) and real-moonlight with the piano model (tempo read at 200).",
+      "Beat phase (task 3): nothing survived. Phase evidence (bass, top-line length, velocity accents, Viterbi with a switch cost) picks the right phase on 100 % of the reference beats, so the evidence is sound; but the engine's beat PERIOD is wrong: in 10 s windows the reference tempo swings 50-231 bpm while the tracker stays at 136-154. Phase correction on the engine's beats: beat F 0.47 -> 0.47-0.49 (piano), 0.49 -> 0.51-0.55 (Basic Pitch); wider tracker windows (0.5-2x period), a lower global penalty and phase-weighted accents: best 0.57. Not shipped. Next step: a tracker that allows tempo-octave sections (meno mosso / a tempo) before the phase step.",
+      "Triplets on real recordings: 10 tuplet beats remain in 163 s of Liebestraum (piano model; the reference has about 2); fast triplets (>150 bpm) are kept only when clearly 30 ms off the sixteenth grid. phone-moonlight-125 stays skipped in quality.test.ts: reading Moonlight as triplets needs a tempo-choice term for steady triplet streams (real-moonlight with the piano model reads 200 bpm).",
+      "distinctSlots spreads crowding globally: one beat with more onsets than grid points (a sextuplet beat read straight) can shift the stream before it by one slot (seen while tuning; the sextuplet tests guard it).",
+      "buildScore with 3 000 notes: about the same as HEAD measured interleaved (11.8 vs 12.0 ms); the 30 ms perf test is load-sensitive on this machine."
+    ],
+    "verification": "npx tsc --noEmit: 0 errors. npm test: 32 files, 395 passed. npm run build: OK. node scripts/e2e.mjs --url http://localhost:5198/ (vite preview of dist): 17/17 PASS. Port 5198 started and stopped each time (dev for dumps and the abc harness, preview for e2e). Transcriptions re-dumped this session: check-transcription.mjs --local-only --model piano|fast --dump (local piano F1 0.790 at +-100 ms), realistic benchmark through a temp puppeteer script on the transcribe harness (piano F1 0.936, fast 0.871).",
+    "screenshots": [
+      "C:/Users/Marcos/AppData/Local/Temp/pauta/score-readability/shots/liebe.png",
+      "C:/Users/Marcos/AppData/Local/Temp/pauta/score-readability/shots/liebe-dark.png",
+      "C:/Users/Marcos/AppData/Local/Temp/pauta/score-readability/shots/sextillos.png",
+      "C:/Users/Marcos/AppData/Local/Temp/pauta/score-readability/shots/sextillos-dark.png",
+      "C:/Users/Marcos/AppData/Local/Temp/pauta/score-readability/shots/demo.png",
+      "C:/Users/Marcos/AppData/Local/Temp/pauta/score-readability/shots/demo-dark.png",
+      "C:/Users/Marcos/AppData/Local/Temp/pauta/score-readability/shots/liebe-crop.png",
+      "C:/Users/Marcos/AppData/Local/Temp/pauta/score-readability/shots/sextillos-crop.png",
+      "C:/Users/Marcos/AppData/Local/Temp/pauta/score-readability/shots/demo-dark-crop.png"
+    ]
+  }
 }

@@ -80,7 +80,8 @@ export function playNotes(score: Score, hands: Hands = 'both'): PlayNote[] {
     const note: PlayNote = {
       pitch: n.pitch,
       start: n.tick * spt,
-      end: (n.tick + n.ticks) * spt,
+      // Notation is articulated; a key that sounded longer without pedal is held that long.
+      end: (n.tick + Math.max(n.ticks, n.sounding ?? 0)) * spt,
       staff: n.staff,
       accent: inBar === 0 ? 1 : inBar % beat === 0 ? 0.5 : 0,
     }

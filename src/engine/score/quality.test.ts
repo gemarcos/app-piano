@@ -23,6 +23,8 @@ import {
   tickAtSourceSeconds,
   tickToSeconds,
   tonicPc,
+  SIXTEENTH,
+  TICKS_PER_QUARTER,
   type EngineParams,
 } from './index'
 import { beatPositions } from './beats'
@@ -42,7 +44,7 @@ function abcjsStaves(abc: string): { warnings: string[]; staves: Map<string, { p
   const ids = [...abc.matchAll(/^V:(\S+)/gm)].map((m) => m[1])
   const staves = new Map<string, { pitch: number; start: number; ticks: number }[]>()
   audio.tracks.forEach((track, i) => {
-    const notes = track.filter((e) => e.cmd === 'note').map((e) => ({ pitch: e.pitch, start: Math.round(e.start * 16), ticks: Math.round(e.duration * 16) }))
+    const notes = track.filter((e) => e.cmd === 'note').map((e) => ({ pitch: e.pitch, start: Math.round((Math.round(e.start * 48) / 3) * 1e6) / 1e6, ticks: Math.round((Math.round(e.duration * 48) / 3) * 1e6) / 1e6 }))
     const id = ids[i]
     if (id === 'PED') {
       expect(notes).toEqual([])
@@ -61,7 +63,7 @@ function trueAnalysis(perf: Performance): AnalysisResult {
 
 /** Truth notes found at their exact tick and pitch in the score (score tick = truth tick + offset). */
 function found(score: Score, perf: Performance, offset: number, roles?: string[]): { hit: number; total: number } {
-  const played = new Set(scoreNotes(score).map((x) => `${x.pitch}@${x.tick}`))
+  const played = new Set(scoreNotes(score).map((x) => `${x.pitch}@${x.tick / SIXTEENTH}`))
   const wanted = perf.truth.filter((t) => Number.isInteger(t.tick) && (!roles || roles.includes(t.role)))
   return { hit: wanted.filter((t) => played.has(`${t.pitch}@${t.tick + offset}`)).length, total: wanted.length }
 }
@@ -80,8 +82,8 @@ describe('velocities', () => {
   it('scoreNotes merges ties and keeps the attack velocity of both voices and staves', () => {
     const score = build([n(72, 12, 8, 0.45), n(48, 0, 16, 0.7)])
     expect(scoreNotes(score)).toEqual([
-      { pitch: 48, tick: 0, ticks: 16, velocity: 0.7, staff: 1, voice: 1 },
-      { pitch: 72, tick: 12, ticks: 8, velocity: 0.45, staff: 0, voice: 1 },
+      { pitch: 48, tick: 0, ticks: 48, velocity: 0.7, staff: 1, voice: 1 },
+      { pitch: 72, tick: 36, ticks: 24, velocity: 0.45, staff: 0, voice: 1 },
     ])
   })
 })
@@ -106,10 +108,10 @@ describe('sustain pedal', () => {
   it('finds one span per bar, changing at each downbeat, in a pedalled stream', () => {
     const score = build(pedalled(4))
     expect(score.pedals).toEqual([
-      { start: 0, end: 16 },
-      { start: 16, end: 32 },
-      { start: 32, end: 48 },
-      { start: 48, end: 64 },
+      { start: 0, end: 48 },
+      { start: 48, end: 96 },
+      { start: 96, end: 144 },
+      { start: 144, end: 192 },
     ])
   })
 
@@ -141,7 +143,7 @@ describe('sustain pedal', () => {
     // Local pedalling (one bar of four): a Ped. / * pair for that span.
     const local = [...pedalled(1), ...pedalled(4, false).filter((x) => x.start >= 2)]
     const ls = build(local)
-    expect(ls.pedals).toEqual([{ start: 0, end: 16 }])
+    expect(ls.pedals).toEqual([{ start: 0, end: 48 }])
     const ped = scoreToAbc(ls, { pedalMarks: true }).split(String.fromCharCode(10)).filter((l) => l.startsWith('[V:PED]')).join(' ')
     expect(ped).toContain('"_Ped."')
     expect(ped).toContain('"_*"')
@@ -152,7 +154,7 @@ describe('sustain pedal', () => {
     const score = build(pedalled(4))
     const events = score.staves.flatMap((s) => staffVoices(s).flatMap((v) => v.flatMap((m) => m.events)))
     expect(events.some((e) => e.tie)).toBe(false)
-    for (const x of scoreNotes(score)) expect(x.ticks).toBeLessThanOrEqual(4)
+    for (const x of scoreNotes(score)) expect(x.ticks).toBeLessThanOrEqual(TICKS_PER_QUARTER)
     expect(score.pedals).toHaveLength(4)
   })
 
@@ -320,14 +322,14 @@ describe('slow ballad (tempo octave, pickup, borrowed chord)', () => {
     const score = buildScore(perf.notes, defaultParams(a, settings), a)
     const all = found(score, perf, 16)
     expect(all.hit).toBe(all.total)
-    expect(pickupTicks(score)).toBe(12)
+    expect(pickupTicks(score)).toBe(12 * SIXTEENTH)
     const abc = scoreToAbc(score, { pickup: true, noteNaming: 'latin' })
     const firstBar = abc.split('\n').find((l) => l.startsWith('[V:RH]'))!.split('|')[0]
     expect(firstBar).not.toContain('z')
     const { warnings, staves } = abcjsStaves(abc)
     expect(warnings).toEqual([])
     // abcjs starts at the pickup: everything sounds 12 ticks earlier than in the Score.
-    expect(staves.get('RH')).toEqual(staffNotes(score, 0).map((x) => ({ ...x, start: x.start - 12 })))
+    expect(staves.get('RH')).toEqual(staffNotes(score, 0).map((x) => ({ ...x, start: Math.round((x.start - 12) * 1e6) / 1e6 })))
     // Fm6/C bar: C4 + Ab4 in the left hand, Ab5 in the melody, never G#.
     expect(abc).toContain('_A')
     expect(abc).toContain('"_Lab"')
@@ -357,10 +359,10 @@ describe('beat map and Original sync', () => {
     const a = analyzeNotes(perf.notes)
     const score = buildScore(perf.notes, defaultParams(a, settings), a)
     for (const t of perf.truth.filter((x) => x.role === 'melody')) {
-      const seconds = sourceSecondsAt(score, t.tick, a)
+      const seconds = sourceSecondsAt(score, t.tick * SIXTEENTH, a)
       const attack = perf.notes.filter((x) => x.pitch === t.pitch).reduce((best, x) => (Math.abs(x.start - seconds) < Math.abs(best - seconds) ? x.start : best), Infinity)
       expect(Math.abs(seconds - attack)).toBeLessThan(0.05)
-      expect(tickAtSourceSeconds(score, seconds, a)).toBeCloseTo(t.tick, 6)
+      expect(tickAtSourceSeconds(score, seconds, a)).toBeCloseTo(t.tick * SIXTEENTH, 6)
     }
   })
 
@@ -368,7 +370,7 @@ describe('beat map and Original sync', () => {
     const a = knownAnalysis({ beatOffset: 0.5 })
     const score = buildScore([n(72, 4, 4), n(74, 8, 4)].map((x) => ({ ...x, start: x.start + 0.5 })), plainParams(a), a)
     for (const tick of [0, 3, 17.5]) expect(sourceSecondsAt(score, tick, a)).toBeCloseTo(score.startSeconds + tickToSeconds(score, tick), 9)
-    expect(sourceSecondsAt(score, 4, null)).toBeCloseTo(score.startSeconds + 0.5, 9)
+    expect(sourceSecondsAt(score, 4 * SIXTEENTH, null)).toBeCloseTo(score.startSeconds + 0.5, 9)
   })
 
   it('a straight beat map writes the same score as the constant tempo', () => {
@@ -411,9 +413,9 @@ describe.skipIf(realFixtures.length === 0)('real piano fixtures (ground truth as
       const played = scoreNotes(score)
       const onGrid = notes.map((x, i) => ({ ...x, tick: truthTick[i] })).filter((x) => Math.abs(x.tick - Math.round(x.tick)) < 0.05)
       const offsets = new Map<number, number>()
-      for (const x of onGrid) for (const p of played) if (p.pitch === x.pitch) offsets.set(p.tick - Math.round(x.tick), (offsets.get(p.tick - Math.round(x.tick)) ?? 0) + 1)
+      for (const x of onGrid) for (const p of played) if (p.pitch === x.pitch) offsets.set(p.tick / SIXTEENTH - Math.round(x.tick), (offsets.get(p.tick / SIXTEENTH - Math.round(x.tick)) ?? 0) + 1)
       const offset = [...offsets.entries()].sort((p, q) => q[1] - p[1])[0][0]
-      const set = new Set(played.map((p) => `${p.pitch}@${p.tick}`))
+      const set = new Set(played.map((p) => `${p.pitch}@${p.tick / SIXTEENTH}`))
       const exact = onGrid.filter((x) => set.has(`${x.pitch}@${Math.round(x.tick) + offset}`)).length
       expect(exact / onGrid.length, `${exact}/${onGrid.length} notes at their written tick`).toBeGreaterThanOrEqual(0.94)
       expect(played.length).toBe(new Set(notes.map((x) => `${x.pitch}@${x.start.toFixed(3)}`)).size)
@@ -441,5 +443,99 @@ describe('sixteenth-note sextuplet arpeggios under a held melody (Eb major, peda
     const events = score.staves.flatMap((s) => staffVoices(s).flatMap((v) => v.flatMap((m) => m.events)))
     expect(events.filter((e) => e.tie).length / scoreNotes(score).length).toBeLessThan(0.15)
   })
-  it.todo('reads 60 bpm 4/4 and writes each beat as two sixteenth triplets (needs TICKS_PER_QUARTER 12)')
+  it('reads 60 bpm 4/4 and writes each beat as a sixteenth sextuplet, in every format', () => {
+    for (const seed of [1, 2, 3]) {
+      const perf = sextupletBallad({ seed })
+      const a = analyzeNotes(perf.notes)
+      expect(Math.abs(a.bpm - 60) / 60, `seed ${seed}: ${a.bpm}`).toBeLessThan(0.08)
+      expect(a.timeSignature).toBe('4/4')
+      expect(Math.abs(a.beatOffset - perf.downbeat)).toBeLessThan(0.08)
+      const score = buildScore(perf.notes, defaultParams(a, settings), a)
+      // Every note at its exact sextuplet position (truth ticks are in sixteenths: 4/6 apart).
+      const played = [...staffNotes(score, 0), ...staffNotes(score, 1)].map((x) => `${x.pitch}@${x.start}`)
+      const r = (x: number) => Math.round(x * 1e6) / 1e6
+      // (The last bar slows down by up to 25 %: exact positions are checked before it.)
+      expect(played).toHaveLength(perf.truth.length)
+      for (const t of perf.truth.filter((x) => x.tick < 48)) expect(played, `${t.pitch}@${t.tick}`).toContain(`${t.pitch}@${r(t.tick)}`)
+      const abc = scoreToAbc(score)
+      expect(abc.match(/\(6:4:6/g)?.length).toBeGreaterThanOrEqual(12)
+      const { warnings, staves } = abcjsStaves(abc)
+      expect(warnings).toEqual([])
+      expect(staves.get('LH')).toEqual(staffNotes(score, 1))
+      const xml = scoreToMusicXml(score)
+      expect(xml).toContain('<divisions>12</divisions>')
+      expect(xml).toContain('<time-modification><actual-notes>6</actual-notes><normal-notes>4</normal-notes></time-modification>')
+      const midi = new Midi(scoreToMidi(score))
+      const perTick = midi.header.ppq / TICKS_PER_QUARTER
+      expect(midi.tracks[1].notes.map((x) => x.ticks / perTick).every((t) => Number.isInteger(Math.round(t * 1e6) / 1e6))).toBe(true)
+    }
+  })
+})
+
+describe('readable durations (notated as played, not as they ring)', () => {
+  const events = (score: Score) => score.staves.flatMap((s) => staffVoices(s).flatMap((v) => v.flatMap((m) => m.events)))
+
+  it('writes pedalled notes off the beat as one value each: no ties across a beat or a barline', () => {
+    // A pedalled arpeggio of eighths on the off-beat sixteenths: each note rings to the next
+    // downbeat. Read literally (or cut at the next note of either hand) it is tied over each beat.
+    const notes: NoteEvent[] = []
+    const roots = [48, 53, 55, 48]
+    for (let b = 0; b < 4; b++) {
+      const r = roots[b]
+      for (const [i, p] of [r, r + 7, r + 12, r + 16, r + 19, r + 24, r + 19, r + 16].entries()) {
+        const start = (b * 16 + i * 2 + 1) * 0.125
+        notes.push({ pitch: p, start, duration: (b + 1) * 2 + 0.2 - start, velocity: 0.6 })
+      }
+    }
+    const score = build(notes)
+    expect(score.pedals?.length).toBeGreaterThan(0)
+    expect(events(score).filter((e) => e.tie)).toEqual([])
+    const all = [...staffNotes(score, 0), ...staffNotes(score, 1)]
+    expect(all).toHaveLength(32)
+    // A sixteenth before each beat (then a rest), not a sixteenth tied to a sixteenth.
+    for (const x of all.filter((x) => x.start % 4 === 3)) expect(x.ticks).toBe(1)
+  })
+
+  it('gives a melody note held over a lower figure in the right hand its own voice, even under the pedal', () => {
+    // Two bars: a louder melody note per bar over a rising figure in the same hand, all pedalled.
+    const notes: NoteEvent[] = []
+    for (let b = 0; b < 2; b++) {
+      const end = (b + 1) * 2 + 0.05
+      notes.push({ pitch: 84, start: b * 2, duration: end - b * 2, velocity: 0.8 })
+      notes.push({ pitch: 36, start: b * 2, duration: end - b * 2, velocity: 0.6 })
+      for (const [k, p] of [72, 76, 79, 76, 72, 76, 79].entries()) {
+        const start = b * 2 + (k + 1) * 0.25
+        notes.push({ pitch: p, start, duration: end - start, velocity: 0.55 })
+      }
+    }
+    const score = build(notes, { splitPoint: 60 })
+    expect(staffVoices(score.staves[0])).toHaveLength(2)
+    expect(staffNotes(score, 0, 1)).toEqual([
+      { pitch: 84, start: 0, ticks: 16 },
+      { pitch: 84, start: 16, ticks: 16 },
+    ])
+    // The figure is written as running eighths.
+    for (const x of staffNotes(score, 0, 2)) expect(x.ticks).toBe(2)
+    expect(events(score).filter((e) => e.tie)).toEqual([])
+  })
+
+  it('ends a held note where the hand leaves to play out of its reach', () => {
+    // An unpedalled B3 held under two later notes of the left hand, the first a twelfth below.
+    const score = build([n(59, 0, 16, 0.8), n(38, 4, 2, 0.6), n(45, 8, 2, 0.6), n(43, 12, 2, 0.6), n(72, 0, 16)])
+    const b3 = staffNotes(score, 1).find((x) => x.pitch === 59)!
+    expect(b3.ticks).toBeLessThanOrEqual(4)
+    // ...but playback still lets it ring as long as it sounded.
+    expect(scoreNotes(score).find((x) => x.pitch === 59)?.sounding).toBe(16 * SIXTEENTH)
+  })
+
+  it('reads evenly played sixteenths at a fast tempo with timing noise as straight sixteenths (no tuplets)', () => {
+    const bpm = 165
+    const six = 60 / bpm / 4
+    let seed = 7
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5) * 2
+    const notes: NoteEvent[] = Array.from({ length: 64 }, (_, i) => ({ pitch: 60 + ((i * 5) % 12), start: 0.5 + i * six + 0.025 * rnd(), duration: six * 0.9, velocity: i % 4 === 0 ? 0.8 : 0.6 }))
+    const a = analyzeNotes(notes)
+    const score = buildScore(notes, defaultParams(a, settings), a)
+    expect(events(score).filter((e) => e.start % SIXTEENTH !== 0 || e.duration % SIXTEENTH !== 0)).toEqual([])
+  })
 })

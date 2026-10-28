@@ -1,7 +1,7 @@
 // Owner: engine-score. Deterministic synthetic note streams and score builders for the engine tests
 // (not used by the app).
 import type { AnalysisResult, KeyMode, KeySignature, Measure, NoteEvent, Score, ScoreEvent, ScoreParams, TimeSignature } from '../../types'
-import { ticksPerMeasureOf } from './constants'
+import { SIXTEENTH, ticksPerMeasureOf } from './constants'
 import { keyFromFifths } from './keys'
 import { staffVoices } from './notes'
 
@@ -174,6 +174,10 @@ export function scoreFromMeasures(
 ): Score {
   const ts = opts.timeSignature ?? '4/4'
   const tpm = ticksPerMeasureOf(ts)
+  // Events are written in sixteenths here (the tests' unit); the Score uses ticks.
+  const toTicks = (e: ScoreEvent): ScoreEvent => ({ ...e, start: e.start * SIXTEENTH, duration: e.duration * SIXTEENTH })
+  right = right.map((m) => m.map(toTicks))
+  left = left.map((m) => m.map(toTicks))
   const bpm = opts.bpm ?? 120
   const count = Math.max(1, right.length, left.length)
   const staff = (measures: ScoreEvent[][]) =>
@@ -220,7 +224,12 @@ export interface StaffNote {
 export function staffNotes(score: Score, staffIndex: 0 | 1, voice?: 1 | 2): StaffNote[] {
   const voices = staffVoices(score.staves[staffIndex])
   const picked = voice ? (voices[voice - 1] ? [voices[voice - 1]] : []) : voices
-  return picked.flatMap((measures) => voiceNotes(score, measures)).sort((a, b) => a.start - b.start || a.pitch - b.pitch)
+  // In sixteenths (fractional inside tuplets), rounded to 1e-6 so floating thirds compare.
+  const r = (x: number) => Math.round((x / SIXTEENTH) * 1e6) / 1e6
+  return picked
+    .flatMap((measures) => voiceNotes(score, measures))
+    .map((n) => ({ pitch: n.pitch, start: r(n.start), ticks: r(n.ticks) }))
+    .sort((a, b) => a.start - b.start || a.pitch - b.pitch)
 }
 
 function voiceNotes(score: Score, measures: Measure[]): StaffNote[] {

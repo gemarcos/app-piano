@@ -40,7 +40,7 @@ function viaAbcjs(abc: string): AbcjsResult {
     const id = ids[i] ?? `T${i}`
     const notes = track
       .filter((e) => e.cmd === 'note')
-      .map((e) => ({ pitch: e.pitch, start: Math.round(e.start * 16), ticks: Math.round(e.duration * 16) }))
+      .map((e) => ({ pitch: e.pitch, start: Math.round((Math.round(e.start * 48) / 3) * 1e6) / 1e6, ticks: Math.round((Math.round(e.duration * 48) / 3) * 1e6) / 1e6 }))
     if (id === 'PED') {
       expect(notes, 'the pedal voice sounds nothing').toEqual([])
       return

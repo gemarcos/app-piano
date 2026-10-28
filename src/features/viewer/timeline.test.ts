@@ -1,6 +1,6 @@
 // Owner: viewer. Unit tests for the viewer's pure helpers.
 import { describe, expect, it } from 'vitest'
-import { buildScore } from '../../engine/score'
+import { buildScore, TICKS_PER_QUARTER } from '../../engine/score'
 import { demoAnalysis, demoParams, findDemo } from '../../data/demos'
 import type { Score } from '../../types'
 import {
@@ -51,12 +51,14 @@ describe('timeline', () => {
 
   it('finds the event sounding at a tick', () => {
     // Ode: four quarter notes in the first bar of the right hand (B B C D).
+    // (Ticks: TICKS_PER_QUARTER = 12, so a quarter is 12 ticks.)
+    const q = TICKS_PER_QUARTER
     expect(eventIndexAt(right, 0)).toBe(0)
-    expect(eventIndexAt(right, 3.99)).toBe(0)
-    expect(eventIndexAt(right, 4)).toBe(1)
-    expect(right[eventIndexAt(right, 13)].pitches).toEqual([74])
+    expect(eventIndexAt(right, q - 0.01)).toBe(0)
+    expect(eventIndexAt(right, q)).toBe(1)
+    expect(right[eventIndexAt(right, 3.25 * q)].pitches).toEqual([74])
     // Left hand: one whole-note chord in bar 1.
-    expect(eventIndexAt(left, 15)).toBe(0)
+    expect(eventIndexAt(left, 3.75 * q)).toBe(0)
     expect(eventIndexAt(right, -1)).toBe(-1)
     expect(eventIndexAt(right, score.measureCount * score.ticksPerMeasure)).toBe(-1)
   })

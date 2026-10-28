@@ -92,6 +92,36 @@ function analyze(notes: NoteEvent[]): AnalysisResult {
   const accent = (o: Onset, i: number) => o.w * (1 + clamp(1 - (o.low - lowest[i]) / 7, 0, 1))
   const weights = onsets.map(accent)
   const indexOf = new Map(onsets.map((o, i) => [o, i]))
+  // Bass notes off the beat: a reading that puts the bass on off-beats is probably the wrong
+  // level (sextuplet arpeggios at 60 bpm read as straight sixteenths at 90 put every other bass
+  // note on an off-beat; at the right tempo every bass note is on a beat).
+  const bassIdx = onsets.map((o, i) => (o.low - lowest[i] <= 2 ? i : -1)).filter((i) => i >= 0)
+  const bassOffbeat = (beats: number[]) => {
+    const pos = beatPositions(
+      bassIdx.map((i) => onsets[i].t),
+      beats,
+    )
+    let off = 0
+    let all = 0
+    pos.forEach((u, k) => {
+      const w = weights[bassIdx[k]]
+      const f = u - Math.floor(u)
+      all += w
+      if (f > 0.15 && f < 0.85) off += w
+    })
+    return all > 0 ? Math.min(0.9, off / all) : 0
+  }
+  // Sextuplet texture: a steady stream whose bass returns every 6 notes, at a slow beat (6 notes
+  // = 50..90 bpm). Such arpeggios are written as sixteenth sextuplets, one beat per bass note.
+  const iois = onsets.slice(1).map((o, i) => o.t - onsets[i].t).filter((d) => d > 0.05 && d < 0.6).sort((a, b) => a - b)
+  const tatum = iois.length >= 12 ? iois[iois.length >> 1] : 0
+  let sextupletBpm = 0
+  if (tatum > 0 && bassIdx.length >= 6) {
+    const steps = bassIdx.slice(1).map((b, k) => Math.round((onsets[b].t - onsets[bassIdx[k]].t) / tatum))
+    const six = steps.filter((x) => x === 6).length
+    const bpm6 = 60 / (6 * tatum)
+    if (six >= 0.6 * steps.length && bpm6 >= MIN_BPM && bpm6 <= 90) sextupletBpm = bpm6
+  }
   let best: Candidate | null = null
   for (const r of TEMPO_RATIOS) {
     const raw = peak.best * r
@@ -99,8 +129,10 @@ function analyze(notes: NoteEvent[]): AnalysisResult {
     const bpm = refineTempo(onsets, raw, 0.03, 32)
     const beats = trackBeats(onsets, bpm, (o) => weights[indexOf.get(o)!])
     if (beats.length < 4) continue
-    const f = beatFeatures(onsets, beats, upper)
-    const score = tempoPrior(bpm) * f.fit * accentPlausibility(bpm, f.alt, f.alt3, f.sub) * (1 - 0.5 * f.empty) * Math.exp(-LONG_WEIGHT * f.long)
+    const sextuplet = sextupletBpm > 0 && Math.abs(bpm / sextupletBpm - 1) < 0.08
+    const f = beatFeatures(onsets, beats, upper, sextuplet)
+    const score =
+      tempoPrior(bpm) * f.fit * accentPlausibility(bpm, f.alt, f.alt3, f.sub) * (1 - 0.5 * f.empty) * Math.exp(-LONG_WEIGHT * f.long) * (1 - bassOffbeat(beats)) * (sextuplet ? 1.6 : 1)
     if (!best || score > best.score) best = { bpm, beats, fit: f.fit, score }
   }
   if (!best) return { ...emptyAnalysis(), beatOffset: round3(Math.max(0, onsets[0].t)), key, keyConfidence }
@@ -222,12 +254,14 @@ function beatAccents(onsets: Onset[], phase: number, period: number): BeatAccent
   const values = new Array<number>(Math.max(1, lastIndex - firstIndex + 1)).fill(0)
   const tol = period * 0.2
   const lowest = localLowest(onsets, 2 * period)
+  let lastBass = -1
   onsets.forEach((o, i) => {
     const k = Math.round((o.t - phase) / period)
     if (Math.abs(o.t - (phase + k * period)) > tol) return
     const bass = clamp(1 - (o.low - lowest[i]) / 7, 0, 1)
     const long = clamp(o.dur / (2 * period), 0, 1)
-    values[k - firstIndex] += o.w * (1 + bass + 0.5 * long)
+    values[k - firstIndex] += o.w * (1 + bass + 0.5 * long + harmonicChange(o, bass, lastBass))
+    if (bass > 0.5) lastBass = o.low
   })
   return { values, firstIndex }
 }
@@ -242,6 +276,7 @@ function beatAccentsMap(onsets: Onset[], beats: number[]): BeatAccents {
   const lastIndex = Math.round(pos[pos.length - 1])
   const values = new Array<number>(Math.max(1, lastIndex - firstIndex + 1)).fill(0)
   const lowest = localLowest(onsets, 2 * ((beats[beats.length - 1] - beats[0]) / Math.max(1, beats.length - 1)))
+  let lastBass = -1
   onsets.forEach((o, i) => {
     const k = Math.round(pos[i])
     if (Math.abs(pos[i] - k) > 0.2) return
@@ -249,9 +284,15 @@ function beatAccentsMap(onsets: Onset[], beats: number[]): BeatAccents {
     const period = beats[kk + 1] - beats[kk]
     const bass = clamp(1 - (o.low - lowest[i]) / 7, 0, 1)
     const long = clamp(o.dur / (2 * period), 0, 1)
-    values[k - firstIndex] += o.w * (1 + bass + 0.5 * long)
+    values[k - firstIndex] += o.w * (1 + bass + 0.5 * long + harmonicChange(o, bass, lastBass))
+    if (bass > 0.5) lastBass = o.low
   })
   return { values, firstIndex }
+}
+
+/** A bass note on a beat that changes the bass (a new harmony): bars start there. */
+function harmonicChange(o: Onset, bass: number, lastBass: number): number {
+  return bass > 0.5 && lastBass >= 0 && o.low !== lastBass ? 0.75 : 0
 }
 
 /** Mean accent of the strongest residue class mod m, relative to the overall mean (>= 1). */

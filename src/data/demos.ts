@@ -1,7 +1,7 @@
 // Owner: engine-score. Public-domain demo pieces expressed as raw NoteEvent[] so they go through
 // the same analysis/notation pipeline (and filters) as real transcriptions.
 import type { AnalysisResult, KeySignature, Midi, NoteEvent, Settings, TimeSignature } from '../types'
-import { analyzeNotes, defaultParams, keyFromFifths, ticksPerMeasureOf, type EngineParams } from '../engine/score'
+import { TICKS_PER_QUARTER, analyzeNotes, defaultParams, keyFromFifths, ticksPerMeasureOf, type EngineParams } from '../engine/score'
 
 export interface DemoPiece {
   /** Stable id, also used as the library item id (prefixed 'demo-'). */
@@ -41,7 +41,7 @@ interface VoiceOptions {
  */
 export function voice(src: string, opts: VoiceOptions): NoteEvent[] {
   const tick = 60 / opts.bpm / 4
-  const bar = ticksPerMeasureOf(opts.timeSignature)
+  const bar = (ticksPerMeasureOf(opts.timeSignature) * 4) / TICKS_PER_QUARTER
   const beat = opts.timeSignature === '6/8' ? 6 : 4
   const out: NoteEvent[] = []
   let t = opts.offset ?? 0

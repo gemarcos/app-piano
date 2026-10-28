@@ -1,6 +1,7 @@
 // Owner: engine-score. Score -> MusicXML 4.0 partwise (one piano part, two staves).
 import type { Score, ScoreEvent } from '../../types'
-import { beatTicksOf, meterParts } from './constants'
+import { SIXTEENTH, TICKS_PER_QUARTER, beatTicksOf, meterParts } from './constants'
+import { isTripletEdge } from './durations'
 import { normalizeKey } from './keys'
 import { pickupTicks, spellingContext, staffVoices, trimLead } from './notes'
 import { AccidentalState, choiceOf, spellChord, type SpelledPitch, type SpellingChoice } from './spelling'
@@ -33,12 +34,37 @@ export function xmlEscape(text: string): string {
     .replace(/'/g, '&apos;')
 }
 
+/** Written type of a tuplet event by its length in ticks (sixteenth-triplet units of 2). */
+const TUPLET_TYPES: Record<number, [string, number]> = {
+  2: ['16th', 0],
+  4: ['eighth', 0],
+  6: ['eighth', 1],
+  8: ['quarter', 0],
+  12: ['quarter', 1],
+}
+
+/** Per event: 0 = straight, 3 = eighth-triplet beat, 6 = sixteenth-sextuplet beat (as in the ABC writer). */
+function tupletKinds(events: readonly ScoreEvent[]): number[] {
+  const out = events.map(() => 0)
+  const beats = new Map<number, number[]>()
+  events.forEach((ev, i) => {
+    const b = Math.floor(ev.start / TICKS_PER_QUARTER)
+    beats.set(b, [...(beats.get(b) ?? []), i])
+  })
+  for (const list of beats.values()) {
+    if (!list.some((i) => isTripletEdge(events[i].start) || isTripletEdge(events[i].start + events[i].duration))) continue
+    const kind = list.every((i) => events[i].duration % 4 === 0 && events[i].start % 4 === 0) ? 3 : 6
+    for (const i of list) out[i] = kind
+  }
+  return out
+}
+
 /** Beam values (levels 1 and 2) for each event of a measure, grouping by beat. */
 function beams(events: ScoreEvent[], beat: number): string[][] {
   const out: string[][] = events.map(() => [])
   let i = 0
   while (i < events.length) {
-    const beamable = (e: ScoreEvent) => e.pitches.length > 0 && e.duration < 4
+    const beamable = (e: ScoreEvent) => e.pitches.length > 0 && e.duration < TICKS_PER_QUARTER
     if (!beamable(events[i])) {
       i++
       continue
@@ -52,12 +78,12 @@ function beams(events: ScoreEvent[], beat: number): string[][] {
       // Second beam for sixteenths: runs share it, lone ones get a hook.
       let k = 0
       while (k < group.length) {
-        if (events[group[k]].duration !== 1) {
+        if (events[group[k]].duration > SIXTEENTH) {
           k++
           continue
         }
         let r = k
-        while (r + 1 < group.length && events[group[r + 1]].duration === 1) r++
+        while (r + 1 < group.length && events[group[r + 1]].duration <= SIXTEENTH) r++
         if (r === k) out[group[k]].push(k === 0 ? 'forward hook' : 'backward hook')
         else for (let x = k; x <= r; x++) out[group[x]].push(x === k ? 'begin' : x === r ? 'end' : 'continue')
         k = r + 1
@@ -79,7 +105,7 @@ export interface MusicXmlOptions {
 const CLEF_SIGN: Record<'treble' | 'bass', string> = { treble: '<sign>G</sign><line>2</line>', bass: '<sign>F</sign><line>4</line>' }
 
 /** Pedal directions of one measure (staff 2), positioned with <offset> from the written measure start. */
-function pedalDirections(score: Score, index: number, lead: number): string[] {
+function pedalDirections(score: Score, index: number, lead: number, div: number): string[] {
   const tpm = score.ticksPerMeasure
   const from = index * tpm
   const last = index === Math.max(1, score.measureCount) - 1
@@ -94,7 +120,7 @@ function pedalDirections(score: Score, index: number, lead: number): string[] {
       const rel = tick - from
       if (rel < 0 || rel > tpm || (rel === tpm && !last)) continue
       const at = Math.max(0, rel - lead)
-      const offset = at > 0 ? `<offset sound="yes">${at}</offset>` : ''
+      const offset = at > 0 ? `<offset sound="yes">${Math.round((at * div) / TICKS_PER_QUARTER)}</offset>` : ''
       out.push([
         at,
         type === 'stop' ? 0 : 1,
@@ -120,6 +146,10 @@ export function scoreToMusicXml(score: Score, opts: MusicXmlOptions = {}): strin
   const bpm = score.bpm > 0 && Number.isFinite(score.bpm) ? score.bpm : 100
   const count = Math.max(1, score.measureCount)
   const lead = opts.pickup === false ? 0 : pickupTicks(score)
+  // Divisions per quarter: 4 for straight music, 12 when a tuplet needs thirds of a sixteenth.
+  const anyTuplet = score.staves.some((st) => staffVoices(st).some((ms) => ms.some((m) => m.events.some((e) => isTripletEdge(e.start) || isTripletEdge(e.start + e.duration)))))
+  const div = anyTuplet ? TICKS_PER_QUARTER : TICKS_PER_QUARTER / SIXTEENTH
+  const D = (ticks: number) => Math.round((ticks * div) / TICKS_PER_QUARTER)
   const voices = score.staves.map((staff) => staffVoices(staff))
   const context = spellingContext(score)
   const staffAcc = score.staves.map(() => new AccidentalState(key))
@@ -151,7 +181,7 @@ export function scoreToMusicXml(score: Score, opts: MusicXmlOptions = {}): strin
     x.push(`    <measure number="${number}"${cut > 0 ? ' implicit="yes"' : ''}>`)
     if (m === 0) {
       x.push('      <attributes>')
-      x.push('        <divisions>4</divisions>')
+      x.push(`        <divisions>${div}</divisions>`)
       x.push(`        <key><fifths>${key.fifths}</fifths><mode>${key.mode}</mode></key>`)
       x.push(`        <time><beats>${beatsNum}</beats><beat-type>${beatType}</beat-type></time>`)
       x.push('        <staves>2</staves>')
@@ -195,35 +225,45 @@ export function scoreToMusicXml(score: Score, opts: MusicXmlOptions = {}): strin
         spelled[vi][i] = sps.map((sp) => ({ sp, alter: staffAcc[si].visit(sp, cont[vi][i]) }))
       }
       evs.forEach((events, vi) => {
-        if (!firstSequence) x.push(`      <backup><duration>${length}</duration></backup>`)
+        if (!firstSequence) x.push(`      <backup><duration>${D(length)}</duration></backup>`)
         firstSequence = false
-        if (si === 1 && vi === 0) x.push(...pedalDirections(score, m, cut))
+        if (si === 1 && vi === 0) x.push(...pedalDirections(score, m, cut, div))
         const staffNo = si + 1
         const voice = si * 4 + vi + 1
         const beamValues = beams(events, beat)
+        const tuplet = tupletKinds(events)
+        const typeOf = (ev: ScoreEvent, ei: number): [string, number, string] => {
+          const k = tuplet[ei]
+          if (k === 0) {
+            const [type, dots] = TYPES[ev.duration / SIXTEENTH] ?? ['quarter', 0]
+            return [type, dots, '']
+          }
+          const [type, dots] = TUPLET_TYPES[ev.duration] ?? ['eighth', 0]
+          return [type, dots, k === 3 ? '<time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes></time-modification>' : '<time-modification><actual-notes>6</actual-notes><normal-notes>4</normal-notes></time-modification>']
+        }
         const stem = twoVoices ? `<stem>${vi === 0 ? 'up' : 'down'}</stem>` : ''
         events.forEach((ev, ei) => {
           if (ev.pitches.length === 0) {
             const whole = events.length === 1 && ev.start === 0 && ev.duration === tpm
-            const [type, dots] = TYPES[ev.duration] ?? ['quarter', 0]
+            const [type, dots, mod] = typeOf(ev, ei)
             x.push(
-              `      <note${vi > 0 ? ' print-object="no"' : ''}>${whole ? '<rest measure="yes"/>' : '<rest/>'}<duration>${ev.duration}</duration><voice>${voice}</voice>` +
-                (whole ? '' : `<type>${type}</type>${'<dot/>'.repeat(dots)}`) +
+              `      <note${vi > 0 ? ' print-object="no"' : ''}>${whole ? '<rest measure="yes"/>' : '<rest/>'}<duration>${D(ev.duration)}</duration><voice>${voice}</voice>` +
+                (whole ? '' : `<type>${type}</type>${'<dot/>'.repeat(dots)}${mod}`) +
                 `<staff>${staffNo}</staff></note>`,
             )
             return
           }
           const tieStop = cont[vi][ei]
           const tieStart = ev.tie === true
-          const [type, dots] = TYPES[ev.duration] ?? ['quarter', 0]
+          const [type, dots, mod] = typeOf(ev, ei)
           spelled[vi][ei].forEach(({ sp, alter }, pi) => {
             let n = '      <note>'
             if (pi > 0) n += '<chord/>'
             n += `<pitch><step>${sp.step}</step>${sp.alter !== 0 ? `<alter>${sp.alter}</alter>` : ''}<octave>${sp.octave}</octave></pitch>`
-            n += `<duration>${ev.duration}</duration>`
+            n += `<duration>${D(ev.duration)}</duration>`
             if (tieStop) n += '<tie type="stop"/>'
             if (tieStart) n += '<tie type="start"/>'
-            n += `<voice>${voice}</voice><type>${type}</type>${'<dot/>'.repeat(dots)}`
+            n += `<voice>${voice}</voice><type>${type}</type>${'<dot/>'.repeat(dots)}${mod}`
             if (alter !== null) n += `<accidental>${ACCIDENTALS[String(alter)]}</accidental>`
             n += stem
             n += `<staff>${staffNo}</staff>`

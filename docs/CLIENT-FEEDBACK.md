@@ -4,6 +4,28 @@ Feedback from the client, relayed during development. Newest first. Every agent:
 
 <!-- entries: "## YYYY-MM-DD HH:MM — area" followed by the request -->
 
+## 2026-10-28 09:05 — PROFESSIONAL (commercial) use: remove what cannot be used
+
+**Decision: Pauta is for professional, commercial use.** Remove anything that cannot be used commercially; everything else stays and gets better. Consequences decided by the lead:
+- **Download by link (yt-dlp) is dropped**: YouTube's and TikTok's terms forbid downloading their content outside their apps. Never build it.
+- **Link screen**: YouTube's API developer policies forbid separating or isolating the audio of embedded YouTube content, so the link screen's «Grabar el vídeo» (tab capture of the embedded player) is removed. The link screen keeps the official player for the user to play the song and Pauta listens through the MICROPHONE (ambient listening, like song-recognition apps), plus the saved-file route. The generic «Pestaña» capture on Home stays (a general user tool, any source). Legal review of the link flow is still advised before launch.
+- **Transcription models (audited 2026-10-28)**: Onsets and Frames' checkpoint has NO license, so it is removed once its replacement works. The replacement is **Transkun V2 (MIT)**, the most accurate model measured (realistic benchmark F1 0.973 vs 0.936; client recording ±100 ms 0.838 vs 0.790), ported with onnxruntime-web (MIT). Basic Pitch (Apache-2.0) stays as the phone fallback. Rule: only weights with an explicit license that allows commercial use (Apache-2.0, MIT, BSD, CC BY) may ship. piano-model is auditing every candidate (Onsets and Frames' checkpoint states no license; Basic Pitch's weights are Apache-2.0). Training on MAESTRO (CC BY-NC-SA) remains an open legal question for a lawyer.
+- Assets already fine for commercial use with attribution: Salamander Grand (CC BY 3.0), FluidR3 (MIT), Unsplash photos (Unsplash License), Plus Jakarta Sans (OFL). Krüger's Liebestraum MIDI (CC BY-SA) is a local test reference only and never ships.
+
+Client's words:
+> «Será de uso profesional. elimina lo que no se vaya a poder usar. El resto si se debe de quedar igual y mejor»
+
+## 2026-10-28 08:50 — professional quality: max accuracy, readable scores, livelier UI, download by link
+
+The client wants a PROFESSIONAL product, tested end to end ("no me sirve que funcione más o menos"). Priorities, in order:
+1. **Transcription accuracy as high as possible** (score-accuracy + piano-model): Liebestraum still misses many notes the reference confirms. Explore other methods and models (e.g. a higher-resolution piano model, ensembles, re-strike detection under pedal), measured on the realistic benchmark and the client's recording.
+2. **Readable scores** (score-accuracy): the elongated/tied notes are still everywhere; it suggests sustain but makes the score unreadable. Notate articulated durations everywhere, finish triplets/sextuplets, fix the beat phase.
+3. **UI** (new design round): more attractive, NOT boring, while keeping generous empty space; more animations, an entrance animation at launch, and interface sound effects (own synthesized sounds, with an off switch).
+4. **Download by link** (DROPPED at 09:05: professional use, see above) (share): sending a link should download the audio directly (faster than listening). The client mentioned Python libraries that convert YouTube videos (yt-dlp). Lead's notes: a browser PWA cannot run yt-dlp, so this needs a helper running on a computer (the client's PC); YouTube and TikTok terms forbid downloading outside their apps, so it is for personal use and must be revisited before any commercial release; the microphone/tab capture stays as the fallback.
+
+Client's words:
+> «Siguie con el proyecto. Aumenta mucho su precision, necesito que reduzcas lo de las notas alargadas que estan en todas partes. Hace que parezca sostenido pero no se pueden leer las partituras Mejora el diseño de la ui para que sea mas atractivo respetando espacios libres. Ahora mismo es muy aburrido. Añade mas animaciones, efectos de sonido y animacion al entrar. Busca una forma de mandando el enlace poder descargarlo porque haria todo mas rapido. Se que habia incluso librerias de python para convertir videos de youtube en los formatos que quieras. Haz pruebas de cada cosa y enviame un producto profesional. No me sirve que funcione mas o menos. Tiene que funcionar como debe, sobre todo lo de leer las partituras al escuchar la cancion. Ahora mismo sigue fallando creo. Liebestraum confirmaba muchas notas que no pillaba. Piensa en otros metodos o lo que haga falta para que la precision sea la maxima posible»
+
 ## 2026-10-27 21:15 — score: do not notate the pedal sustain; link capture hears nothing
 
 1. **Score (score-accuracy):** the client dislikes that "everything looks connected": notes held by the sustain pedal are written long and tied across the bar (the piano model's durations include the pedal). Notate notes as played (articulated durations, as a pianist reads them), and show the pedal only when a whole section is played with it (one "con pedal" / single Ped. indication, like "with pedal" in published scores), not a mark per span. Playback keeps the pedal sound. The client's comparison (a copyrighted song: never copy its notes; recreate the texture only): 4/4 in 3 flats, 16th-note sextuplet arpeggios (two 16th triplets per beat) under a held melody note, pedal throughout. The app got the key right but read 194 bpm and wrote long tied notes with no triplets. Triplets are now required (second client example after the 16:35 ballad pickup).

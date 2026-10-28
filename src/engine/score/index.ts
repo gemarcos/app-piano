@@ -4,9 +4,11 @@
 // analysis, title) -> scoreToAbc / scoreToMusicXml / scoreToMidi. buildScore never throws and is
 // fast enough to run on every filter change (< 30 ms for 3 000 notes).
 
-/** 1 tick = one sixteenth note. */
+/** TICKS_PER_QUARTER = 12 ticks per quarter (a sixteenth is 3, a sixteenth triplet 2). */
 export {
   TICKS_PER_QUARTER,
+  SIXTEENTH,
+  TUPLET_VALUES,
   TIME_SIGNATURES,
   DIFFICULTY_LABELS,
   DIFFICULTY_PARAM_LABELS,
@@ -53,7 +55,7 @@ export type { TimeMap } from './timemap'
  * ticks) for playback renderers. staffVoices: [measures] or [measures, voice2] of a staff.
  */
 export { scoreNotes, staffVoices, pickupTicks, DEFAULT_VELOCITY } from './notes'
-export type { PlayedNote, VoicedStaff } from './notes'
+export type { EngineEvent, PlayedNote, VoicedStaff } from './notes'
 
 /** Sustain pedal inferred from raw notes (Score.pedals is built from it). */
 export { inferPedalSeconds } from './pedal'

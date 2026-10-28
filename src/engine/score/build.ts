@@ -7,28 +7,27 @@ import type {
   NoteEvent,
   PedalSpan,
   Score,
-  ScoreEvent,
   ScoreParams,
   ScoreStats,
   ScoreSummary,
   Settings,
   TimeSignature,
 } from '../../types'
-import { beatTicksOf, isTimeSignature, ticksPerMeasureOf } from './constants'
+import { SIXTEENTH, TICKS_PER_QUARTER, beatTicksOf, isTimeSignature, ticksPerMeasureOf } from './constants'
 import { splitDuration } from './durations'
 import { assignHands, assignHandsAuto, chooseClef } from './hands'
 import { normalizeKey, transposeKey } from './keys'
-import type { VoicedStaff } from './notes'
+import type { EngineEvent, VoicedStaff } from './notes'
 import { inferPedalSeconds, pedalTicks, type PedalSeconds } from './pedal'
 import { filterNotes, quantizeNotes, sortByOnset, type QNote, type SourceNote } from './quantize'
 import { simplify } from './simplify'
 import { createTimeMap } from './timemap'
-import { articulate, splitVoices } from './voices'
+import { splitVoices } from './voices'
+import { articulate, chordStream, cutUnisons, markFree, simpleValues, tripletBeats, type Segment } from './engrave'
 
 const DIFFICULTIES: readonly Difficulty[] = ['original', 'intermedio', 'facil']
 const finite = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x)
 const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x))
-const round3 = (x: number) => Math.round(x * 1000) / 1000
 
 /**
  * How notes are given to the hands. 'auto': follow the music (voices and registers over time, the
@@ -89,84 +88,9 @@ export function sanitizeParams(params: Partial<EngineParams> | null | undefined,
   return out
 }
 
-interface Segment {
-  on: number
-  off: number
-  pitches: number[]
-  vels: number[]
-}
-
-/**
- * One chord per onset: duration = min(longest note, next onset - onset). A release gap of at most
- * one grid unit that is shorter than half the inter-onset interval is read as legato (no rest),
- * unless the next chord strikes one of the same keys again or the release is at the barline.
- */
-function chordStream(notes: QNote[], grid: number, measureTicks: number): Segment[] {
-  const segs: Segment[] = []
-  let i = 0
-  while (i < notes.length) {
-    const on = notes[i].on
-    let j = i
-    let off = on
-    const pitches: number[] = []
-    const vels: number[] = []
-    while (j < notes.length && notes[j].on === on) {
-      pitches.push(notes[j].pitch)
-      vels.push(round3(notes[j].vel))
-      if (notes[j].off > off) off = notes[j].off
-      j++
-    }
-    if (j < notes.length) {
-      const next = notes[j].on
-      const gap = next - off
-      // A gap before the same key struck again is articulation (a rest), not legato.
-      let again = false
-      for (let k = j; k < notes.length && notes[k].on === next && !again; k++) again = pitches.includes(notes[k].pitch)
-      // Nor is a release exactly at the barline (the next bar starts with its rest).
-      if (gap < 0 || (gap <= grid && gap * 2 < next - on && !again && off % measureTicks !== 0)) off = next
-    }
-    segs.push({ on, off, pitches, vels })
-    i = j
-  }
-  return segs
-}
-
-/**
- * A key struck again in the other voice of the staff cuts the note still sounding there (one key,
- * one string: the score never holds a pitch over its own re-attack).
- */
-function cutUnisons(voices: Segment[][]): void {
-  if (voices.length < 2 || !voices[1].length) return
-  const onsets = new Map<number, number[]>()
-  for (const v of voices) {
-    for (const s of v) {
-      for (const p of s.pitches) {
-        const list = onsets.get(p)
-        if (list) list.push(s.on)
-        else onsets.set(p, [s.on])
-      }
-    }
-  }
-  for (const list of onsets.values()) list.sort((a, b) => a - b)
-  for (const v of voices) {
-    for (const s of v) {
-      for (const p of s.pitches) {
-        const list = onsets.get(p)!
-        let lo = 0
-        let hi = list.length
-        while (lo < hi) {
-          const mid = (lo + hi) >> 1
-          if (list[mid] <= s.on) lo = mid + 1
-          else hi = mid
-        }
-        if (lo < list.length && list[lo] < s.off) s.off = list[lo]
-      }
-    }
-  }
-}
-
 function layoutStaff(segs: Segment[], measureCount: number, ts: TimeSignature): Measure[] {
   const tpm = ticksPerMeasureOf(ts)
+  const triplets = tripletBeats(segs)
   const measures: Measure[] = []
   for (let m = 0; m < measureCount; m++) measures.push({ index: m, events: [] })
   const emit = (from: number, to: number, seg: Segment | null) => {
@@ -174,13 +98,24 @@ function layoutStaff(segs: Segment[], measureCount: number, ts: TimeSignature): 
     while (s < to) {
       const m = Math.floor(s / tpm)
       const ms = m * tpm
-      const e = Math.min(to, ms + tpm)
+      let e = Math.min(to, ms + tpm)
+      // A triplet beat is a closed tuplet group: nothing crosses its edges.
+      for (let b = Math.floor(s / TICKS_PER_QUARTER); b * TICKS_PER_QUARTER < e; b++) {
+        const lo = b * TICKS_PER_QUARTER
+        const hi = lo + TICKS_PER_QUARTER
+        if (!triplets.has(b) && !triplets.has(b - 1)) continue
+        if (triplets.has(b) && lo > s && lo < e) e = lo
+        else if (triplets.has(b) && hi > s && hi < e) e = hi
+        if (e <= hi) break
+      }
       const pieces = splitDuration(s - ms, e - s, ts, seg === null)
       let pos = s - ms
       for (let i = 0; i < pieces.length; i++) {
-        const ev: ScoreEvent = { start: pos, duration: pieces[i], pitches: seg ? seg.pitches.slice() : [] }
+        const ev: EngineEvent = { start: pos, duration: pieces[i], pitches: seg ? seg.pitches.slice() : [] }
         if (seg) {
           ev.velocities = seg.vels.slice()
+          // The attack carries how long each key sounds without pedal, when that outlasts the notation.
+          if (s === seg.on && i === 0 && seg.sounds.some((t) => t > seg.off)) ev.sounding = seg.sounds.map((t) => Math.max(seg.off, t) - seg.on)
           if (i < pieces.length - 1 || e < to) ev.tie = true
         }
         measures[m].events.push(ev)
@@ -246,7 +181,7 @@ function computeStats(staves: Segment[][][], seconds: number, key: KeySignature)
     for (const [on, count] of perOnset) {
       events++
       if (count > maxPolyphony) maxPolyphony = count
-      if (on % 2 !== 0) offbeat16++
+      if (on % (2 * SIXTEENTH) !== 0) offbeat16++
     }
   }
   const range: [number, number] | null = noteCount > 0 ? [lo, hi] : null
@@ -291,7 +226,7 @@ export function buildScore(notes: NoteEvent[], params: EngineParams, analysis: A
   const ts = p.timeSignature
   const tpm = ticksPerMeasureOf(ts)
   const beat = beatTicksOf(ts)
-  const secPerTick = 60 / p.bpm / 4
+  const secPerTick = 60 / p.bpm / TICKS_PER_QUARTER
   const map = createTimeMap(p, analysis)
   let key: KeySignature
   try {
@@ -306,7 +241,7 @@ export function buildScore(notes: NoteEvent[], params: EngineParams, analysis: A
   let pedals: PedalSpan[] = []
   try {
     const source = filterNotes(notes, p)
-    const grid = p.difficulty === 'original' && p.quantize === 16 ? 1 : 2
+    const grid = (p.difficulty === 'original' && p.quantize === 16 ? 1 : 2) * SIXTEENTH
     const q = quantizeNotes(source, grid, tpm, map, p.difficulty === 'original')
     shiftMeasures = q.shiftMeasures
     const shiftTicks = shiftMeasures * tpm
@@ -331,10 +266,15 @@ export function buildScore(notes: NoteEvent[], params: EngineParams, analysis: A
     else assignHands(sorted, p.splitPoint)
     const simple = simplify(sorted, { difficulty: p.difficulty, maxPolyphony: p.maxPolyphony, beatTicks: beat, measureTicks: tpm })
     const hands = [simple.filter((n) => n.right), simple.filter((n) => !n.right)]
-    if (p.difficulty === 'original') for (const h of hands) splitVoices(h, tpm, pedalled)
-    if (p.difficulty !== 'facil') for (const h of hands) articulate(h, simple, pedalled, beat)
+    if (p.difficulty === 'original') hands.forEach((h, i) => splitVoices(h, tpm, pedalled, i === 0))
+    for (const h of hands) markFree(h, pedalled)
+    const engrave = p.difficulty !== 'facil'
+    if (engrave) for (const h of hands) articulate(h, simple, beat)
     segs = hands.map((h) => [chordStream(h.filter((n) => n.voice !== 2), grid, tpm), chordStream(h.filter((n) => n.voice === 2), grid, tpm)])
-    for (const voices of segs) cutUnisons(voices)
+    for (const voices of segs) {
+      cutUnisons(voices)
+      if (engrave) for (const v of voices) simpleValues(v, ts, beat)
+    }
     clefs = [chooseClef(hands[0].map((n) => n.pitch), 'treble'), chooseClef(hands[1].map((n) => n.pitch), 'bass')]
   } catch {
     segs = [[[], []], [[], []]]
@@ -354,7 +294,7 @@ export function buildScore(notes: NoteEvent[], params: EngineParams, analysis: A
   const lastStart = (measureCount - 1) * tpm
   const overhang = lastEnd - lastStart
   const pedalOverhang = overhang <= beat && pedals.some((s) => s.start <= lastStart && s.end >= lastEnd - 1)
-  if (measureCount > 1 && lastOn < lastStart && (overhang <= 1 || pedalOverhang)) {
+  if (measureCount > 1 && lastOn < lastStart && (overhang <= SIXTEENTH || pedalOverhang)) {
     measureCount--
     for (const voices of segs) for (const v of voices) for (const seg of v) seg.off = Math.min(seg.off, lastStart)
   }
@@ -399,9 +339,9 @@ export function summarizeScore(score: Score): ScoreSummary {
   }
 }
 
-/** Seconds per tick (one sixteenth) at the score tempo. */
+/** Seconds per tick (TICKS_PER_QUARTER per quarter) at the score tempo. */
 export function secondsPerTick(score: Pick<Score, 'bpm'>): number {
-  return 60 / (score.bpm > 0 ? score.bpm : 100) / 4
+  return 60 / (score.bpm > 0 ? score.bpm : 100) / TICKS_PER_QUARTER
 }
 
 /**

@@ -108,9 +108,10 @@ export interface BeatFeatures {
 
 /**
  * Beat-level features of onsets against a beat map. `upper[i]`: onset i has a note in the upper
- * register (for the melody-length measure).
+ * register (for the melody-length measure). `triplets`: the beat may be divided in sixteenth
+ * triplets (only for the reading a sextuplet texture points to).
  */
-export function beatFeatures(onsets: Onset[], beats: number[], upper: boolean[]): BeatFeatures {
+export function beatFeatures(onsets: Onset[], beats: number[], upper: boolean[], triplets = false): BeatFeatures {
   const pos = beatPositions(
     onsets.map((o) => o.t),
     beats,
@@ -129,8 +130,10 @@ export function beatFeatures(onsets: Onset[], beats: number[], upper: boolean[])
     const u = pos[i]
     const p = periodAt(u)
     total += o.w
+    // With `triplets`, sixteenth-triplet positions count as on the grid too (sextuplet beats).
     const err16 = Math.abs(u * 4 - Math.round(u * 4)) * (p / 4)
-    onGrid += o.w * Math.exp(-((err16 / 0.025) ** 2))
+    const err = triplets ? Math.min(err16, Math.abs(u * 6 - Math.round(u * 6)) * (p / 6)) : err16
+    onGrid += o.w * Math.exp(-((err / 0.025) ** 2))
     const tol = Math.min(0.06, p / 8)
     const k = Math.round(u)
     if (Math.abs(u - k) * p <= tol) {

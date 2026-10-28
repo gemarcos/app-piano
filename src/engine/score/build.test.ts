@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { Difficulty, Measure, NoteEvent, Score, ScoreEvent, ScoreParams, TimeSignature } from '../../types'
 import {
   NOTE_VALUES,
+  TUPLET_VALUES,
   analyzeNotes,
   buildScore,
   defaultParams,
@@ -10,6 +11,7 @@ import {
   measureDurationSeconds,
   sanitizeParams,
   secondsPerTick,
+  scoreNotes,
   secondsToTick,
   staffVoices,
   summarizeScore,
@@ -28,7 +30,7 @@ function events(score: Score, staff: 0 | 1): (ScoreEvent & { at: number })[] {
 
 /** Structural invariants every Score must satisfy. */
 function expectWellFormed(score: Score, maxPolyphony = 6): void {
-  const values = new Set(NOTE_VALUES)
+  const values = new Set([...NOTE_VALUES, ...TUPLET_VALUES])
   expect(score.measureCount).toBeGreaterThanOrEqual(1)
   for (const [si, staff] of score.staves.entries()) {
     expect(staff.hand).toBe(si === 0 ? 'right' : 'left')
@@ -106,7 +108,7 @@ describe('buildScore basics', () => {
   it('turns empty input into one measure of rests on both staves', () => {
     const score = build([])
     expect(score.measureCount).toBe(1)
-    for (const staff of score.staves) expect(staff.measures[0].events).toEqual([{ start: 0, duration: 16, pitches: [] }])
+    for (const staff of score.staves) expect(staff.measures[0].events).toEqual([{ start: 0, duration: 48, pitches: [] }])
     expect(score.stats).toEqual({ noteCount: 0, maxPolyphony: 0, range: null, notesPerSecond: 0, difficulty: 1 })
     expect(score.durationSeconds).toBe(2)
     expect(score.startSeconds).toBe(0)
@@ -133,11 +135,11 @@ describe('buildScore basics', () => {
     const score = build([n(60, 0, 4), n(62, 4, 4), n(64, 8, 8), n(67, 16, 16)])
     expect(score.measureCount).toBe(2)
     expect(score.staves[0].measures[0].events).toEqual([
-      { start: 0, duration: 4, pitches: [60], velocities: [0.8] },
-      { start: 4, duration: 4, pitches: [62], velocities: [0.8] },
-      { start: 8, duration: 8, pitches: [64], velocities: [0.8] },
+      { start: 0, duration: 12, pitches: [60], velocities: [0.8] },
+      { start: 12, duration: 12, pitches: [62], velocities: [0.8] },
+      { start: 24, duration: 24, pitches: [64], velocities: [0.8] },
     ])
-    expect(score.staves[0].measures[1].events).toEqual([{ start: 0, duration: 16, pitches: [67], velocities: [0.8] }])
+    expect(score.staves[0].measures[1].events).toEqual([{ start: 0, duration: 48, pitches: [67], velocities: [0.8] }])
     expect(score.staves[1].measures.every((m) => m.events.length === 1 && m.events[0].pitches.length === 0)).toBe(true)
     expect(score.stats.noteCount).toBe(4)
     expect(score.stats.range).toEqual([60, 67])
@@ -146,28 +148,33 @@ describe('buildScore basics', () => {
   it('fills gaps with rests by beats', () => {
     const score = build([n(72, 0, 4), n(74, 12, 4)])
     expect(score.staves[0].measures[0].events).toEqual([
-      { start: 0, duration: 4, pitches: [72], velocities: [0.8] },
-      { start: 4, duration: 4, pitches: [] },
-      { start: 8, duration: 4, pitches: [] },
-      { start: 12, duration: 4, pitches: [74], velocities: [0.8] },
+      { start: 0, duration: 12, pitches: [72], velocities: [0.8] },
+      { start: 12, duration: 12, pitches: [] },
+      { start: 24, duration: 12, pitches: [] },
+      { start: 36, duration: 12, pitches: [74], velocities: [0.8] },
     ])
   })
 
   it('reads a short release gap as legato and a long one as a rest', () => {
     const legato = build([n(72, 0, 3), n(74, 4, 4)])
-    expect(legato.staves[0].measures[0].events[0]).toEqual({ start: 0, duration: 4, pitches: [72], velocities: [0.8] })
+    expect(legato.staves[0].measures[0].events[0]).toEqual({ start: 0, duration: 12, pitches: [72], velocities: [0.8] })
     const detached = build([n(72, 0, 1), n(74, 4, 4)])
     expect(detached.staves[0].measures[0].events.slice(0, 2)).toEqual([
-      { start: 0, duration: 1, pitches: [72], velocities: [0.8] },
-      { start: 1, duration: 3, pitches: [] },
+      { start: 0, duration: 3, pitches: [72], velocities: [0.8] },
+      { start: 3, duration: 9, pitches: [] },
     ])
   })
 
   it('cuts a held note at the next onset of the same staff (one chord stream per staff)', () => {
     const score = build([n(60, 0, 16), n(64, 4, 4)])
     expect(score.staves[0].measures[0].events.slice(0, 2)).toEqual([
-      { start: 0, duration: 4, pitches: [60], velocities: [0.8] },
-      { start: 4, duration: 4, pitches: [64], velocities: [0.8] },
+      { start: 0, duration: 12, pitches: [60], velocities: [0.8], sounding: [48] },
+      { start: 12, duration: 12, pitches: [64], velocities: [0.8] },
+    ])
+    // Written up to the next note, but playback holds the key as long as it sounded (no pedal).
+    expect(scoreNotes(score).map((x) => [x.pitch, x.tick, x.ticks, x.sounding])).toEqual([
+      [60, 0, 12, 48],
+      [64, 12, 12, undefined],
     ])
   })
 })
@@ -175,11 +182,11 @@ describe('buildScore basics', () => {
 describe('ties', () => {
   it('ties notes over the barline', () => {
     const score = build([n(72, 12, 8)])
-    expect(score.staves[0].measures[0].events.at(-1)).toEqual({ start: 12, duration: 4, pitches: [72], velocities: [0.8], tie: true })
+    expect(score.staves[0].measures[0].events.at(-1)).toEqual({ start: 36, duration: 12, pitches: [72], velocities: [0.8], tie: true })
     expect(score.staves[0].measures[1].events).toEqual([
-      { start: 0, duration: 4, pitches: [72], velocities: [0.8] },
-      { start: 4, duration: 4, pitches: [] },
-      { start: 8, duration: 8, pitches: [] },
+      { start: 0, duration: 12, pitches: [72], velocities: [0.8] },
+      { start: 12, duration: 12, pitches: [] },
+      { start: 24, duration: 24, pitches: [] },
     ])
     expect(score.stats.noteCount).toBe(1)
     expect(staffNotes(score, 0)).toEqual([{ pitch: 72, start: 12, ticks: 8 }])
@@ -188,12 +195,12 @@ describe('ties', () => {
   it('ties chords over the half-bar and across several measures', () => {
     const score = build([n(60, 6, 4), n(64, 6, 4), n(67, 6, 4), n(48, 0, 40)])
     expect(score.staves[0].measures[0].events).toEqual([
-      { start: 0, duration: 4, pitches: [] },
-      { start: 4, duration: 2, pitches: [] },
-      { start: 6, duration: 2, pitches: [60, 64, 67], velocities: [0.8, 0.8, 0.8], tie: true },
-      { start: 8, duration: 2, pitches: [60, 64, 67], velocities: [0.8, 0.8, 0.8] },
-      { start: 10, duration: 2, pitches: [] },
-      { start: 12, duration: 4, pitches: [] },
+      { start: 0, duration: 12, pitches: [] },
+      { start: 12, duration: 6, pitches: [] },
+      { start: 18, duration: 6, pitches: [60, 64, 67], velocities: [0.8, 0.8, 0.8], tie: true },
+      { start: 24, duration: 6, pitches: [60, 64, 67], velocities: [0.8, 0.8, 0.8] },
+      { start: 30, duration: 6, pitches: [] },
+      { start: 36, duration: 12, pitches: [] },
     ])
     expect(staffNotes(score, 1)).toEqual([{ pitch: 48, start: 0, ticks: 40 }])
     expect(score.measureCount).toBe(3)
@@ -266,7 +273,7 @@ describe('quantization', () => {
     expect(score.measureCount).toBe(1)
     expect(staffNotes(score, 0)).toEqual([{ pitch: 72, start: 12, ticks: 4 }])
     expect(score.startSeconds).toBeCloseTo(8.5, 9)
-    expect(score.startSeconds + tickToSeconds(score, 12)).toBeCloseTo(10, 9)
+    expect(score.startSeconds + tickToSeconds(score, 36)).toBeCloseTo(10, 9)
   })
 
   it('puts a pickup at the end of a leading measure', () => {
@@ -312,12 +319,12 @@ describe('polyphony and difficulty', () => {
     const score = build([...chord([64, 67, 72], 0, [0.9, 0.3, 0.9]), n(72, 5, 1, 0.5), n(74, 6, 2, 0.9)], { difficulty: 'intermedio' })
     expect(events(score, 0).filter((e) => e.pitches.length).map((e) => [e.at, e.pitches])).toEqual([
       [0, [64, 72]],
-      [6, [74]],
+      [18, [74]],
     ])
     for (const seed of [1, 2, 3]) {
       const dense = build(randomNotes(500, seed, 20), { difficulty: 'intermedio' })
       expectWellFormed(dense, 3)
-      for (const s of [0, 1] as const) for (const e of events(dense, s)) if (e.pitches.length && !e.tie) expect(e.at % 2).toBe(0)
+      for (const s of [0, 1] as const) for (const e of events(dense, s)) if (e.pitches.length && !e.tie) expect(e.at % 6).toBe(0)
     }
   })
 
@@ -344,8 +351,8 @@ describe('polyphony and difficulty', () => {
     for (const seed of [4, 5]) {
       const easy = build(randomNotes(400, seed, 20), { difficulty: 'facil' })
       expectWellFormed(easy, 1)
-      for (const e of events(easy, 1)) if (e.pitches.length) expect(e.at % 4).toBe(0)
-      for (const e of events(easy, 0)) if (e.pitches.length) expect(e.at % 2).toBe(0)
+      for (const e of events(easy, 1)) if (e.pitches.length) expect(e.at % 12).toBe(0)
+      for (const e of events(easy, 0)) if (e.pitches.length) expect(e.at % 6).toBe(0)
     }
   })
 
@@ -393,12 +400,12 @@ describe('layout invariants', () => {
 describe('time helpers and summary', () => {
   it('converts ticks and seconds at the score tempo', () => {
     const score = build([n(60, 0, 4)])
-    expect(secondsPerTick(score)).toBe(0.125)
-    expect(tickToSeconds(score, 4)).toBe(0.5)
-    expect(secondsToTick(score, 1)).toBe(8)
+    expect(secondsPerTick(score)).toBeCloseTo(0.125 / 3, 12)
+    expect(tickToSeconds(score, 12)).toBeCloseTo(0.5, 12)
+    expect(secondsToTick(score, 1)).toBeCloseTo(24, 9)
     expect(measureDurationSeconds(score)).toBe(2)
-    expect(measureDurationSeconds({ bpm: 90, ticksPerMeasure: 12 })).toBeCloseTo(2, 9)
-    expect(secondsPerTick({ bpm: 0 })).toBeCloseTo(0.15, 9)
+    expect(measureDurationSeconds({ bpm: 90, ticksPerMeasure: 36 })).toBeCloseTo(2, 9)
+    expect(secondsPerTick({ bpm: 0 })).toBeCloseTo(0.05, 9)
   })
 
   it('summarizes the score for the library', () => {

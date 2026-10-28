@@ -2,17 +2,25 @@
 // same hand (a held melody note over an arpeggio, Bach's held tenor under a sixteenth figure).
 //
 // A note is "sustained" when it still sounds over at least two later onsets of its hand and is
-// clearly longer (1.8x) or louder (1.3x) than the notes it overlaps. Under the pedal every note
-// rings, so there only loudness counts (it tells a cantabile melody from its arpeggio); a note
-// followed at once by a step in the same line (C6 D6 E6) is a melody moving on, not a held note,
-// whatever the pedal makes it ring. Inside the measures those
+// clearly longer (1.8x) or louder (1.3x) than the notes it overlaps. Under the pedal (or when the
+// overlapped notes ring on too) length means nothing, so there loudness counts: 1.3x, or 1.15x for
+// a right-hand melody note at the top of a figure that stays a minor third or more below it for a
+// beat and a half (the skyline: Liszt's cantabile over its arpeggio). A note followed at once by a
+// step in the same line (C6 D6 E6) is a melody moving on, not a held note, whatever the pedal
+// makes it ring. Inside the measures those
 // notes span, the sustained notes form one voice and the other notes the second; the higher of the
 // two (on average) is voice 1 (stems up, Staff.measures), the lower one voice 2 (Staff.voice2).
 // Everywhere else the staff keeps a single voice.
+import { TICKS_PER_QUARTER } from './constants'
 import type { QNote } from './quantize'
 
 const LONGER = 1.8
 const LOUDER = 1.3
+/** A top note over a figure at least this many semitones below, and this much louder, is a held melody note. */
+const SKYLINE_GAP = 3
+const SKYLINE_LOUDER = 1.15
+/** ... held at least a beat and a half before its line goes on (not the accented top of a repeated figure). */
+const SKYLINE_SPAN = 1.5 * TICKS_PER_QUARTER
 /** Onsets a note must sound over before it counts as held above moving notes. */
 const MIN_OVERLAPPED = 2
 
@@ -37,9 +45,10 @@ function median(xs: Float64Array, n: number): number {
 
 /**
  * Sets n.voice (1 or 2) for the notes of ONE hand, sorted by onset then pitch. `pedalled(from, to)`
- * tells whether the sustain pedal is down over a tick range.
+ * tells whether the sustain pedal is down over a tick range; `right`: the right hand (where a
+ * melody note held over a lower figure in the same hand counts as held even under the pedal).
  */
-export function splitVoices(notes: QNote[], measureTicks: number, pedalled: (from: number, to: number) => boolean = () => false): void {
+export function splitVoices(notes: QNote[], measureTicks: number, pedalled: (from: number, to: number) => boolean = () => false, right = false): void {
   for (const n of notes) {
     n.voice = 1
     n.held = false
@@ -56,10 +65,12 @@ export function splitVoices(notes: QNote[], measureTicks: number, pedalled: (fro
     let lastOn = n.on
     let firstOn = -1
     let stepwise = false
+    let below = true
     for (let j = i + 1; j < notes.length && notes[j].on < n.off; j++) {
       const m = notes[j]
       if (m.on <= n.on || m.pitch === n.pitch) continue
       if (firstOn < 0) firstOn = m.on
+      if (m.pitch > n.pitch - SKYLINE_GAP) below = false
       // The very next onset is a lone step away: the line moves on.
       if (m.on === firstOn) stepwise = Math.abs(m.pitch - n.pitch) <= 2 && (j + 1 >= notes.length || notes[j + 1].on !== m.on) && (j === 0 || notes[j - 1].on !== m.on)
       if (count < MAX_OVERLAPPED) {
@@ -73,8 +84,17 @@ export function splitVoices(notes: QNote[], measureTicks: number, pedalled: (fro
       }
     }
     if (onsets < MIN_OVERLAPPED || stepwise) continue
-    const louder = n.vel >= LOUDER * median(vels, count)
-    if (louder || (!pedalled(n.on + 1, lastOn) && n.off - n.on >= LONGER * median(lens, count))) {
+    const medVel = median(vels, count)
+    const louder = n.vel >= LOUDER * medVel
+    // The top of its chord over a figure that stays below it, and a little louder: a melody note.
+    const top = i + 1 >= notes.length || notes[i + 1].on !== n.on
+    let lineOn = n.off
+    for (let j = i + 1; j < notes.length && notes[j].on < lineOn; j++) if (notes[j].on > n.on && notes[j].pitch >= n.pitch - 2) lineOn = notes[j].on
+    const skyline = right && top && below && lineOn - n.on >= SKYLINE_SPAN && n.vel >= SKYLINE_LOUDER * medVel
+    // Longer than the notes it overlaps, unless those ring on too (an undetected pedal).
+    const medLen = median(lens, count)
+    const ringing = onsets > 1 && medLen > 1.5 * ((lastOn - firstOn) / (onsets - 1))
+    if (louder || skyline || (!pedalled(n.on + 1, lastOn) && !ringing && n.off - n.on >= LONGER * medLen)) {
       sustained[i] = 1
       any = true
     }
@@ -117,55 +137,4 @@ export function splitVoices(notes: QNote[], measureTicks: number, pedalled: (fro
     n.voice = (sustained[i] ? heldUp : !heldUp) ? 1 : 2
     if (sustained[i]) n.held = true
   })
-}
-
-/**
- * Notated (articulated) lengths under the pedal: the pedal makes every note ring, but a pianist
- * reads each note only as long as the hand plays it: up to the next note of its hand, and no
- * further than the next note of either hand or the end of its beat (an arpeggio crossing the hands
- * becomes running eighths or sixteenths, not a chain of ties). Notes the hand holds keep their
- * length: the held voice of a two-voice staff, and melody notes clearly louder (1.15x) than what
- * sounds with them. Notes outside the pedal keep theirs; playback keeps the sustain (Score.pedals).
- */
-export function articulate(hand: QNote[], all: QNote[], pedalled: (from: number, to: number) => boolean, beatTicks: number): void {
-  const onsets = (list: QNote[]) => [...new Set(list.map((n) => n.on))].sort((a, b) => a - b)
-  const own = onsets(hand)
-  const any = onsets(all)
-  const sorted = [...all].sort((a, b) => a.on - b.on)
-  const after = (list: number[], t: number) => {
-    let lo = 0
-    let hi = list.length
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1
-      if (list[mid] <= t) lo = mid + 1
-      else hi = mid
-    }
-    return lo < list.length ? list[lo] : Infinity
-  }
-  for (const n of hand) {
-    if (n.held) continue
-    const nextOwn = after(own, n.on)
-    const limit = Math.min(nextOwn, Math.max(after(any, n.on), (Math.floor(n.on / beatTicks) + 1) * beatTicks))
-    if (limit >= n.off || !pedalled(n.on, n.on + 1)) continue
-    // A melody note louder than the notes sounding with it is held by the hand.
-    const around: number[] = []
-    let lo = 0
-    let hi = sorted.length
-    const from = n.on - 4 * beatTicks
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1
-      if (sorted[mid].on < from) lo = mid + 1
-      else hi = mid
-    }
-    for (let j = lo; j < sorted.length && sorted[j].on < n.off && around.length < 64; j++) {
-      const m = sorted[j]
-      if (m !== n && m.off > n.on) around.push(m.vel)
-    }
-    around.sort((a, b) => a - b)
-    if (around.length && n.vel >= 1.15 * around[(around.length - 1) >> 1]) {
-      if (nextOwn < n.off) n.off = nextOwn
-      continue
-    }
-    n.off = Math.max(n.on + 1, limit)
-  }
 }

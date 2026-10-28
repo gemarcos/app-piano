@@ -69,7 +69,7 @@ export interface ScoreParams {
 
 /* ---------- Notation model (output of engine/score) ---------- */
 
-/** A chord (or rest when pitches is empty). Times in ticks (1 tick = one sixteenth note). */
+/** A chord (or rest when pitches is empty). Times in ticks (TICKS_PER_QUARTER = 12: a sixteenth is 3 ticks, a sixteenth triplet 2). */
 export interface ScoreEvent {
   /** Ticks from the start of its measure. */
   start: number
@@ -77,6 +77,8 @@ export interface ScoreEvent {
   pitches: Midi[]
   /** Loudness 0..1 per pitch (same order as `pitches`), from the raw notes. Absent = unknown (play at a default). */
   velocities?: number[]
+  /** Ticks each key sounds without pedal, per pitch, when longer than the written (articulated) duration. Absent = the written duration. */
+  sounding?: number[]
   /** All pitches are tied into the next event of the same staff. */
   tie?: boolean
 }

@@ -112,7 +112,8 @@ The **public APIs** of each module are declared (with doc comments) in:
 Owners implement behind those signatures. You may ADD exports and optional fields; do not rename or remove existing ones, and do not change semantics others rely on. Import other modules only through their `index.ts` (or the files listed above).
 
 ### Score model essentials
-- Tick = one sixteenth note. `TICKS_PER_QUARTER = 4`. 4/4 measure = 16 ticks, 3/4 = 12, 2/4 = 8, 6/8 = 12.
+- `TICKS_PER_QUARTER = 12`: a sixteenth is 3 ticks, an eighth triplet 4, a sixteenth triplet 2 (tuplets written as `(3` / `(6:4:6`). 4/4 measure = 48 ticks, 3/4 = 36, 2/4 = 24, 6/8 = 36.
+- Written durations are articulated (as a pianist reads them, few ties); how long a key really sounds lives in `ScoreEvent.sounding` and the ringing of the pedal in `Score.pedals`. Renderers play `max(written, sounding)` plus the pedal.
 - A `Score` has two staves: right hand (treble) and left hand (bass). Notes with `pitch >= splitPoint` go right.
 - Raw `NoteEvent[]` are stored in the library together with `ScoreParams`; the viewer **rebuilds the Score live** from raw notes when filters/params change (this is what makes filters meaningful). `buildScore` must be fast (< 30 ms for 3 000 notes).
 
