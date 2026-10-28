@@ -6,9 +6,7 @@ import type { CaptureRange } from './store'
 export const MIN_SELECTION_SEC = 2
 /** Longest selection, seconds (5 min). */
 export const MAX_SELECTION_SEC = 300
-/** Files up to this length are selected whole by default; longer ones start with the first DEFAULT_LONG_SELECTION_SEC. */
-export const WHOLE_FILE_MAX_SEC = 120
-export const DEFAULT_LONG_SELECTION_SEC = 60
+/** Files up to MAX_SELECTION_SEC are selected whole by default; longer ones start with their first MAX_SELECTION_SEC. */
 /** Recordings shorter than this are discarded ("Grabación demasiado corta"). */
 export const MIN_RECORDING_SEC = 2
 
@@ -24,8 +22,7 @@ function snap(t: number, total: number): number {
 /** Default trim selection for a file of `duration` seconds. */
 export function defaultSelection(duration: number): CaptureRange {
   const total = Number.isFinite(duration) && duration > 0 ? duration : 0
-  if (total <= WHOLE_FILE_MAX_SEC) return { start: 0, end: total }
-  return { start: 0, end: Math.min(total, DEFAULT_LONG_SELECTION_SEC) }
+  return { start: 0, end: Math.min(total, MAX_SELECTION_SEC) }
 }
 
 /** Minimum selection length for a file (the whole file when it is shorter than MIN_SELECTION_SEC). */

@@ -1,12 +1,13 @@
 // Owner: settings. Ajustes (tab screen): appearance, notation, transcription and playback defaults,
 // library maintenance and the way to Acerca de. Every control writes straight to the settings store.
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { Monitor01, Moon01, Sun } from '@untitled-ui/icons-react'
 import { useSettings } from '../../state/settings'
 import type { Difficulty, NoteNaming, QuantizeGrid, ThemePreference, TranscriptionModel } from '../../types'
 import { pitchName } from '../../engine/score'
+import { pianoModelSupport } from '../../engine/transcribe'
 import {
   ConfirmDialog,
   ListRow,
@@ -52,6 +53,19 @@ const DIFFICULTIES: SegmentedOption<Difficulty>[] = [
   { value: 'intermedio', label: 'Intermedio' },
   { value: 'facil', label: 'Fácil' },
 ]
+
+/** Whether the piano model can run in this browser (null while checking). */
+function usePianoSupport() {
+  const [support, setSupport] = useState<Awaited<ReturnType<typeof pianoModelSupport>> | null>(null)
+  useEffect(() => {
+    let alive = true
+    void pianoModelSupport().then((s) => alive && setSupport(s))
+    return () => {
+      alive = false
+    }
+  }, [])
+  return support
+}
 
 /** Settings.transcriptionModel (owner: piano-model): Transkun (WebGPU) when the device can run it, or Basic Pitch. */
 const MODELS: SegmentedOption<TranscriptionModel>[] = [
@@ -144,9 +158,16 @@ function TranscriptionGroup() {
   const difficulty = useSettings((s) => s.defaultDifficulty)
   const model = useSettings((s) => s.transcriptionModel)
   const set = useSettings((s) => s.set)
+  const support = usePianoSupport()
+  const modelHint =
+    support === 'insecure'
+      ? 'Este navegador solo usa Rápido aquí: Piano necesita una conexión segura (HTTPS)'
+      : support === 'no-webgpu'
+        ? 'Este navegador solo puede usar Rápido: Piano necesita WebGPU (Chrome o Edge)'
+        : 'Piano es más preciso'
   return (
     <SettingsGroup title="Transcripción" footer="Se aplica a las próximas transcripciones.">
-      <ListRow title="Modelo" subtitle="Piano es más preciso">
+      <ListRow title="Modelo" subtitle={modelHint} wrap>
         <Below>
           <Segmented full options={MODELS} value={model} onChange={(v) => set('transcriptionModel', v)} ariaLabel="Modelo de transcripción" />
         </Below>

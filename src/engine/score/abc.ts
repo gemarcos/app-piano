@@ -228,7 +228,9 @@ class StaffWriter {
         const tup = tuplets[i]
         const length = tup ? tup.write(ev.duration) : len(ev.duration)
         let token: string
-        if (ev.pitches.length === 0) token = (v === 0 ? 'z' : 'x') + length
+        // A tuplet cannot open with an invisible rest: abcjs (6.x) throws in TripletElem. A visible rest there is
+        // also the usual engraving of a tuplet that starts on a rest.
+        if (ev.pitches.length === 0) token = (v === 0 || tup?.first === i ? 'z' : 'x') + length
         else {
           const body = signs[v][i].length > 1 ? `[${signs[v][i].join('')}]` : signs[v][i][0]
           const annotation = named[v][i] ? chordNames([...ev.pitches, ...extra[v][i]], this.naming, this.key, contexts[v][i]) : ''

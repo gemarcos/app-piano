@@ -13,13 +13,14 @@ import {
 const close = (a: number, b: number) => Math.abs(a - b) < 1e-9
 
 describe('defaultSelection', () => {
-  it('takes short files whole', () => {
+  it('takes whole songs (up to 5 minutes)', () => {
     expect(defaultSelection(6.104)).toEqual({ start: 0, end: 6.104 })
-    expect(defaultSelection(120)).toEqual({ start: 0, end: 120 })
+    expect(defaultSelection(163.1)).toEqual({ start: 0, end: 163.1 })
+    expect(defaultSelection(300)).toEqual({ start: 0, end: 300 })
   })
-  it('starts long files with the first minute', () => {
-    expect(defaultSelection(121)).toEqual({ start: 0, end: 60 })
-    expect(defaultSelection(3600)).toEqual({ start: 0, end: 60 })
+  it('starts longer files with their first 5 minutes', () => {
+    expect(defaultSelection(301)).toEqual({ start: 0, end: MAX_SELECTION_SEC })
+    expect(defaultSelection(3600)).toEqual({ start: 0, end: MAX_SELECTION_SEC })
   })
   it('survives garbage', () => {
     expect(defaultSelection(NaN)).toEqual({ start: 0, end: 0 })
@@ -67,7 +68,7 @@ describe('normalizeSelection', () => {
     expect(normalizeSelection({ start: 29.5, end: 29.6 }, 30)).toEqual({ start: 28, end: 30 })
     expect(normalizeSelection({ start: NaN, end: NaN }, 30)).toEqual({ start: 0, end: 30 })
     expect(normalizeSelection(null, 30)).toEqual({ start: 0, end: 30 })
-    expect(normalizeSelection(null, 600)).toEqual({ start: 0, end: 60 })
+    expect(normalizeSelection(null, 600)).toEqual({ start: 0, end: 300 })
   })
 })
 

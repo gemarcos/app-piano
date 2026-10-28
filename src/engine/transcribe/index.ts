@@ -333,6 +333,20 @@ export function getTranscriberBackend(): TranscriberBackend | null {
 }
 
 /** Model, backend and fallback reason of the latest transcription (null before the first one). */
+/**
+ * Whether this browser can run the piano model: it needs WebGPU, which browsers only offer on secure pages (HTTPS or
+ * localhost) and with a usable GPU. 'ok' does not promise the speed check of 'auto' passes. Never rejects.
+ */
+export async function pianoModelSupport(): Promise<'ok' | 'insecure' | 'no-webgpu'> {
+  if (typeof window !== 'undefined' && window.isSecureContext === false) return 'insecure'
+  try {
+    const gpu = (navigator as Navigator & { gpu?: { requestAdapter(): Promise<unknown> } }).gpu
+    return gpu && (await gpu.requestAdapter()) ? 'ok' : 'no-webgpu'
+  } catch {
+    return 'no-webgpu'
+  }
+}
+
 export function getLastTranscriptionInfo(): TranscriptionInfo | null {
   return lastInfo
 }

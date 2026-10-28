@@ -167,6 +167,8 @@ export interface ScoreDoc {
   summary: ScoreSummary
   /** Reference into the audio table (original recording / trimmed file audio). */
   audioId?: string
+  /** Model that transcribed it: 'piano' (Transkun) or 'fast' (Basic Pitch). Absent on demos and older items. */
+  transcriber?: 'piano' | 'fast'
 }
 
 export interface AudioDoc {

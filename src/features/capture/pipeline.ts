@@ -107,7 +107,8 @@ async function run(input: PipelineInput, signal: AbortSignal, report: PipelinePr
   }
   throwIfAborted(signal)
   // The piano model gives key-held times and the pedal apart; the score is built on how long each note sounds.
-  if (getLastTranscriptionInfo()?.durations === 'key') notes = sustainNotes(notes, (await job.pedal) ?? [])
+  const info = getLastTranscriptionInfo()
+  if (info?.durations === 'key') notes = sustainNotes(notes, (await job.pedal) ?? [])
   progress(overallProgress(1), 'writing')
   if (!notes.length) return { status: 'empty' }
 
@@ -139,6 +140,7 @@ async function run(input: PipelineInput, signal: AbortSignal, report: PipelinePr
       params,
       summary,
       audioId,
+      ...(info ? { transcriber: info.model } : {}),
     })
   } catch (err) {
     throw namedError('SaveError', SAVE_ERROR_MESSAGE, err)

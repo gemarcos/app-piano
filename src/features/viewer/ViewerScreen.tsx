@@ -243,7 +243,8 @@ function Viewer({ doc }: { doc: ScoreDoc }) {
     return { top: Math.max(0, top), bottom: Math.min(window.innerHeight, bottom) }
   }, [])
 
-  const meta = `${keyName(score.key, naming)} · ${score.timeSignature} · ${Math.round(score.bpm)} ppm`
+  const model = doc.transcriber === 'piano' ? ' · Piano' : doc.transcriber === 'fast' ? ' · Rápido' : ''
+  const meta = `${keyName(score.key, naming)} · ${score.timeSignature} · ${Math.round(score.bpm)} ppm${model}`
   const original = view.sound === 'original' && !!blob
 
   const empty = hasNotes ? undefined : (

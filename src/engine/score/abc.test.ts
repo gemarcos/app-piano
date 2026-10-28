@@ -307,3 +307,19 @@ describe('abcjs validation', () => {
     expect(voices.flat()).toEqual([])
   })
 })
+
+describe('tuplets in the second voice', () => {
+  it('never open with an invisible rest (abcjs throws while engraving "(3x...")', () => {
+    // Melody on the beat above inner triplet eighths that start late: the inner voice opens tuplets on rests.
+    const beat = 0.5
+    const notes = []
+    for (let b = 0; b < 32; b++) {
+      notes.push({ pitch: 76 + (b % 3), start: b * beat, duration: beat * 0.95, velocity: 0.8 })
+      for (const k of b % 2 ? [1, 2] : [2]) notes.push({ pitch: 64 + k, start: b * beat + (k * beat) / 3, duration: beat / 3.2, velocity: 0.5 })
+    }
+    const analysis = knownAnalysis({ bpm: 120, timeSignature: '4/4' })
+    const abc = scoreToAbc(buildScore(notes, plainParams(analysis, { quantize: 16 }), analysis))
+    expect(abc).toMatch(/\(3/)
+    expect(abc).not.toMatch(/\(\d(:\d+:\d+)?x/)
+  })
+})
