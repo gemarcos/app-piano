@@ -1,6 +1,7 @@
 import type { CSSProperties, HTMLAttributes, KeyboardEvent, ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { spring } from './motion'
+import { playUiSound } from './sound'
 import { cx } from './cx'
 import './Card.css'
 
@@ -38,12 +39,18 @@ export function Card({
 }: CardProps) {
   const clickable = Boolean(onClick)
   const pressable = clickable || Boolean(interactive)
+  const activate = onClick
+    ? () => {
+        playUiSound('tap')
+        onClick()
+      }
+    : undefined
   const onKeyDown = clickable
     ? (e: KeyboardEvent<HTMLDivElement>) => {
         if (e.target !== e.currentTarget) return
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
-          onClick?.()
+          activate?.()
         }
       }
     : undefined
@@ -51,11 +58,12 @@ export function Card({
   return (
     <motion.div
       className={cx('ui-card', `ui-card--pad-${padding}`, glass && 'ui-card--glass', pressable && 'ui-card--interactive', className)}
-      onClick={onClick}
+      onClick={activate}
       onKeyDown={onKeyDown}
       role={clickable ? 'button' : undefined}
       tabIndex={clickable ? 0 : undefined}
       aria-label={ariaLabel}
+      whileHover={pressable ? { y: -2 } : undefined}
       whileTap={pressable ? { scale: 0.98 } : undefined}
       transition={spring}
       style={style}

@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { AlertCircle, CheckCircle } from '@untitled-ui/icons-react'
 import { Icon } from './Icon'
 import { ease } from './motion'
+import { playUiSound } from './sound'
 import { cx } from './cx'
 import './Toast.css'
 
@@ -49,6 +50,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     (message: string, opts?: ToastOptions) => {
       clearTimer()
       const item: ToastItem = { id: ++nextId.current, message, tone: opts?.tone ?? 'neutral' }
+      if (item.tone === 'danger') playUiSound('error')
       setToast(item)
       timer.current = window.setTimeout(() => {
         timer.current = null

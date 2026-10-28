@@ -1,13 +1,14 @@
 // Owner: share. Enlace (/link?url=…): plays a shared YouTube or TikTok video with the platform's OFFICIAL embed
-// player while Pauta listens with the microphone (on a computer, also tab capture); the take then goes through
-// the normal flow (/processing). Nothing is downloaded. Links that cannot play here explain the alternatives.
+// player while Pauta listens with the microphone (ambient listening, on every device); the take then goes through
+// the normal flow (/processing). Nothing is downloaded and the player's audio is never captured or isolated
+// (YouTube API developer policies; client decision 2026-10-28 09:05). A saved file is the exact-audio route.
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { AlertCircle, Link01, LinkBroken01, Microphone01, Monitor02, Stop, Upload01, VideoRecorderOff, WifiOff, XClose } from '@untitled-ui/icons-react'
-import { DECODE_ERROR_MESSAGE, isTabCaptureSupported } from '../../engine/audio'
+import { AlertCircle, Link01, LinkBroken01, Microphone01, Stop, Upload01, VideoRecorderOff, WifiOff, XClose } from '@untitled-ui/icons-react'
+import { DECODE_ERROR_MESSAGE } from '../../engine/audio'
 import { defaultTitle, formatTime } from '../../lib/format'
-import { Button, Icon, IconButton, LiveBars, Page, Spinner, TopBar, cx, ease, useToast, type IconComponent } from '../../ui'
+import { Button, Icon, IconButton, LiveBars, Page, Spinner, TopBar, cx, ease, useToast, useUiSoundsBlocked, type IconComponent } from '../../ui'
 import { useGoBack, useViewportSize } from '../capture/util'
 import { EmbedFrame } from './EmbedFrame'
 import { cleanTitle, parseLink, platformName, type SharedLink } from './links'
@@ -20,38 +21,37 @@ import './LinkScreen.css'
 type Block = 'not-embeddable' | 'unavailable' | 'unsupported' | 'short' | 'offline' | 'failed'
 
 const NEARBY = 'Reprodúcelo en otro dispositivo cerca y toca Escuchar.'
-const NEARBY_DESKTOP = 'Ábrelo en otra pestaña y elige Pestaña, o reprodúcelo cerca y toca Escuchar.'
 
-const BLOCKS: Record<Block, { icon: IconComponent; title: (link: SharedLink) => string; hint: (desktop: boolean) => string }> = {
+const BLOCKS: Record<Block, { icon: IconComponent; title: (link: SharedLink) => string; hint: string }> = {
   'not-embeddable': {
     icon: VideoRecorderOff,
     title: (link) => `Este vídeo solo se puede ver en ${platformName(link.platform)}`,
-    hint: (desktop) => (desktop ? NEARBY_DESKTOP : NEARBY),
+    hint: NEARBY,
   },
   unavailable: {
     icon: VideoRecorderOff,
     title: () => 'Este vídeo no está disponible',
-    hint: () => 'Puede que sea privado o que se haya eliminado.',
+    hint: 'Puede que sea privado o que se haya eliminado.',
   },
   unsupported: {
     icon: LinkBroken01,
     title: (link) => (link.platform === 'other' ? 'Este enlace no es de YouTube ni de TikTok' : 'Este enlace no lleva a un vídeo'),
-    hint: (desktop) => (desktop ? NEARBY_DESKTOP : 'Reproduce el vídeo cerca y toca Escuchar.'),
+    hint: 'Reproduce el vídeo cerca y toca Escuchar.',
   },
   short: {
     icon: Link01,
     title: () => 'Este enlace corto de TikTok no se abre aquí',
-    hint: () => 'Guarda el vídeo desde TikTok y ábrelo con Archivo.',
+    hint: 'Guarda el vídeo desde TikTok y ábrelo con Archivo.',
   },
   offline: {
     icon: WifiOff,
     title: () => 'Sin conexión',
-    hint: () => 'El vídeo necesita internet. También puedes reproducirlo cerca y tocar Escuchar.',
+    hint: 'El vídeo necesita internet. También puedes reproducirlo cerca y tocar Escuchar.',
   },
   failed: {
     icon: AlertCircle,
     title: () => 'No se pudo cargar el vídeo',
-    hint: (desktop) => (desktop ? NEARBY_DESKTOP : NEARBY),
+    hint: NEARBY,
   },
 }
 
@@ -91,7 +91,6 @@ function LinkView({ link }: { link: SharedLink }) {
   const goBack = useGoBack('/')
   const toast = useToast()
   const { width, height } = useViewportSize()
-  const [desktop] = useState(isTabCaptureSupported)
   /** The link the player opens (a TikTok short link only once oEmbed resolved its id). */
   const [playable, setPlayable] = useState<SharedLink | null>(link.short ? null : link)
   const [info, setInfo] = useState<VideoInfo | null>(null)
@@ -150,6 +149,8 @@ function LinkView({ link }: { link: SharedLink }) {
 
   // The take plays the video; if it does not start (mobile autoplay rules), suggest tapping it.
   const recording = take.phase === 'recording'
+  // No interface sound may reach the microphone.
+  useUiSoundsBlocked(take.phase === 'starting' || recording)
   const hasPlayer = !block && playable !== null
   useEffect(() => {
     if (!recording || !hasPlayer || video === 'playing') {
@@ -205,11 +206,9 @@ function LinkView({ link }: { link: SharedLink }) {
     ? nudge
       ? 'Toca el vídeo si no empieza'
       : take.silent
-        ? take.mode === 'tab'
-          ? 'No llega sonido. Comparte «Esta pestaña» con su audio.'
-          : 'No llega sonido. Sube el volumen del vídeo.'
+        ? 'No llega sonido. Sube el volumen del vídeo.'
         : ''
-    : !desktop && hasPlayer && !takeBlocked
+    : hasPlayer && !takeBlocked
       ? 'El vídeo suena por el altavoz: sube el volumen.'
       : ''
   const taking = recording || take.phase === 'stopping'
@@ -227,7 +226,6 @@ function LinkView({ link }: { link: SharedLink }) {
               key={'block-' + block}
               block={block}
               link={link}
-              desktop={desktop}
               onRetry={block === 'failed' || block === 'offline' ? retry : undefined}
             />
           ) : (
@@ -280,7 +278,7 @@ function LinkView({ link }: { link: SharedLink }) {
                 transition={{ duration: 0.28, ease }}
               >
                 <p role="alert">{take.message}</p>
-                <Button onClick={() => void take.start(take.mode, { currentTab: hasPlayer })}>Reintentar</Button>
+                <Button sound={false} onClick={() => void take.start()}>Reintentar</Button>
               </motion.div>
             ) : taking ? (
               <motion.div key="meter" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.24, ease }}>
@@ -300,71 +298,28 @@ function LinkView({ link }: { link: SharedLink }) {
             size="xl"
             className="share-link__stop"
             disabled={!recording}
+            sound={false}
             onClick={take.finish}
           />
         ) : takeBlocked ? null : block === 'short' ? (
+          // A TikTok short link that cannot play here: the saved video is the way in.
           <>
             <Button variant="accent" size="lg" icon={Upload01} loading={opening} onClick={() => fileInput.current?.click()}>
               Archivo
             </Button>
-            <Button variant="secondary" size="lg" icon={Microphone01} disabled={opening} loading={take.phase === 'starting'} onClick={() => void take.start('mic')}>
+            <Button variant="secondary" size="lg" icon={Microphone01} disabled={opening} loading={take.phase === 'starting'} sound={false} onClick={() => void take.start()}>
               Escuchar
-            </Button>
-          </>
-        ) : desktop && hasPlayer ? (
-          // Computer: record the player's own sound (this tab); the microphone is only the fallback.
-          <>
-            <Button
-              variant="accent"
-              size="lg"
-              icon={Monitor02}
-              loading={take.phase === 'starting' && take.mode === 'tab'}
-              disabled={take.phase === 'starting'}
-              onClick={() => void take.start('tab')}
-            >
-              Grabar el vídeo
-            </Button>
-            <Button
-              variant="secondary"
-              size="lg"
-              icon={Microphone01}
-              loading={take.phase === 'starting' && take.mode === 'mic'}
-              disabled={take.phase === 'starting'}
-              onClick={() => void take.start('mic')}
-            >
-              Micrófono
             </Button>
           </>
         ) : (
-          // Phone (or no player here): a browser cannot capture the player's audio, only the microphone. A saved
-          // file is the exact-audio route.
+          // Every device: Pauta listens with the microphone while the video plays aloud; a saved file is the exact audio.
           <>
-            <Button
-              variant="accent"
-              size="lg"
-              icon={Microphone01}
-              loading={take.phase === 'starting' && take.mode === 'mic'}
-              disabled={take.phase === 'starting' || opening}
-              onClick={() => void take.start('mic')}
-            >
+            <Button variant="accent" size="lg" icon={Microphone01} loading={take.phase === 'starting'} disabled={opening} sound={false} onClick={() => void take.start()}>
               Escuchar
             </Button>
-            {desktop ? (
-              <Button
-                variant="secondary"
-                size="lg"
-                icon={Monitor02}
-                loading={take.phase === 'starting' && take.mode === 'tab'}
-                disabled={take.phase === 'starting'}
-                onClick={() => void take.start('tab', { currentTab: false })}
-              >
-                Pestaña
-              </Button>
-            ) : (
-              <Button variant="secondary" size="lg" icon={Upload01} loading={opening} disabled={take.phase === 'starting'} onClick={() => fileInput.current?.click()}>
-                Archivo
-              </Button>
-            )}
+            <Button variant="secondary" size="lg" icon={Upload01} loading={opening} disabled={take.phase === 'starting'} onClick={() => fileInput.current?.click()}>
+              Archivo
+            </Button>
           </>
         )}
       </div>
@@ -389,7 +344,7 @@ function hostOf(url: string): string {
   }
 }
 
-function BlockCard({ block, link, desktop, onRetry }: { block: Block; link: SharedLink; desktop: boolean; onRetry?: () => void }) {
+function BlockCard({ block, link, onRetry }: { block: Block; link: SharedLink; onRetry?: () => void }) {
   const spec = BLOCKS[block]
   return (
     <motion.div
@@ -404,7 +359,7 @@ function BlockCard({ block, link, desktop, onRetry }: { block: Block; link: Shar
         <Icon icon={spec.icon} size={24} />
       </span>
       <p className="share-block__title">{spec.title(link)}</p>
-      <p className="share-block__hint">{spec.hint(desktop)}</p>
+      <p className="share-block__hint">{spec.hint}</p>
       {onRetry && (
         <Button variant="secondary" size="sm" className="share-block__retry" onClick={onRetry}>
           Reintentar

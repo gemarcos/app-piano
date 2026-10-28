@@ -3,7 +3,7 @@ import { HashRouter, Route, Routes, useLocation, useNavigationType } from 'react
 import { AnimatePresence, MotionConfig } from 'motion/react'
 import { useSettings } from './state/settings'
 import { seedDemosOnce } from './data/seed'
-import { AppFrame, TabBar, ToastProvider } from './ui'
+import { AppFrame, Intro, TabBar, ToastProvider, installUiSoundUnlock } from './ui'
 import { HomeScreen } from './features/home/HomeScreen'
 import { RecordScreen } from './features/capture/RecordScreen'
 import { ImportScreen } from './features/capture/ImportScreen'
@@ -29,7 +29,7 @@ function useTheme() {
     else root.dataset.theme = theme
     const syncThemeColor = () => {
       const meta = document.querySelector('meta[name="theme-color"]')
-      if (meta) meta.setAttribute('content', getComputedStyle(root).getPropertyValue('--bg').trim() || '#EEEEF5')
+      if (meta) meta.setAttribute('content', getComputedStyle(root).getPropertyValue('--bg').trim() || '#EEF0F8')
     }
     syncThemeColor()
     if (theme !== 'system' || typeof window.matchMedia !== 'function') return
@@ -83,6 +83,7 @@ export default function App() {
 
   useEffect(() => {
     seedDemosOnce().catch(() => {})
+    installUiSoundUnlock()
   }, [])
 
   return (
@@ -92,6 +93,7 @@ export default function App() {
           <AppFrame>
             <AppRoutes />
           </AppFrame>
+          <Intro />
         </ToastProvider>
       </HashRouter>
     </MotionConfig>

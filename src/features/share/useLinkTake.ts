@@ -1,12 +1,12 @@
-// Owner: share. The take of the link screen: the microphone (or, on a computer, tab capture) records while the
-// official player plays, then the decoded audio goes through the normal capture flow (/processing).
+// Owner: share. The take of the link screen: the microphone records while the official player plays aloud
+// (the player's own audio is never captured: YouTube API developer policies), then the decoded audio goes through the normal capture flow (/processing).
 // Same guarantees as RecordScreen: one take at a time, every exit releases the microphone, auto-stop at the
 // settings maximum, takes under MIN_RECORDING_SEC are refused.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { decodeMediaFile, startRecording, type CaptureMode, type RecorderHandle } from '../../engine/audio'
+import { decodeMediaFile, startRecording, type RecorderHandle } from '../../engine/audio'
 import { getSettings, useSettings } from '../../state/settings'
-import { useToast } from '../../ui'
+import { playUiSound, useToast } from '../../ui'
 import { MIN_RECORDING_SEC } from '../capture/selection'
 import { useCaptureStore, type CaptureMeta } from '../capture/store'
 import { haptic } from '../capture/util'
@@ -15,7 +15,7 @@ export type TakePhase = 'idle' | 'starting' | 'recording' | 'stopping' | 'denied
 
 /** Below this input level (0..1, about -57 dB) nothing useful is arriving. */
 export const SILENT_LEVEL = 0.05
-/** A take silent for this long shows a hint (pick this tab with its audio / turn the volume up). */
+/** A take silent for this long shows a hint (turn the volume up). */
 export const SILENT_AFTER_MS = 3000
 
 /** Tiny external store for the ~30 Hz input level, so only the bars re-render. */
@@ -60,7 +60,6 @@ export function useLinkTake({ describe, onStart, onStop }: TakeOptions) {
   const maxSec = useSettings((s) => (Number.isFinite(s.maxRecordSec) && s.maxRecordSec >= 5 ? s.maxRecordSec : 90))
   const levels = useMemo(createLevelStore, [])
   const [phase, setPhase] = useState<TakePhase>('idle')
-  const [mode, setMode] = useState<CaptureMode>('mic')
   const [message, setMessage] = useState('')
   const [elapsed, setElapsed] = useState(0)
   const [silent, setSilent] = useState(false)
@@ -68,7 +67,6 @@ export function useLinkTake({ describe, onStart, onStop }: TakeOptions) {
 
   const alive = useRef(false)
   const handle = useRef<RecorderHandle | null>(null)
-  const takeMode = useRef<CaptureMode>('mic')
   const starting = useRef(false)
   const stopping = useRef(false)
   const callbacks = useRef({ describe, onStart, onStop })
@@ -84,29 +82,25 @@ export function useLinkTake({ describe, onStart, onStop }: TakeOptions) {
     }
   }, [])
 
-  /** Must run inside the tap: tab capture needs the user gesture. */
+  /** Starts a microphone take (call it from the tap: some browsers only grant the microphone inside a gesture). */
   const start = useCallback(
-    async (next: CaptureMode, { currentTab = true }: { currentTab?: boolean } = {}) => {
+    async () => {
       if (starting.current || stopping.current || handle.current) return
       starting.current = true
-      takeMode.current = next
-      setMode(next)
       setPhase('starting')
       setMessage('')
       setElapsed(0)
       setSilent(false)
       levels.set(0)
       try {
-        // Tab mode captures THIS tab (the official player plays here): Chrome hides it from the picker otherwise.
         const take = await startRecording({
-          mode: next,
+          mode: 'mic',
           maxSeconds: maxSec,
           onLevel: (level) => {
             if (level >= SILENT_LEVEL) lastLoud.current = Date.now()
             levels.set(level)
           },
           onAutoStop: () => finishRef.current(),
-          preferCurrentTab: next === 'tab' && currentTab,
         })
         if (!alive.current) {
           take.cancel()
@@ -120,7 +114,7 @@ export function useLinkTake({ describe, onStart, onStop }: TakeOptions) {
       } catch (err) {
         if (!alive.current) return
         const e = err as Error
-        setMessage(e.message || (next === 'tab' ? 'No se pudo capturar la pestaña.' : 'No se pudo usar el micrófono.'))
+        setMessage(e.message || 'No se pudo usar el micrófono.')
         setPhase(e.name === 'NotAllowedError' ? 'denied' : 'error')
       } finally {
         starting.current = false
@@ -138,6 +132,7 @@ export function useLinkTake({ describe, onStart, onStop }: TakeOptions) {
     callbacks.current.onStop?.()
     if ((Date.now() - take.startedAt) / 1000 < MIN_RECORDING_SEC) {
       take.cancel()
+      playUiSound('recordStop', { force: true })
       toast.show('Grabación demasiado corta')
       setPhase('idle')
       return
@@ -145,7 +140,10 @@ export function useLinkTake({ describe, onStart, onStop }: TakeOptions) {
     stopping.current = true
     setPhase('stopping')
     try {
-      const blob = await take.stop()
+      // The recorder stops capturing synchronously, so the stop cue cannot end up in the take.
+      const pending = take.stop()
+      playUiSound('recordStop', { force: true })
+      const blob = await pending
       if (!alive.current) return
       const decoded = await decodeMediaFile(blob, recordingName(blob.type))
       if (!alive.current) return
@@ -155,7 +153,7 @@ export function useLinkTake({ describe, onStart, onStop }: TakeOptions) {
         return
       }
       const meta = { ...callbacks.current.describe(), retryBack: true }
-      useCaptureStore.getState().setRecording(takeMode.current, decoded, getSettings().keepOriginalAudio ? blob : null, meta)
+      useCaptureStore.getState().setRecording('mic', decoded, getSettings().keepOriginalAudio ? blob : null, meta)
       // Pushed (not replaced): cancelling Processing, or Back from the new score, returns to this link.
       navigate('/processing')
     } catch (err) {
@@ -191,5 +189,5 @@ export function useLinkTake({ describe, onStart, onStop }: TakeOptions) {
 
   const stop = useCallback(() => void finishRef.current(), [])
 
-  return { phase, mode, message, elapsed, maxSec, levels, silent: silent && phase === 'recording', start, finish: stop, cancel }
+  return { phase, message, elapsed, maxSec, levels, silent: silent && phase === 'recording', start, finish: stop, cancel }
 }

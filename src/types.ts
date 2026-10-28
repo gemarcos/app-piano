@@ -206,6 +206,8 @@ export interface Settings {
   transcriptionModel: TranscriptionModel
   /** Viewer playback timbre: 'grand' (Salamander grand piano) or 'classic' (the FluidR3 piano of the first version). */
   pianoSound: 'grand' | 'classic'
+  /** Interface sound effects (synthesized taps, toggles, chimes). Never while recording or playing a score. */
+  uiSounds: boolean
 }
 
 export type TranscriptionModel = 'auto' | 'piano' | 'fast'

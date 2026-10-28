@@ -5,7 +5,7 @@ import { getCover } from '../../assets/images'
 import { keyName } from '../../engine/score'
 import { useSettings } from '../../state/settings'
 import type { NoteNaming, ScoreDoc } from '../../types'
-import { Cover, SectionHeader, fadeUp, listContainer, listItem, spring, tapScale } from '../../ui'
+import { Cover, SectionHeader, fadeUp, listContainer, listItem, playUiSound, spring, tapScale } from '../../ui'
 
 const CARD = 148
 
@@ -23,7 +23,11 @@ function RecentCard({ doc, naming, onOpen }: { doc: ScoreDoc; naming: NoteNaming
     <motion.button
       type="button"
       className="home-card"
-      onClick={onOpen}
+      onClick={() => {
+        playUiSound('tap')
+        onOpen()
+      }}
+      whileHover={{ y: -3 }}
       whileTap={tapScale}
       transition={spring}
       aria-label={key ? `${doc.title}, ${key}` : doc.title}

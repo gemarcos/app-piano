@@ -6,6 +6,7 @@ import { Button, IconButton } from './Button'
 import { Icon, type IconComponent } from './Icon'
 import { useModal } from './hooks'
 import { ease } from './motion'
+import { playUiSound } from './sound'
 import { cx } from './cx'
 import './Sheet.css'
 
@@ -167,7 +168,10 @@ export function ActionSheet({ open, onClose, title, actions, cancelLabel = 'Canc
             type="button"
             className={cx('ui-actionsheet__item', action.tone === 'danger' && 'is-danger')}
             disabled={action.disabled}
-            onClick={() => select(action)}
+            onClick={() => {
+              playUiSound('tap')
+              select(action)
+            }}
           >
             {action.icon && <Icon icon={action.icon} size={22} />}
             <span className="ui-actionsheet__label">{action.label}</span>

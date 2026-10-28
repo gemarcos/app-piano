@@ -7,7 +7,7 @@
   padding: 0 16px;
   border-radius: var(--r-pill);
   background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), var(--edge);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.005em;
@@ -27,7 +27,7 @@
 .ui-chip.is-selected {
   background: var(--ink);
   color: var(--ink-inverse);
-  box-shadow: none;
+  box-shadow: var(--shadow-ink-sm), var(--highlight);
 }
 
 /* Inside a sheet (white surface): unselected chips sit on the translucent fill, not white-on-white */

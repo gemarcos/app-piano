@@ -128,18 +128,38 @@
 }
 
 .ui-group__title {
-  padding: 0 var(--s-1) var(--s-2);
-  font-size: var(--fs-caption);
-  font-weight: 600;
-  letter-spacing: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 0 var(--s-1) var(--s-3);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
   color: var(--ink-3);
+}
+
+/* Small accent tile before a group title */
+.ui-group__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: var(--accent-gradient);
+  color: var(--on-accent);
+  box-shadow: 0 4px 10px -4px var(--accent-glow), var(--highlight);
+}
+
+.ui-group__icon .ui-icon path {
+  stroke-width: 2.1;
 }
 
 .ui-group__card {
   overflow: hidden;
   border-radius: var(--r-lg);
   background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), var(--edge);
 }
 
 .ui-group__card > * {

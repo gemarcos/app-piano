@@ -4,6 +4,7 @@ import { motion } from 'motion/react'
 import { BookOpen01, Home02, Settings01 } from '@untitled-ui/icons-react'
 import { Icon } from './Icon'
 import { ease, softSpring, spring } from './motion'
+import { playUiSound } from './sound'
 import { cx } from './cx'
 import './TabBar.css'
 
@@ -47,9 +48,21 @@ export function TabBar({ visible, current, floating = true }: TabBarProps) {
               className={cx('ui-tabbar__item', active && 'is-active')}
               aria-label={tab.label}
               aria-current={active ? 'page' : undefined}
+              onClick={() => {
+                if (!active) playUiSound('select')
+              }}
             >
               {active && <motion.span layoutId={indicatorId} className="ui-tabbar__indicator" transition={spring} />}
-              <Icon icon={tab.icon} size={24} />
+              {/* The icon hops once when its tab becomes active. */}
+              <motion.span
+                key={active ? 'on' : 'off'}
+                className="ui-tabbar__glyph"
+                initial={active ? { scale: 0.7, y: 3 } : false}
+                animate={{ scale: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 520, damping: 18 }}
+              >
+                <Icon icon={tab.icon} size={24} />
+              </motion.span>
             </Link>
           )
         })}

@@ -114,6 +114,14 @@
   display: inline-grid;
 }
 
+.vw-player__pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--accent-glow);
+  pointer-events: none;
+}
+
 .vw-player__play.is-loading .ui-icon {
   opacity: 0;
 }
@@ -123,7 +131,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  color: var(--accent-ink);
+  color: var(--on-accent);
   pointer-events: none;
 }
 
@@ -138,8 +146,8 @@
   right: -5px;
   padding: 1px 4px;
   border-radius: var(--r-pill);
-  background: var(--accent);
-  color: var(--accent-ink);
+  background: var(--accent-gradient);
+  color: var(--on-accent);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.02em;

@@ -1,7 +1,7 @@
 // Owner: settings. "Biblioteca" group of Ajustes: backup export/import, demo restore, storage, wipe.
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Download01, RefreshCcw01, Upload01 } from '@untitled-ui/icons-react'
+import { BookOpen01, Download01, RefreshCcw01, Upload01 } from '@untitled-ui/icons-react'
 import { clearLibrary, db, exportBackup, importBackup, storageEstimate } from '../../data/db'
 import { restoreDemos } from '../../data/seed'
 import { shareOrDownload } from '../../lib/download'
@@ -115,7 +115,7 @@ export function LibrarySettings() {
 
   return (
     <>
-      <SettingsGroup title="Biblioteca">
+      <SettingsGroup title="Biblioteca" icon={BookOpen01}>
         <ListRow title="Exportar copia" trailing={actionIcon('export', Download01)} onClick={onExport} />
         <ListRow title="Importar copia" trailing={actionIcon('import', Upload01)} onClick={() => !busy.current && fileRef.current?.click()} />
         <ListRow title="Restaurar ejemplos" trailing={actionIcon('restore', RefreshCcw01)} onClick={onRestore} />

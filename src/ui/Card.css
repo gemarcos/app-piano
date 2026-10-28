@@ -2,7 +2,7 @@
   position: relative;
   border-radius: var(--r-lg);
   background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), var(--edge);
   color: var(--ink);
   transition: box-shadow var(--dur) var(--ease);
 }
@@ -45,6 +45,6 @@
 
 @media (hover: hover) {
   .ui-card--interactive:hover {
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-md), var(--edge);
   }
 }

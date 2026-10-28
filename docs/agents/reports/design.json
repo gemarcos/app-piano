@@ -1,0 +1,87 @@
+{
+  "agent": "design",
+  "date": "2026-10-28",
+  "summary": "New design round asked by the client (08:50: 'más atractivo, respetando espacios libres, más animaciones, efectos de sonido y animación al entrar') plus the link-screen change decided for commercial use (09:05). Everything goes through the kit (src/ui) and the tokens, so every screen in light and dark picked it up; screens only got small, targeted touches.\n\n- Depth and light: AppFrame now paints a persistent Backdrop (three soft aurora blobs of the accent family drifting very slowly on the compositor, plus a fine film grain), cards and pills get a hairline edge and filled pills a top highlight. Empty space is unchanged: ornament comes from light and motion, not from more elements or text.\n- Colour story: one accent family, indigo to violet (--accent-gradient, --accent-2, --accent-glow, --on-accent). It marks the primary action, the active tab (a gradient pill that slides between tabs), toggles that are on, slider fills, progress, the settings group tiles and celebrations. Ink stays for text and the ink pill.\n- Typography: tab titles 34 px at weight 800 with tighter tracking, section titles 750, Ajustes group labels as small uppercase eyebrows with an accent icon tile.\n- Home: brand mark tile next to the wordmark; the vinyl idles with a barely-there spin and a breathing accent halo with ripples that invite a tap; tapping it plays a soft piano note.\n- Library: tiles with a deeper shadow, hover lift and cover zoom, an accent-tinted scrim under the glass caption; generated covers get richer gradient tones and a soft light; empty library and 'Sin resultados' use generated art (EmptyArt) instead of a photo.\n- Processing: gradient progress ring with a soft halo and a glowing head (one spring drives arc and head); when the score is ready the percentage lands on 100 in gradient text, a check pops on the record, a burst of accent dots and note heads plus a shock ring fire (Celebration) and the success chime plays (beat before opening the score 700 -> 1000 ms).\n- Recording: the record's halo follows the microphone level (a MotionValue, no re-render at 30 Hz) with quicker ripples.\n- Viewer: gradient play button with a soft ring breathing out of it while it plays; A-B badge on the gradient.\n- Micro-interactions: buttons lift on hover (pointer devices) with a light sweep on filled pills and press to 0.96; toggles stretch their knob while pressed and fade a gradient in; segmented controls dip the pressed segment and tint the chosen icon; chips and cards lift and press; tab icons hop when their tab activates; list entrances stagger a little more (rise 14 px with a 0.98 scale); tab and push transitions slightly richer, with the exit timings that keep the blank-gap fix untouched.\n- Launch intro (Intro + introPolicy.ts): five staff lines draw in, a record rolls onto them and the wordmark rises, then everything opens into the app (~1.35 s). The app renders and loads underneath; a tap or a key skips it. Once per launch (module state), only when the app opens on a main tab (deep links such as /score, /link, /shared open straight away), a 0.38 s fade under reduced motion, skipped for automated browsers unless localStorage pauta.intro = 'always'.\n- Interface sounds (src/ui/sound.ts): synthesized with Web Audio by our own code (no samples): tap, select, toggleOn/Off, recordStart/Stop, success, error and a short piano note for the record. Separate AudioContext created on the first gesture; level 0.26 x (0.35 + 0.65 x playbackVolume); off via Settings.uiSounds (new, default true, row 'Sonidos de la interfaz' in Ajustes > Apariencia); blocked while the microphone is open (RecordScreen, link take) and while a score plays or counts in (viewer). The cues before a take end within 0.5 s and the stop cue plays only after the recorder stopped capturing, so no interface sound can end up in a recording. Wired into Button, IconButton, Card, ListRow, Toggle, Segmented, Chip, Stepper, TabBar, ActionSheet, Vinyl and danger toasts.\n- Link screen (09:05): 'Grabar el vídeo' (tab capture of the embedded player) is gone; on every device the screen offers Escuchar (microphone, with the 'sube el volumen' line) and Archivo; blocked-link hints no longer mention Pestaña. useLinkTake is microphone-only. The generic Pestaña capture on Home is untouched. scripts/e2e-share.mjs check k is now a headless computer check (Escuchar + Archivo, getUserMedia called, getDisplayMedia never); the --audio flag is gone. README 'Limitaciones' updated.\n- Reduced motion (setting or OS): backdrop, halos and ripples still, no idle spin, intro shortened to a fade, celebration reduced to the ring, no play pulse.\n- Performance: endless loops animate full transform strings and opacity (compositor via WAAPI). Main app chunk 826.0 -> 842.9 KB raw (+2 %), CSS 71.5 -> 81.4 KB; nothing heavy added, no new dependencies. Blank gap between screens measured the same as HEAD (40-270 ms in both builds, noisy in headless).",
+  "files": {
+    "new": [
+      "src/ui/sound.ts",
+      "src/ui/sound.test.ts",
+      "src/ui/introPolicy.ts",
+      "src/ui/introPolicy.test.ts",
+      "src/ui/Intro.tsx",
+      "src/ui/Intro.css",
+      "src/ui/Backdrop.tsx",
+      "src/ui/Backdrop.css",
+      "src/ui/EmptyArt.tsx",
+      "src/ui/EmptyArt.css",
+      "src/ui/Celebration.tsx",
+      "src/ui/Celebration.css",
+      "docs/agents/reports/design.json",
+      "docs/screenshots/design-antes-despues-{home,library-grid,settings,viewer,record,processing}.png",
+      "docs/screenshots/design-{intro,done,link,library-empty,library-noresults,settings-full}{,-dark}.png"
+    ],
+    "modified": [
+      "src/styles/tokens.css (new palette, accent family, edge/highlight, aurora, grain, type tokens)",
+      "src/styles/global.css (display weight, ui-t-eyebrow, ui-t-gradient)",
+      "src/ui/kit.css, Layout.tsx/.css, Button.tsx/.css, Card.tsx/.css, Chip.tsx/.css, Cover.tsx/.css, EmptyState.tsx/.css, List.tsx/.css, Progress.tsx/.css, Segmented.tsx/.css, Sheet.tsx, Slider.css, Stepper.tsx, TabBar.tsx/.css, Toast.tsx, Toggle.tsx/.css, Vinyl.tsx/.css, motion.ts, index.tsx",
+      "src/types.ts (Settings.uiSounds, additive)",
+      "src/state/settings.ts (DEFAULT_SETTINGS.uiSounds = true)",
+      "src/App.tsx (Intro, installUiSoundUnlock, theme-color fallback)",
+      "src/features/home/HomeScreen.tsx/.css, Recents.tsx",
+      "src/features/capture/ProcessingScreen.tsx/.css, RecordScreen.tsx",
+      "src/features/library/LibraryScreen.tsx/.css, LibraryItems.tsx/.css",
+      "src/features/settings/SettingsScreen.tsx, LibrarySettings.tsx (group icons, Sonidos de la interfaz; Modelo row untouched)",
+      "src/features/viewer/ViewerScreen.tsx, PlayerBar.tsx/.css",
+      "src/features/share/LinkScreen.tsx, useLinkTake.ts",
+      "scripts/e2e-share.mjs (check k), scripts/e2e.mjs (f1 token values: --bg #0c0d13 dark / #eef0f8 light, title rgb(242, 243, 248))",
+      "index.html, vite.config.ts (theme/background color #EEF0F8 only)",
+      "README.md (Limitaciones: link screen)",
+      "docs/UI-KIT.md (design language, new components, sounds, intro, tokens)",
+      "docs/CREDITS.md (interface sounds and art are our own, no third-party material)",
+      "docs/screenshots/final-*.png (13 screens x 2 themes refreshed), docs/screenshots/share-*.png (refreshed with e2e-share --no-checks)"
+    ]
+  },
+  "verification": {
+    "typecheck": "npx tsc --noEmit: 0 errors outside src/engine/** (verified clean as a whole on a copy of this working tree with src/engine and vite.config.ts from HEAD). In the live tree tsc currently reports 2 errors in src/engine/transcribe/oaf/piano.ts and test/harness/transcribe.ts ('velocities' on RawActivations): piano-model's in-progress work, not touched by me.",
+    "unit_tests": "npm test: 413 tests in 34 files; 18 new (src/ui/sound.test.ts 11: lazy context, one context reused and resumed, off switch, blockers for mic/playback, force for the stop cue, retrigger gap, low level that follows the volume, every voice valid and under 1.6 s, pre-take cues under 0.5 s, no Web Audio; src/ui/introPolicy.test.ts 7: full on main tabs, once per launch, a reload replays, short under reduced motion, never on deep links, automated vs forced, hash parsing). On HEAD's engine: 413/413 (the build.test perf check is load-sensitive and passed on rerun). In the live tree 1 failure in src/engine/transcribe/transcribe.test.ts (piano-model, in progress).",
+    "build": "vite build OK; node scripts/fixtures/check-bundle.mjs 4/4 PASS (app chunk 811 KB as measured there).",
+    "e2e": "node scripts/e2e.mjs --url <preview of my UI + HEAD engine>: 16/17 on the first full run (d2 'no video preview' timing flake, then d1+d2 PASS on two reruns), so 17/17. Earlier full run on the live tree at 10:24: 17/17. Against the live tree now, d1/d2/i fail because Import -> piano model returns 'No se detectaron notas' with piano-model's in-progress transkun/worker changes (src/engine/transcribe/index.ts, worker.ts, transkun/* changed after 10:20); the UI shows the right empty state.",
+    "e2e_share": "node scripts/e2e-share.mjs: 10/11 PASS, 1 SKIP (t, TikTok oEmbed informational), including the new k.",
+    "e2e_capture": "node scripts/e2e-capture.mjs: 6/6 PASS (on my UI + HEAD engine; live tree: imports fail for the engine reason above).",
+    "other": "Screenshots reviewed at 390x844 @2x light and dark and at 320x640; no page errors in the screenshot runs; blank gap between screens measured with a rAF probe against a HEAD build (same range). Servers on 5196/5197/5198 stopped."
+  },
+  "screenshots": [
+    "docs/screenshots/design-antes-despues-home.png",
+    "docs/screenshots/design-antes-despues-library-grid.png",
+    "docs/screenshots/design-antes-despues-settings.png",
+    "docs/screenshots/design-antes-despues-viewer.png",
+    "docs/screenshots/design-antes-despues-record.png",
+    "docs/screenshots/design-antes-despues-processing.png",
+    "docs/screenshots/design-intro.png, design-intro-dark.png",
+    "docs/screenshots/design-done.png, design-done-dark.png",
+    "docs/screenshots/design-link.png, design-link-dark.png",
+    "docs/screenshots/design-library-empty.png, design-library-empty-dark.png",
+    "docs/screenshots/design-library-noresults.png, design-library-noresults-dark.png",
+    "docs/screenshots/design-settings-full.png, design-settings-full-dark.png",
+    "docs/screenshots/final-{home,library-grid,library-list,settings,about,viewer,viewer-playing,viewer-reproduccion,viewer-partitura,viewer-filtros,record,processing,import}{,-dark}.png",
+    "docs/screenshots/share-*.png (refreshed; share-link-desktop now shows Escuchar + Archivo)"
+  ],
+  "videos": [
+    "C:/Users/Marcos/AppData/Local/Temp/pauta/design/pauta-design-light.mp4 (17.9 s, light: intro, Inicio, Biblioteca with chips and grid -> list, Ajustes with toggles and segmented, back to Inicio, tap the record -> listening with the live halo)",
+    "C:/Users/Marcos/AppData/Local/Temp/pauta/design/pauta-design-dark.mp4 (16.6 s, dark: intro, tap the record -> listening -> processing (model warm-up and transcription sped up in the edit) -> score ready burst -> viewer playing with the pulse)"
+  ],
+  "sound_sampler": [
+    "C:/Users/Marcos/AppData/Local/Temp/pauta/design/pauta-sonidos.wav",
+    "C:/Users/Marcos/AppData/Local/Temp/pauta/design/pauta-sonidos.mp3",
+    "Rendered from the real src/ui/sound.ts in headless Chrome (OfflineAudioContext), normalized to -3 dBFS for listening (the app plays them much quieter). Order: tap, select, toggleOn, toggleOff, vinyl (piano note), recordStart, recordStop, success, error."
+  ],
+  "known_issues": [
+    "The live working tree currently fails Import transcriptions (empty result) and tsc because of piano-model's in-progress engine changes; my UI was verified on a copy with HEAD's engine. Re-run e2e once piano-model lands.",
+    "The first tap creates the interface AudioContext synchronously (the constructor can block 80-240 ms on slow devices, as noted for the recorder); it happens once per launch, inside the first gesture, as iOS requires.",
+    "Sounds not verified on real phones or speakers (headless only); levels chosen by measurement (raw peak ~0.13 at full volume).",
+    "heroImages.emptyLibrary (photo) is no longer shown (generated art replaces it) but stays in the manifest and credits; the assets owner can drop it to save precache bytes.",
+    "recordStart is defined but not played: the take starts automatically 520 ms after the record tap, which already plays the piano note; a second cue would crowd it.",
+    "KitGallery (#/__kit, dev only) does not showcase EmptyArt, Celebration or the sounds yet; documented in docs/UI-KIT.md.",
+    "docs/screenshots grew by ~16 MB of new design-*.png (the film grain makes PNGs larger)."
+  ]
+}

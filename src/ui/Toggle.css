@@ -7,7 +7,8 @@
   border-radius: var(--r-pill);
   background: var(--track);
   touch-action: manipulation;
-  transition: background-color 0.24s var(--ease);
+  isolation: isolate;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 /* 44px+ hit target */
@@ -17,15 +18,27 @@
   inset: -6px -4px;
 }
 
-.ui-toggle.is-on {
-  background: var(--accent);
+/* The "on" gradient fades in over the track (opacity only). */
+.ui-toggle__fill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--accent-gradient);
+  box-shadow: 0 4px 12px -4px var(--accent-glow);
+  opacity: 0;
+  transition: opacity 0.24s var(--ease);
+}
+
+.ui-toggle.is-on .ui-toggle__fill {
+  opacity: 1;
 }
 
 .ui-toggle__knob {
   display: block;
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  border-radius: var(--r-pill);
   background: var(--knob);
   box-shadow: var(--shadow-knob);
 }

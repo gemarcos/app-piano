@@ -2,12 +2,12 @@
 // decoded take to Processing. Recording starts on mount; every exit path releases the microphone.
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, useMotionValue } from 'motion/react'
 import { Microphone01, Stop, XClose } from '@untitled-ui/icons-react'
 import { decodeMediaFile, startRecording, type CaptureMode, type RecorderHandle } from '../../engine/audio'
 import { getSettings, useSettings } from '../../state/settings'
 import { formatTime } from '../../lib/format'
-import { Button, IconButton, LiveBars, Page, TopBar, Vinyl, ease, useToast } from '../../ui'
+import { Button, IconButton, LiveBars, Page, TopBar, Vinyl, ease, playUiSound, useToast, useUiSoundsBlocked } from '../../ui'
 import { HeroVinyl } from './HeroVinyl'
 import { MIN_RECORDING_SEC } from './selection'
 import { useCaptureStore } from './store'
@@ -63,6 +63,9 @@ export function RecordScreen() {
   const maxSec = useSettings((s) => (Number.isFinite(s.maxRecordSec) && s.maxRecordSec >= 5 ? s.maxRecordSec : 90))
   const { width, height } = useViewportSize()
   const levels = useMemo(createLevelStore, [])
+  /** The level as a motion value for the vinyl's halo (no re-render at the meter rate). */
+  const level = useMotionValue(0)
+  useEffect(() => levels.subscribe(() => level.set(levels.get())), [levels, level])
 
   const [phase, setPhase] = useState<Phase>('starting')
   const [message, setMessage] = useState('')
@@ -114,6 +117,7 @@ export function RecordScreen() {
     levels.set(0)
     if ((Date.now() - take.startedAt) / 1000 < MIN_RECORDING_SEC) {
       take.cancel()
+      playUiSound('recordStop', { force: true })
       toast.show('Grabación demasiado corta')
       setPhase('idle')
       return
@@ -121,7 +125,10 @@ export function RecordScreen() {
     stopping.current = true
     setPhase('stopping')
     try {
-      const blob = await take.stop()
+      // The recorder stops capturing synchronously, so the stop cue cannot end up in the take.
+      const pending = take.stop()
+      playUiSound('recordStop', { force: true })
+      const blob = await pending
       if (!alive.current) return
       const decoded = await decodeMediaFile(blob, recordingName(blob.type))
       if (!alive.current) return
@@ -175,6 +182,8 @@ export function RecordScreen() {
 
   const recording = phase === 'recording'
   const blocked = phase === 'denied' || phase === 'error'
+  // No interface sound may reach the microphone.
+  useUiSoundsBlocked(phase === 'starting' || recording)
   const size = Math.round(Math.max(240, Math.min(width - 40, height * 0.42, 360)))
 
   return (
@@ -187,6 +196,8 @@ export function RecordScreen() {
             spinning={recording}
             tonearm={recording ? 'play' : 'rest'}
             progress={recording || phase === 'stopping' ? elapsed / maxSec : undefined}
+            halo={recording ? 'live' : undefined}
+            level={level}
             ariaLabel={recording ? 'Escuchando' : undefined}
           />
         </HeroVinyl>
@@ -201,7 +212,7 @@ export function RecordScreen() {
               transition={{ duration: 0.28, ease }}
             >
               <p role="alert">{message}</p>
-              <Button onClick={() => void start()}>Reintentar</Button>
+              <Button sound={false} onClick={() => void start()}>Reintentar</Button>
             </motion.div>
           ) : (
             <motion.div
@@ -231,6 +242,7 @@ export function RecordScreen() {
             size="xl"
             className={phase === 'idle' ? 'cap-record__button' : 'cap-record__button is-stop'}
             disabled={phase === 'starting' || phase === 'stopping'}
+            sound={false}
             onClick={phase === 'idle' ? () => void start() : () => void finish()}
           />
         )}

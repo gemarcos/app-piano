@@ -3,11 +3,10 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, type Variants } from 'motion/react'
 import { FilterLines, Grid01, List, Microphone01 } from '@untitled-ui/icons-react'
-import { heroImages } from '../../assets/images'
 import { useAllScores } from '../../data/db'
 import { isDemoSeedSettled, seedDemosOnce } from '../../data/seed'
 import { useSettings } from '../../state/settings'
-import { Button, Chip, ChipRow, EmptyState, IconButton, Page, SearchField, TopBar, ease } from '../../ui'
+import { Button, Chip, ChipRow, EmptyArt, EmptyState, IconButton, Page, SearchField, TopBar, ease } from '../../ui'
 import { QUICK_FILTERS, activeFilterCount, applyFilters, effectiveFilters, sortDocs } from './filters'
 import { FilterSheet } from './FilterSheet'
 import { LibrarySkeleton, ScoreRow, ScoreTile } from './LibraryItems'
@@ -121,11 +120,7 @@ export function LibraryScreen() {
       ) : empty ? (
         <EmptyState
           className="lib-empty"
-          image={
-            heroImages.emptyLibrary ? (
-              <img className="lib-empty__img" src={heroImages.emptyLibrary.src} alt="" width={900} height={700} decoding="async" draggable={false} />
-            ) : undefined
-          }
+          image={<EmptyArt kind="vinyl" />}
           title="Aún no hay partituras"
           action={{ label: 'Escuchar', icon: Microphone01, onClick: () => navigate('/') }}
         />
@@ -145,6 +140,7 @@ export function LibraryScreen() {
           {visible.length === 0 ? (
             <EmptyState
               className="lib-noresults"
+              image={<EmptyArt kind="search" />}
               title="Sin resultados"
               action={
                 <Button variant="secondary" onClick={clearFilters}>

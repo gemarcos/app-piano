@@ -1,5 +1,7 @@
 import { isValidElement, type ReactNode } from 'react'
+import { motion } from 'motion/react'
 import { Button } from './Button'
+import { reveal } from './motion'
 import type { IconComponent } from './Icon'
 import { cx } from './cx'
 import './EmptyState.css'
@@ -33,9 +35,11 @@ export function EmptyState({ image, title, action, className }: EmptyStateProps)
       ) : image != null ? (
         <div className="ui-empty__art">{image}</div>
       ) : null}
-      <p className="ui-empty__title">{title}</p>
+      <motion.p className="ui-empty__title" {...reveal(2, 10)}>
+        {title}
+      </motion.p>
       {action != null && (
-        <div className="ui-empty__action">
+        <motion.div className="ui-empty__action" {...reveal(3, 10)}>
           {isActionObject(action) ? (
             <Button icon={action.icon} onClick={action.onClick}>
               {action.label}
@@ -43,7 +47,7 @@ export function EmptyState({ image, title, action, className }: EmptyStateProps)
           ) : (
             action
           )}
-        </div>
+        </motion.div>
       )}
     </div>
   )

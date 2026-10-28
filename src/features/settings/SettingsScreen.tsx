@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { Monitor01, Moon01, Sun } from '@untitled-ui/icons-react'
+import { Edit05, Headphones01, Microphone01, Monitor01, Moon01, Palette, Sun, Waves } from '@untitled-ui/icons-react'
 import { useSettings } from '../../state/settings'
 import type { Difficulty, NoteNaming, QuantizeGrid, ThemePreference, TranscriptionModel } from '../../types'
 import { pitchName } from '../../engine/score'
@@ -53,7 +53,7 @@ const DIFFICULTIES: SegmentedOption<Difficulty>[] = [
   { value: 'facil', label: 'Fácil' },
 ]
 
-/** Settings.transcriptionModel (owner: piano-model): Onsets and Frames when the device can run it, or Basic Pitch. */
+/** Settings.transcriptionModel (owner: piano-model): Transkun (WebGPU) when the device can run it, or Basic Pitch. */
 const MODELS: SegmentedOption<TranscriptionModel>[] = [
   { value: 'auto', label: 'Auto' },
   { value: 'piano', label: 'Piano' },
@@ -96,13 +96,14 @@ function Below({ children }: { children: ReactNode }) {
 function AppearanceGroup() {
   const theme = useSettings((s) => s.theme)
   const reduceMotion = useSettings((s) => s.reduceMotion)
+  const uiSounds = useSettings((s) => s.uiSounds)
   const set = useSettings((s) => s.set)
   const reduced = useReducedMotionPref()
   const onTheme = (v: ThemePreference) => {
     if (v !== theme) switchTheme(v, () => set('theme', v), !reduced)
   }
   return (
-    <SettingsGroup title="Apariencia">
+    <SettingsGroup title="Apariencia" icon={Palette}>
       <ListRow title="Tema">
         <Below>
           <Segmented full options={THEMES} value={theme} onChange={onTheme} ariaLabel="Tema" />
@@ -112,6 +113,10 @@ function AppearanceGroup() {
         title="Reducir animaciones"
         trailing={<Toggle checked={reduceMotion} onChange={(v) => set('reduceMotion', v)} ariaLabel="Reducir animaciones" />}
       />
+      <ListRow
+        title="Sonidos de la interfaz"
+        trailing={<Toggle checked={uiSounds} onChange={(v) => set('uiSounds', v)} ariaLabel="Sonidos de la interfaz" />}
+      />
     </SettingsGroup>
   )
 }
@@ -120,7 +125,7 @@ function NotationGroup() {
   const naming = useSettings((s) => s.noteNaming)
   const set = useSettings((s) => s.set)
   return (
-    <SettingsGroup title="Notación">
+    <SettingsGroup title="Notación" icon={Edit05}>
       <ListRow title="Nombres de notas">
         <Below>
           <Segmented full options={NAMINGS} value={naming} onChange={(v) => set('noteNaming', v)} ariaLabel="Nombres de notas" />
@@ -140,7 +145,7 @@ function TranscriptionGroup() {
   const model = useSettings((s) => s.transcriptionModel)
   const set = useSettings((s) => s.set)
   return (
-    <SettingsGroup title="Transcripción" footer="Se aplica a las próximas transcripciones.">
+    <SettingsGroup title="Transcripción" icon={Waves} footer="Se aplica a las próximas transcripciones.">
       <ListRow title="Modelo" subtitle="Piano es más preciso">
         <Below>
           <Segmented full options={MODELS} value={model} onChange={(v) => set('transcriptionModel', v)} ariaLabel="Modelo de transcripción" />
@@ -194,7 +199,7 @@ function RecordingGroup() {
   const keepAudio = useSettings((s) => s.keepOriginalAudio)
   const set = useSettings((s) => s.set)
   return (
-    <SettingsGroup title="Grabación">
+    <SettingsGroup title="Grabación" icon={Microphone01}>
       <ListRow title="Duración máxima">
         <Below>
           <Segmented
@@ -223,7 +228,7 @@ function PlaybackGroup() {
   const volume = useSettings((s) => Math.round(s.playbackVolume * 100))
   const set = useSettings((s) => s.set)
   return (
-    <SettingsGroup title="Reproducción">
+    <SettingsGroup title="Reproducción" icon={Headphones01}>
       <ListRow title="Timbre">
         <Below>
           <Segmented full options={PIANO_SOUND_OPTIONS} value={pianoSound} onChange={setPianoSound} ariaLabel="Timbre" />

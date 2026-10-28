@@ -35,7 +35,8 @@
   left: 0;
   width: calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--p, 0));
   border-radius: inherit;
-  background: var(--accent);
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 10px -2px var(--accent-glow);
 }
 
 .ui-slider--range .ui-slider__fill {

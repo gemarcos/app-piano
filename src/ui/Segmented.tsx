@@ -2,6 +2,7 @@ import { useId, useRef, type KeyboardEvent } from 'react'
 import { motion } from 'motion/react'
 import { Icon, type IconComponent } from './Icon'
 import { spring } from './motion'
+import { playUiSound } from './sound'
 import { cx } from './cx'
 import './Segmented.css'
 
@@ -50,6 +51,7 @@ export function Segmented<T extends string | number>({
     else if (e.key === 'End') next = n - 1
     if (next < 0) return
     e.preventDefault()
+    playUiSound('select')
     onChange(options[next].value)
     refs.current[next]?.focus()
   }
@@ -75,7 +77,10 @@ export function Segmented<T extends string | number>({
             aria-label={option.ariaLabel}
             tabIndex={selected || (index < 0 && i === 0) ? 0 : -1}
             className={cx('ui-seg__item', selected && 'is-selected', !option.label && 'is-icon')}
-            onClick={() => onChange(option.value)}
+            onClick={() => {
+              if (!selected) playUiSound('select')
+              onChange(option.value)
+            }}
           >
             {selected && <motion.span layoutId={`ui-seg-${id}`} className="ui-seg__thumb" transition={spring} />}
             <span className="ui-seg__content">

@@ -40,7 +40,7 @@
   padding-right: var(--s-2);
   border-radius: var(--r-lg);
   background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), var(--edge);
   transition:
     transform var(--dur) var(--ease),
     box-shadow var(--dur) var(--ease);
@@ -101,8 +101,32 @@
 
 @media (hover: hover) {
   .lib-row:has(> .lib-row__main:hover) {
-    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md), var(--edge);
   }
+  .lib-tile:has(> .lib-tile__main:hover) {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+  }
+  .lib-tile:has(> .lib-tile__main:hover) .lib-tile__cover img {
+    transform: scale(1.05);
+  }
+}
+
+/* Covers zoom a touch on hover (transform only). */
+.lib-tile__cover img {
+  transition:
+    opacity var(--dur) var(--ease),
+    transform 0.6s var(--ease);
+}
+
+/* Soft accent-tinted scrim under the caption: the photo melts into the glass band. */
+.lib-tile__main::after {
+  content: '';
+  position: absolute;
+  inset: 45% 0 0;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--accent) 16%, transparent));
+  pointer-events: none;
 }
 
 /* ---------- Grid tile (cover card with a glass caption) ---------- */
@@ -113,7 +137,7 @@
   overflow: hidden;
   border-radius: var(--r-lg);
   background: var(--surface-3);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
   isolation: isolate;
   transition:
     transform var(--dur) var(--ease),
@@ -150,6 +174,7 @@
 /* Frosted band across the bottom of the cover (ref-3 "Popular Song" cards). */
 .lib-tile__caption {
   position: absolute;
+  z-index: 1;
   left: 0;
   right: 0;
   bottom: 0;

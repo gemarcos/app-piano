@@ -54,7 +54,9 @@ function coverParams(seed: string) {
     step = Math.max(0, Math.min(8, step + Math.floor(rand() * 5) - 2))
     return { x: 30 + i * (44 / Math.max(1, count - 1)) + (rand() * 6 - 3), y: top + step * (LINE_GAP / 2) }
   })
-  return { tone, angle, top, notes }
+  // A soft light somewhere in the upper half: no two generated covers feel the same.
+  const glow = { x: 15 + rand() * 70, y: 5 + rand() * 40 }
+  return { tone, angle, top, notes, glow }
 }
 
 /** Generated placeholder: token tone + five staff lines and a few note heads. */
@@ -62,6 +64,7 @@ const CoverArt = memo(function CoverArt({ seed, minimal }: { seed: string; minim
   const p = useMemo(() => coverParams(seed), [seed])
   return (
     <span className="ui-cover__art" style={{ background: `var(--cover-tone-${p.tone})` }}>
+      {!minimal && <span className="ui-cover__glow" style={{ left: `${p.glow.x.toFixed(1)}%`, top: `${p.glow.y.toFixed(1)}%` }} />}
       <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
         <g transform={`rotate(${p.angle.toFixed(2)} 50 50)`}>
           {[0, 1, 2, 3, 4].map((i) => (

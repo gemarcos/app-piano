@@ -24,9 +24,9 @@
 }
 
 .cap-proc__percent {
-  font-size: 36px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
   line-height: 1.05;
   color: var(--ink);
 }
@@ -36,7 +36,7 @@
   min-height: 1.45em;
   font-size: var(--fs-body);
   font-weight: 600;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .cap-proc__label > span {
@@ -55,4 +55,37 @@
   line-height: 1.5;
   color: var(--ink-2);
   text-wrap: balance;
+}
+
+/* Ring + the "ready" check and burst over it */
+.cap-proc__ringwrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.cap-proc__check {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  color: var(--on-accent);
+  box-shadow: 0 12px 28px -6px var(--accent-glow), var(--highlight);
+}
+
+.cap-proc__check .ui-icon path {
+  stroke-width: 2.6;
+}
+
+.cap-proc__stage.is-done .cap-proc__percent {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }

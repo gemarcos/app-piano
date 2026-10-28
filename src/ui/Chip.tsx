@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { Icon, type IconComponent } from './Icon'
 import { spring } from './motion'
+import { playUiSound } from './sound'
 import { cx } from './cx'
 import './Chip.css'
 
@@ -22,8 +23,14 @@ export function Chip({ children, selected = false, onClick, icon, disabled = fal
       className={cx('ui-chip', selected && 'is-selected', className)}
       aria-pressed={selected}
       disabled={disabled}
-      onClick={onClick}
-      whileTap={disabled ? undefined : { scale: 0.95 }}
+      onClick={() => {
+        if (!selected) playUiSound('select')
+        onClick?.()
+      }}
+      initial={false}
+      animate={{ scale: 1 }}
+      whileHover={disabled ? undefined : { y: -1 }}
+      whileTap={disabled ? undefined : { scale: 0.93 }}
       transition={spring}
     >
       {icon && <Icon icon={icon} size={16} />}

@@ -7,7 +7,7 @@ import type { ScoreDoc } from '../../types'
 import { getAudio, updateScore, useScoreDoc } from '../../data/db'
 import { useSettings } from '../../state/settings'
 import { keyName, secondsToTick, sourceSecondsAt, tickAtSourceSeconds, tickToSeconds } from '../../engine/score'
-import { BackButton, Button, EmptyState, IconButton, Page, TopBar, cx, useReducedMotionPref, useToast } from '../../ui'
+import { BackButton, Button, EmptyArt, EmptyState, IconButton, Page, TopBar, cx, useReducedMotionPref, useToast, useUiSoundsBlocked } from '../../ui'
 import { useLiveScore, useDebounced } from './useLiveScore'
 import { useViewState } from './viewState'
 import type { PlayerSpec } from './player'
@@ -60,7 +60,7 @@ function ViewerMissing() {
   return (
     <Page>
       <TopBar left={<BackButton fallback="/library" />} />
-      <EmptyState title="No encontramos esta partitura" action={{ label: 'Ir a la biblioteca', onClick: () => navigate('/library', { replace: true }) }} />
+      <EmptyState image={<EmptyArt kind="score" />} title="No encontramos esta partitura" action={{ label: 'Ir a la biblioteca', onClick: () => navigate('/library', { replace: true }) }} />
     </Page>
   )
 }
@@ -173,6 +173,8 @@ function Viewer({ doc }: { doc: ScoreDoc }) {
   const onError = useCallback((message: string) => toast.show(message, { tone: 'danger' }), [toast])
   const [player, snap] = useScorePlayer(spec, onFrame, onError)
   playerRef.current = player
+  // Interface sounds never play over the score.
+  useUiSoundsBlocked(snap.status === 'playing' || snap.status === 'countin' || snap.status === 'loading')
 
   const seekTo = useCallback((seconds: number) => player.seek(seconds), [player])
   const previous = () => seekTo(previousMeasureTime(score, player.getSnapshot().position))

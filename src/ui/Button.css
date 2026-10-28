@@ -2,6 +2,8 @@
 
 .ui-btn {
   position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -65,25 +67,41 @@
 }
 
 .ui-btn--ink {
-  background: var(--ink);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ink) 86%, var(--ink-inverse)) 0%, var(--ink) 100%);
   color: var(--ink-inverse);
-  box-shadow: var(--shadow-ink-sm);
+  box-shadow: var(--shadow-ink-sm), var(--highlight);
 }
 
 .ui-btn--ink.ui-btn--lg {
-  box-shadow: var(--shadow-ink);
+  box-shadow: var(--shadow-ink), var(--highlight);
 }
 
 .ui-btn--accent {
-  background: var(--accent);
-  color: var(--accent-ink);
-  box-shadow: var(--shadow-accent);
+  background: var(--accent-gradient);
+  color: var(--on-accent);
+  box-shadow: var(--shadow-accent), var(--highlight);
 }
 
 .ui-btn--secondary {
-  background: var(--surface-2);
+  background: var(--surface);
   color: var(--ink);
-  box-shadow: inset 0 0 0 1px var(--line);
+  box-shadow: var(--shadow-sm), var(--edge);
+}
+
+/* Light sweep across the filled pills on hover (pointer devices only; transform only). */
+.ui-btn--ink::after,
+.ui-btn--accent::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.22) 50%, transparent 70%);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+
+.ui-btn__content {
+  position: relative;
 }
 
 .ui-btn--ghost {
@@ -133,7 +151,15 @@
     color: var(--ink);
   }
   .ui-btn--secondary:hover:not(:disabled) {
-    background: var(--surface-3);
+    box-shadow: var(--shadow-md), var(--edge);
+  }
+  .ui-btn--ink:hover:not(:disabled)::after,
+  .ui-btn--accent:hover:not(:disabled)::after {
+    transform: translateX(120%);
+    transition: transform 0.7s var(--ease);
+  }
+  .ui-btn--accent:hover:not(:disabled) {
+    box-shadow: 0 16px 34px -8px var(--accent-glow), var(--highlight);
   }
 }
 
@@ -199,7 +225,7 @@
 
 .ui-iconbtn--surface {
   background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), var(--edge);
 }
 
 .ui-iconbtn--surface.is-active {
@@ -224,15 +250,15 @@
 }
 
 .ui-iconbtn--ink {
-  background: var(--ink);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ink) 86%, var(--ink-inverse)) 0%, var(--ink) 100%);
   color: var(--ink-inverse);
-  box-shadow: var(--shadow-ink);
+  box-shadow: var(--shadow-ink), var(--highlight);
 }
 
 .ui-iconbtn--accent {
-  background: var(--accent);
-  color: var(--accent-ink);
-  box-shadow: var(--shadow-accent);
+  background: var(--accent-gradient);
+  color: var(--on-accent);
+  box-shadow: var(--shadow-accent), var(--highlight);
 }
 
 .ui-iconbtn:disabled {

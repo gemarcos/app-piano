@@ -164,8 +164,8 @@ html.ui-scroll-locked body {
 /* Type scale */
 .ui-t-display {
   font-size: var(--fs-display);
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-weight: var(--fw-display);
+  letter-spacing: -0.04em;
   line-height: 1.1;
 }
 
@@ -205,6 +205,23 @@ html.ui-scroll-locked body {
 
 .ui-t-faint {
   color: var(--ink-3);
+}
+
+/* Small uppercase label above a group (Ajustes groups, sheet sections) */
+.ui-t-eyebrow {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Accent-gradient text (sparingly: a number or a word that celebrates) */
+.ui-t-gradient {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 /* Layout helpers */

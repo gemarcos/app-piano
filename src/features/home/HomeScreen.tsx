@@ -9,8 +9,9 @@ import { preloadModel } from '../../engine/transcribe'
 import { getSettings } from '../../state/settings'
 import { useAllScores } from '../../data/db'
 import { DEMOS_SEEDED_KEY } from '../../data/seed'
+import { brandIcons } from '../../assets/images'
 import type { ScoreDoc } from '../../types'
-import { Button, Page, TopBar, Vinyl, ease, fadeUp, useToast } from '../../ui'
+import { Button, Page, TopBar, Vinyl, ease, fadeUp, useReducedMotionPref, useToast } from '../../ui'
 import { defaultSelection } from '../capture/selection'
 import { useCaptureStore } from '../capture/store'
 import { rememberHeroVinyl, useViewportSize, whenIdle } from '../capture/util'
@@ -58,6 +59,7 @@ export function HomeScreen() {
   const { width, height } = useViewportSize()
   const [tabSupported] = useState(isTabCaptureSupported)
   const [decoding, setDecoding] = useState(false)
+  const reduced = useReducedMotionPref()
   const fileInput = useRef<HTMLInputElement>(null)
   const hero = useRef<HTMLDivElement>(null)
   const alive = useRef(false)
@@ -123,7 +125,24 @@ export function HomeScreen() {
 
   return (
     <Page variant="tab" tabBar className="home">
-      <TopBar large title="Pauta" className="home-topbar" />
+      <TopBar
+        large
+        className="home-topbar"
+        title={
+          <span className="home-brand">
+            <motion.span
+              className="home-brand__mark"
+              aria-hidden="true"
+              initial={{ opacity: 0, scale: 0.6, rotate: -40 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.05 }}
+            >
+              <img src={brandIcons.mark} alt="" width={24} height={24} draggable={false} />
+            </motion.span>
+            Pauta
+          </span>
+        }
+      />
       <section className={hasRecents ? 'home-hero has-recents' : 'home-hero'}>
         <motion.div
           ref={hero}
@@ -132,7 +151,7 @@ export function HomeScreen() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, ease }}
         >
-          <Vinyl size={size} tonearm="rest" onClick={listen} ariaLabel="Escuchar" />
+          <Vinyl size={size} tonearm="rest" spinning={!reduced} speed="idle" halo="breathe" onClick={listen} ariaLabel="Escuchar" />
         </motion.div>
         <motion.p className="home-hero__hint" {...fadeUp(0.08, 8)}>
           Toca para escuchar

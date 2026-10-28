@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
-import { motion, useMotionValue, type MotionValue } from 'motion/react'
+import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from 'motion/react'
 import { useReducedMotionPref } from './hooks'
+import { breathe } from './motion'
+import { playUiSound, type UiSound } from './sound'
 import { cx } from './cx'
 import './Vinyl.css'
 
@@ -8,8 +10,8 @@ export interface VinylProps {
   /** Width and height of the whole piece (record, plinth and tonearm fit inside), px. */
   size?: number
   spinning?: boolean
-  /** normal = 33 1/3 rpm, slow = a calm idle spin (listening / processing). */
-  speed?: 'slow' | 'normal'
+  /** normal = 33 1/3 rpm, slow = a calm spin (listening / processing), idle = a barely-there drift (a resting hero). */
+  speed?: 'slow' | 'normal' | 'idle'
   /** Content of the center label (an Icon, a short time…). */
   label?: ReactNode
   /** Image for the center label (a cover). */
@@ -20,13 +22,22 @@ export interface VinylProps {
   progress?: number
   /** Soft neumorphic round base under the record. */
   plinth?: boolean
+  /**
+   * Accent glow behind the record: 'breathe' = slow pulse with ripples inviting a tap (a resting hero),
+   * 'live' = follows `level` (microphone input) with quicker ripples. None under reduced motion (a still glow).
+   */
+  halo?: 'breathe' | 'live'
+  /** 0..1 input level for halo="live" (a MotionValue avoids re-rendering at the meter rate). */
+  level?: MotionValue<number>
   onClick?: () => void
+  /** Interface sound on tap (default 'vinyl', a soft piano note); false = none. */
+  sound?: UiSound | false
   ariaLabel?: string
   className?: string
 }
 
 /** Degrees per second. 33 1/3 rpm = 200 deg/s. */
-const SPEED = { slow: 72, normal: 200 } as const
+const SPEED = { idle: 14, slow: 72, normal: 200 } as const
 
 /** Continuous rotation with inertia: eases up/down to the target speed, never jumps. */
 function useTurntable(rotate: MotionValue<number>, target: number) {
@@ -87,7 +98,10 @@ export function Vinyl({
   tonearm = 'hidden',
   progress,
   plinth = true,
+  halo,
+  level,
   onClick,
+  sound = 'vinyl',
   ariaLabel,
   className,
 }: VinylProps) {
@@ -106,12 +120,18 @@ export function Vinyl({
   const ringStroke = ((size >= 200 ? 3 : 2) * 100) / deckPx
   const p = progress == null ? null : Math.min(1, Math.max(0, progress))
   const clickable = Boolean(onClick)
+  const activate = onClick
+    ? () => {
+        if (sound) playUiSound(sound)
+        onClick()
+      }
+    : undefined
 
   const onKeyDown = clickable
     ? (e: KeyboardEvent<HTMLDivElement>) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
-          onClick?.()
+          activate?.()
         }
       }
     : undefined
@@ -124,14 +144,16 @@ export function Vinyl({
       aria-label={ariaLabel}
       aria-hidden={!clickable && !ariaLabel ? true : undefined}
       tabIndex={clickable ? 0 : undefined}
-      onClick={onClick}
+      onClick={activate}
       onKeyDown={onKeyDown}
-      whileTap={clickable ? { scale: 0.985 } : undefined}
+      whileHover={clickable ? { scale: 1.012 } : undefined}
+      whileTap={clickable ? { scale: 0.975 } : undefined}
     >
       <div
         className="ui-vinyl__deck"
         style={{ left: `${deck.cx - deck.r}%`, top: `${deck.cy - deck.r}%`, width: `${deck.r * 2}%`, height: `${deck.r * 2}%` }}
       >
+        {halo && <Halo mode={halo} level={level} still={reduced} />}
         {plinth && (
           <div className="ui-vinyl__plinth">
             <div className="ui-vinyl__well" />
@@ -165,6 +187,40 @@ export function Vinyl({
       </div>
       {arm && <Tonearm length={arm.length} playDeg={arm.playDeg} playing={tonearm === 'play'} />}
     </motion.div>
+  )
+}
+
+const RIPPLES = [0, 1]
+
+/** Accent glow and soft ripples behind the record (transform and opacity only). */
+function Halo({ mode, level, still }: { mode: 'breathe' | 'live'; level?: MotionValue<number>; still: boolean }) {
+  const fallback = useMotionValue(0)
+  const smooth = useSpring(level ?? fallback, { stiffness: 180, damping: 22 })
+  const liveScale = useTransform(smooth, (v) => 1 + Math.min(1, v) * 0.22)
+  const liveOpacity = useTransform(smooth, (v) => 0.5 + Math.min(1, v) * 0.5)
+  const period = mode === 'live' ? 1.8 : 3.2
+  return (
+    <div className="ui-vinyl__halo" aria-hidden="true">
+      {mode === 'live' && !still ? (
+        <motion.span className="ui-vinyl__glow" style={{ scale: liveScale, opacity: liveOpacity }} />
+      ) : (
+        <motion.span
+          className="ui-vinyl__glow"
+          animate={still ? { transform: 'scale(1)', opacity: 0.7 } : { transform: ['scale(0.96)', 'scale(1.05)'], opacity: [0.55, 0.9] }}
+          transition={still ? { duration: 0 } : breathe}
+        />
+      )}
+      {!still &&
+        RIPPLES.map((i) => (
+          <motion.span
+            key={i}
+            className="ui-vinyl__ripple"
+            initial={{ transform: 'scale(0.92)', opacity: 0 }}
+            animate={{ transform: ['scale(0.92)', 'scale(1.2)'], opacity: [0, mode === 'live' ? 0.55 : 0.4, 0] }}
+            transition={{ duration: period, ease: 'easeOut', repeat: Infinity, delay: (i * period) / RIPPLES.length, times: [0, 0.2, 1] }}
+          />
+        ))}
+    </div>
   )
 }
 

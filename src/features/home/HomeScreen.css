@@ -3,7 +3,37 @@
 /* A wordmark rather than a page title: smaller than the other tabs' titles, so the vinyl leads. */
 .home-topbar .ui-topbar__title {
   font-size: 26px;
-  letter-spacing: -0.035em;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.home-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The brand mark (staff + record) on an accent-gradient tile, like the app icon. */
+.home-brand__mark {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--accent-gradient);
+  box-shadow: 0 6px 14px -6px var(--accent-glow), var(--highlight);
+  position: relative;
+}
+
+.home-brand__mark {
+  display: inline-grid;
+  place-items: center;
+}
+
+/* The black mark drawn white on the gradient tile. */
+.home-brand__mark img {
+  width: 24px;
+  height: 24px;
+  filter: brightness(0) invert(1);
 }
 
 .home-hero {
@@ -33,9 +63,10 @@
 }
 
 .home-hero__hint {
-  margin-top: var(--s-2);
+  margin-top: var(--s-3);
   font-size: var(--fs-body);
-  font-weight: 600;
+  font-weight: 650;
+  letter-spacing: -0.01em;
   color: var(--ink-2);
 }
 
@@ -74,7 +105,7 @@
   position: relative;
   display: block;
   border-radius: var(--r-md);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
   text-align: left;
   -webkit-touch-callout: none;
 }

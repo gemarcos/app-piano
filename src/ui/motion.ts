@@ -27,13 +27,13 @@ const exitFade = [0.4, 0, 1, 1] as const
  */
 export const pageVariants: { tab: Variants; push: Variants } = {
   tab: {
-    initial: { opacity: 0, y: 12 },
-    enter: { opacity: 1, y: 0, x: 0, transition: { duration: 0.34, ease } },
+    initial: { opacity: 0, y: 14, scale: 0.99 },
+    enter: { opacity: 1, y: 0, x: 0, scale: 1, transition: { duration: 0.38, ease } },
     exit: { opacity: 0, y: -6, transition: { duration: 0.16, ease, opacity: { duration: 0.16, ease: exitFade } } },
   },
   push: {
-    initial: (dir: number = 1) => ({ opacity: 0, x: 28 * dir }),
-    enter: { opacity: 1, x: 0, y: 0, transition: { duration: 0.36, ease } },
+    initial: (dir: number = 1) => ({ opacity: 0, x: 32 * dir }),
+    enter: { opacity: 1, x: 0, y: 0, transition: { duration: 0.38, ease } },
     exit: (dir: number = 1) => ({
       opacity: 0,
       x: -18 * dir,
@@ -54,10 +54,22 @@ export function fadeUp(delay = 0, distance = 12) {
 /** Staggered list: <motion.ul variants={listContainer} initial="hidden" animate="show"> + <motion.li variants={listItem}>. */
 export const listContainer: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.04, delayChildren: 0.02 } },
+  show: { transition: { staggerChildren: 0.05, delayChildren: 0.03 } },
 }
 
 export const listItem: Variants = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.36, ease } },
+  hidden: { opacity: 0, y: 14, scale: 0.98 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.42, ease } },
 }
+
+/** The i-th block of a screen rising in after the page (use where variants cannot propagate). */
+export function reveal(index: number, distance = 14) {
+  return {
+    initial: { opacity: 0, y: distance },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.46, ease, delay: 0.05 + index * 0.06 },
+  }
+}
+
+/** A gentle, endless breathing loop (glows, halos). Do not use when motion is reduced. */
+export const breathe = { duration: 3.6, ease: 'easeInOut', repeat: Infinity, repeatType: 'mirror' } as const

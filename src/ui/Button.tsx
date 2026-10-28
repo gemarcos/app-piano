@@ -3,6 +3,7 @@ import { motion } from 'motion/react'
 import { Icon, type IconComponent } from './Icon'
 import { Spinner } from './Progress'
 import { spring, tapScale } from './motion'
+import { playUiSound, type UiSound } from './sound'
 import { cx } from './cx'
 import './Button.css'
 
@@ -24,10 +25,15 @@ export interface ButtonProps {
   type?: 'button' | 'submit' | 'reset'
   ariaLabel?: string
   autoFocus?: boolean
+  /** Interface sound on click (default 'tap'); false for buttons whose action makes its own sound. */
+  sound?: UiSound | false
   className?: string
   style?: CSSProperties
   ref?: Ref<HTMLButtonElement>
 }
+
+/** Hover lift for pointer devices (motion ignores touch for hover). */
+const hoverLift = { y: -1.5 } as const
 
 const BTN_ICON: Record<ButtonSize, number> = { sm: 16, md: 20, lg: 20 }
 
@@ -45,22 +51,31 @@ export function Button({
   type = 'button',
   ariaLabel,
   autoFocus,
+  sound = 'tap',
   className,
   style,
   ref,
 }: ButtonProps) {
   const inert = disabled || loading
   const iconSize = BTN_ICON[size]
+  const handleClick: MouseEventHandler<HTMLButtonElement> | undefined =
+    onClick || sound
+      ? (e) => {
+          if (sound) playUiSound(sound)
+          onClick?.(e)
+        }
+      : undefined
   return (
     <motion.button
       ref={ref}
       type={type}
       className={cx('ui-btn', `ui-btn--${variant}`, `ui-btn--${size}`, full && 'ui-btn--full', loading && 'is-loading', className)}
-      onClick={onClick}
+      onClick={handleClick}
       disabled={inert}
       aria-busy={loading || undefined}
       aria-label={ariaLabel}
       autoFocus={autoFocus}
+      whileHover={inert || variant === 'ghost' ? undefined : hoverLift}
       whileTap={inert ? undefined : tapScale}
       transition={spring}
       style={style}
@@ -101,6 +116,8 @@ export interface IconButtonProps {
   type?: 'button' | 'submit' | 'reset'
   /** Override the icon size (defaults: 20 / 24 / 24 / 28). */
   iconSize?: number
+  /** Interface sound on click: default 'tap', or toggleOn/toggleOff for buttons with `pressed`; false = none. */
+  sound?: UiSound | false
   className?: string
   style?: CSSProperties
   ref?: Ref<HTMLButtonElement>
@@ -121,18 +138,24 @@ export function IconButton({
   disabled = false,
   type = 'button',
   iconSize,
+  sound,
   className,
   style,
   ref,
 }: IconButtonProps) {
   const inert = disabled || loading
   const glyph = iconSize ?? ICON_BTN_ICON[size]
+  const cue: UiSound | false = sound ?? (pressed === undefined ? 'tap' : pressed ? 'toggleOff' : 'toggleOn')
+  const handleClick: MouseEventHandler<HTMLButtonElement> = (e) => {
+    if (cue) playUiSound(cue)
+    onClick?.(e)
+  }
   return (
     <motion.button
       ref={ref}
       type={type}
       className={cx('ui-iconbtn', `ui-iconbtn--${variant}`, `ui-iconbtn--${size}`, active && 'is-active', loading && 'is-loading', className)}
-      onClick={onClick}
+      onClick={handleClick}
       disabled={inert}
       aria-label={label}
       title={label}

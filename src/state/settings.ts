@@ -20,6 +20,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sustainPedal: true,
   transcriptionModel: 'auto',
   pianoSound: 'grand',
+  uiSounds: true,
 }
 
 const SETTINGS_KEYS = Object.keys(DEFAULT_SETTINGS) as (keyof Settings)[]

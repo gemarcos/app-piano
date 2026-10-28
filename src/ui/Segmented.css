@@ -75,7 +75,20 @@
   inset: 0;
   border-radius: var(--r-pill);
   background: var(--raised);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), var(--edge);
+}
+
+/* The chosen icon takes the accent; pressing a segment dips its content (transform only). */
+.ui-seg__item.is-selected .ui-icon {
+  color: var(--accent);
+}
+
+.ui-seg__content {
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.ui-seg__item:active .ui-seg__content {
+  transform: scale(0.93);
 }
 
 .ui-seg__content {

@@ -43,27 +43,31 @@
 }
 
 .ui-tabbar__item.is-active {
-  color: var(--ink);
+  color: var(--on-accent);
 }
 
-.ui-tabbar__item .ui-icon {
+.ui-tabbar__glyph {
   position: relative;
   z-index: 1;
-}
-
-.ui-tabbar__item:active .ui-icon {
-  transform: scale(0.92);
+  display: grid;
+  place-items: center;
 }
 
 .ui-tabbar__item .ui-icon {
   transition: transform var(--dur-fast) var(--ease);
 }
 
+.ui-tabbar__item:active .ui-icon {
+  transform: scale(0.9);
+}
+
+/* Active tab: the accent pill with a soft glow (slides between tabs with layoutId). */
 .ui-tabbar__indicator {
   position: absolute;
   inset: 0;
   border-radius: var(--r-pill);
-  background: var(--fill);
+  background: var(--accent-gradient);
+  box-shadow: 0 8px 18px -6px var(--accent-glow), var(--highlight);
 }
 
 @media (hover: hover) {

@@ -17,13 +17,28 @@
   stroke: var(--track);
 }
 
-.ui-ring__arc {
+.ui-ring__arc,
+.ui-ring__halo {
   fill: none;
-  stroke: var(--accent);
   stroke-linecap: round;
-  transition:
-    stroke-dashoffset 0.5s var(--ease),
-    opacity var(--dur-fast) var(--ease);
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.ui-ring__halo {
+  opacity: 0.14;
+}
+
+/* Glowing head at the end of the arc (positioned by the same spring as the arc). */
+.ui-ring__head {
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.ui-ring__head-glow {
+  fill: var(--accent-glow);
+}
+
+.ui-ring__head-dot {
+  fill: var(--surface);
 }
 
 .ui-ring.is-indeterminate .ui-ring__svg {

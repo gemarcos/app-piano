@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { ChevronRight } from '@untitled-ui/icons-react'
-import { Icon } from './Icon'
+import { Icon, type IconComponent } from './Icon'
+import { playUiSound } from './sound'
 import type { PressHandlers } from './Card'
 import { cx } from './cx'
 import './List.css'
@@ -74,7 +75,10 @@ export function ListRow({
       <button
         type="button"
         className={classes}
-        onClick={onClick}
+        onClick={() => {
+          playUiSound('tap')
+          onClick()
+        }}
         disabled={disabled}
         aria-label={ariaLabel}
         aria-current={current || undefined}
@@ -94,6 +98,8 @@ export function ListRow({
 
 export interface SettingsGroupProps {
   title?: ReactNode
+  /** Small accent tile before the title. */
+  icon?: IconComponent
   children: ReactNode
   /** Small explanatory line under the card. */
   footer?: ReactNode
@@ -101,10 +107,19 @@ export interface SettingsGroupProps {
 }
 
 /** Card of rows separated by hairlines, with an optional caption above and footnote below. */
-export function SettingsGroup({ title, children, footer, className }: SettingsGroupProps) {
+export function SettingsGroup({ title, icon, children, footer, className }: SettingsGroupProps) {
   return (
     <section className={cx('ui-group', className)}>
-      {title != null && <h3 className="ui-group__title">{title}</h3>}
+      {title != null && (
+        <h3 className="ui-group__title">
+          {icon && (
+            <span className="ui-group__icon" aria-hidden="true">
+              <Icon icon={icon} size={14} />
+            </span>
+          )}
+          {title}
+        </h3>
+      )}
       <div className="ui-group__card">{children}</div>
       {footer != null && <p className="ui-group__footer">{footer}</p>}
     </section>

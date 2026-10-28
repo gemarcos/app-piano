@@ -10,6 +10,8 @@
   /* Push transitions slide pages sideways: without clipping, mobile browsers zoom the page out to fit the
      overflow for the length of the slide. clip (unlike hidden) keeps sticky bars working. */
   overflow-x: clip;
+  /* Own stacking context: the Backdrop (z-index -1) paints above the column background, below the screens. */
+  isolation: isolate;
 }
 
 @media (min-width: 520px) {
@@ -130,8 +132,9 @@
 
 .ui-topbar--large .ui-topbar__title {
   font-size: var(--fs-display);
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  font-weight: var(--fw-display);
+  letter-spacing: -0.04em;
+  line-height: 1.08;
 }
 
 .ui-topbar--large .ui-topbar__subtitle {
@@ -190,8 +193,8 @@
 
 .ui-section__title {
   font-size: var(--fs-h2);
-  font-weight: 700;
-  letter-spacing: -0.015em;
+  font-weight: 750;
+  letter-spacing: -0.025em;
   line-height: 1.25;
 }
 

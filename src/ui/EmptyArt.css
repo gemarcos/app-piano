@@ -1,0 +1,77 @@
+.ui-emptyart {
+  position: relative;
+  width: min(66vw, 240px);
+  aspect-ratio: 220 / 140;
+}
+
+.ui-emptyart__glow {
+  position: absolute;
+  inset: -20% -10%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--accent-glow), transparent);
+  opacity: 0.45;
+}
+
+.ui-emptyart__svg {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.ui-emptyart__staff {
+  stroke: var(--line-strong);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.ui-emptyart__halo {
+  fill: var(--bg);
+}
+
+.ui-emptyart__disc {
+  fill: var(--vinyl);
+  filter: drop-shadow(0 8px 10px var(--arm-shadow));
+}
+
+.ui-emptyart__groove {
+  fill: none;
+  stroke: var(--vinyl-groove);
+  stroke-width: 1.4;
+}
+
+.ui-emptyart__label {
+  fill: var(--accent);
+}
+
+.ui-emptyart__mark {
+  fill: var(--on-accent);
+}
+
+.ui-emptyart__spindle {
+  fill: var(--vinyl-label);
+}
+
+.ui-emptyart__note ellipse {
+  fill: var(--accent);
+}
+
+.ui-emptyart__note line {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.ui-emptyart__lens circle {
+  fill: var(--surface);
+  fill-opacity: 0.6;
+  stroke: var(--ink-2);
+  stroke-width: 4;
+}
+
+.ui-emptyart__lens line {
+  stroke: var(--ink-2);
+  stroke-width: 6;
+  stroke-linecap: round;
+}

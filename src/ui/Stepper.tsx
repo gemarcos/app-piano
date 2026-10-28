@@ -3,6 +3,7 @@ import { motion } from 'motion/react'
 import { Minus, Plus } from '@untitled-ui/icons-react'
 import { Icon, type IconComponent } from './Icon'
 import { spring } from './motion'
+import { playUiSound } from './sound'
 import { cx } from './cx'
 import './Stepper.css'
 
@@ -82,8 +83,16 @@ export function Stepper({ value, min, max, step = 1, onChange, format, ariaLabel
 }
 
 function StepButton({ icon, label, disabled, onStep }: { icon: IconComponent; label: string; disabled: boolean; onStep: () => boolean }) {
-  const stepRef = useRef(onStep)
-  stepRef.current = onStep
+  const stepRef = useRef(() => {
+    const moved = onStep()
+    if (moved) playUiSound('select')
+    return moved
+  })
+  stepRef.current = () => {
+    const moved = onStep()
+    if (moved) playUiSound('select')
+    return moved
+  }
   const timer = useRef<number | null>(null)
 
   const stop = useCallback(() => {

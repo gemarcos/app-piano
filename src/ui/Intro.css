@@ -1,0 +1,109 @@
+/* Launch intro (Intro.tsx): over the app while it loads underneath. */
+
+.ui-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background-color: var(--bg);
+  background-image: var(--bg-gradient);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ui-intro__glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(140vw, 680px);
+  aspect-ratio: 1;
+  margin: calc(min(140vw, 680px) / -2) 0 0 calc(min(140vw, 680px) / -2);
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side at 42% 44%, var(--aurora-1), transparent),
+    radial-gradient(closest-side at 62% 58%, var(--aurora-2), transparent);
+  pointer-events: none;
+}
+
+.ui-intro__stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  margin-top: -6vh;
+}
+
+.ui-intro__mark {
+  position: relative;
+  width: min(64vw, 248px);
+  aspect-ratio: 240 / 72;
+}
+
+.ui-intro__staff {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.ui-intro__staff line {
+  stroke: var(--ink);
+  stroke-opacity: 0.82;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+/* The record sits on the staff like the brand mark (58 % across), with a page-coloured gap around it. */
+.ui-intro__disc {
+  position: absolute;
+  left: 58%;
+  top: 50%;
+  width: 34%;
+  aspect-ratio: 1;
+  margin: -17% 0 0 -17%;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(circle at center, var(--vinyl-groove) 0 0.6px, transparent 1px 2.6px),
+    radial-gradient(circle closest-side, var(--vinyl) 0 95%, var(--vinyl-edge) 98%, var(--vinyl) 100%);
+  box-shadow:
+    0 0 0 7px var(--bg),
+    0 14px 26px 6px rgba(20, 20, 60, 0.22);
+}
+
+.ui-intro__label {
+  position: absolute;
+  inset: 33%;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.25);
+}
+
+/* The label mark (off-centre dot) makes the roll visible. */
+.ui-intro__label::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 14%;
+  width: 18%;
+  height: 18%;
+  margin-left: -9%;
+  border-radius: 50%;
+  background: var(--on-accent);
+}
+
+.ui-intro__word {
+  display: flex;
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.ui-intro__word > span {
+  display: inline-block;
+}

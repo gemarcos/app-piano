@@ -5,7 +5,7 @@ import type { NoteNaming, ScoreDoc } from '../../types'
 import { getCover } from '../../assets/images'
 import { keyName } from '../../engine/score'
 import { formatTime } from '../../lib/format'
-import { Cover, IconButton, cx, useLongPress } from '../../ui'
+import { Cover, IconButton, cx, playUiSound, useLongPress } from '../../ui'
 import './LibraryItems.css'
 
 /** "Sol mayor" in the user's note naming ('none' reads like Do Re Mi). */
@@ -55,7 +55,10 @@ export function ScoreRow({ doc, naming, onOpen, onMore, onToggleFavorite }: Item
   const longPress = useLongPress(() => onMore(doc))
   return (
     <div className="lib-row">
-      <button type="button" className="lib-row__main" onClick={() => onOpen(doc)} {...longPress}>
+      <button type="button" className="lib-row__main" onClick={() => {
+        playUiSound('tap')
+        onOpen(doc)
+      }} {...longPress}>
         <Cover src={getCover(doc.coverId)?.src} seed={doc.id} size={56} className="lib-row__cover" style={ROW_COVER} />
         <span className="lib-row__text">
           <span className="lib-row__title">{doc.title}</span>
@@ -76,7 +79,10 @@ export function ScoreTile({ doc, naming, onOpen, onMore, onToggleFavorite }: Ite
   const key = keyLabel(doc, naming)
   return (
     <div className="lib-tile">
-      <button type="button" className="lib-tile__main" onClick={() => onOpen(doc)} {...longPress}>
+      <button type="button" className="lib-tile__main" onClick={() => {
+        playUiSound('tap')
+        onOpen(doc)
+      }} {...longPress}>
         <Cover src={getCover(doc.coverId)?.src} seed={doc.id} size={200} className="lib-tile__cover" style={TILE_COVER} />
         <span className="lib-tile__caption">
           <span className="lib-tile__title">{doc.title}</span>

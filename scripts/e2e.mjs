@@ -409,19 +409,19 @@ async function settingsTheme() {
     body: getComputedStyle(document.body).backgroundColor,
     meta: document.querySelector('meta[name="theme-color"]')?.getAttribute('content'),
   }))
-  if (dark.bg !== '#0f1015') throw new Error(`--bg is ${dark.bg} in dark mode`)
+  if (dark.bg !== '#0c0d13') throw new Error(`--bg is ${dark.bg} in dark mode`)
   // The rest of the app follows.
   await page.click('nav[aria-label="Principal"] a[aria-label="Biblioteca"]')
   await waitTitle('Biblioteca')
   const elsewhere = await page.evaluate(() => getComputedStyle(document.querySelector('.ui-topbar__title')).color)
-  if (elsewhere !== 'rgb(242, 243, 247)') throw new Error(`library title color ${elsewhere} in dark mode`)
+  if (elsewhere !== 'rgb(242, 243, 248)') throw new Error(`library title color ${elsewhere} in dark mode`)
   await page.click('nav[aria-label="Principal"] a[aria-label="Ajustes"]')
   await waitTitle('Ajustes')
   await clickSegment('Tema', 'Sistema')
   await page.waitForFunction(() => !document.documentElement.dataset.theme, { timeout: 3000, polling: 50 })
   await sleep(500)
   const light = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bg').trim())
-  if (light !== '#eeeef5') throw new Error(`--bg is ${light} back on Sistema (light OS)`)
+  if (light !== '#eef0f8') throw new Error(`--bg is ${light} back on Sistema (light OS)`)
   return `data-theme=dark, --bg ${dark.bg}, theme-color ${dark.meta}, body ${dark.body}; library follows; Sistema -> light`
 }
 

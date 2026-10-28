@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useSpring, useTransform } from 'motion/react'
-import { XClose } from '@untitled-ui/icons-react'
+import { Check, XClose } from '@untitled-ui/icons-react'
 import { getSettings } from '../../state/settings'
-import { Button, IconButton, Page, ProgressRing, TopBar, Vinyl, ease } from '../../ui'
+import { Button, Celebration, Icon, IconButton, Page, ProgressRing, TopBar, Vinyl, cx, ease, playUiSound } from '../../ui'
 import { HeroVinyl } from './HeroVinyl'
 import { isAbortError, startPipeline, type PipelineInput, type PipelineJob } from './pipeline'
 import { STAGE_LABELS, type PipelineStage } from './selection'
@@ -13,8 +13,8 @@ import { getCapture, useCaptureStore } from './store'
 import { useGoBack, useViewportSize } from './util'
 import './ProcessingScreen.css'
 
-/** Pause on 100 % before opening the score, so the ring visibly completes. */
-const SUCCESS_BEAT_MS = 700
+/** Pause on 100 % before opening the score: the ring completes and the "ready" burst and chime play. */
+const SUCCESS_BEAT_MS = 1000
 const NBSP = ' '
 
 type Input = Omit<PipelineInput, 'settings'> & { retryBack?: boolean }
@@ -38,7 +38,9 @@ function Percent({ value }: { value: number }) {
   const spring = useSpring(0, { stiffness: 140, damping: 26, restDelta: 0.1 })
   const text = useTransform(spring, (v) => `${Math.round(v)}${NBSP}%`)
   useEffect(() => {
-    spring.set(value * 100)
+    // Done: land on 100 at once, in time with the check and the burst.
+    if (value >= 1) spring.jump(100)
+    else spring.set(value * 100)
   }, [spring, value])
   return <motion.span className="cap-proc__percent tabular">{text}</motion.span>
 }
@@ -74,9 +76,11 @@ function ProcessingView({ input }: { input: Input }) {
         (result) => {
           if (!alive) return
           if (result.status === 'empty') {
+            playUiSound('error')
             setPhase('empty')
             return
           }
+          playUiSound('success')
           setPhase('done')
           setProgress(1)
           setStage('done')
@@ -88,6 +92,7 @@ function ProcessingView({ input }: { input: Input }) {
         },
         (err: unknown) => {
           if (!alive || isAbortError(err)) return
+          playUiSound('error')
           setMessage((err as Error)?.message || 'No se pudo transcribir el audio.')
           setPhase('error')
         },
@@ -120,12 +125,28 @@ function ProcessingView({ input }: { input: Input }) {
   return (
     <Page variant="tab" className="cap-proc">
       <TopBar left={phase !== 'done' && <IconButton icon={XClose} label="Cancelar" onClick={cancel} />} />
-      <div className="cap-proc__stage">
-        <ProgressRing value={busy ? progress : 0} size={ring} stroke={4} ariaLabel="Progreso de la transcripción">
-          <HeroVinyl className="cap-proc__vinyl">
-            <Vinyl size={ring - 40} spinning={phase === 'running'} speed="slow" plinth={false} />
-          </HeroVinyl>
-        </ProgressRing>
+      <div className={cx('cap-proc__stage', phase === 'done' && 'is-done')} data-phase={phase}>
+        <div className="cap-proc__ringwrap">
+          <ProgressRing value={busy ? progress : 0} size={ring} stroke={4} ariaLabel="Progreso de la transcripción">
+            <HeroVinyl className="cap-proc__vinyl">
+              <Vinyl size={ring - 40} spinning={phase === 'running'} speed="slow" plinth={false} />
+            </HeroVinyl>
+          </ProgressRing>
+          <AnimatePresence>
+            {phase === 'done' && (
+              <motion.span
+                key="check"
+                className="cap-proc__check"
+                initial={{ scale: 0.3, opacity: 0, rotate: -30 }}
+                animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 16 }}
+              >
+                <Icon icon={Check} size={30} />
+              </motion.span>
+            )}
+          </AnimatePresence>
+          {phase === 'done' && <Celebration size={ring + 120} />}
+        </div>
         <AnimatePresence mode="wait" initial={false}>
           {busy ? (
             <motion.div
