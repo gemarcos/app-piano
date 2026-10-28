@@ -1,16 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="pauta-fav-bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#5B7CFA"/>
-      <stop offset="1" stop-color="#6A5CF6"/>
-    </linearGradient>
     <mask id="pauta-fav-gap">
       <rect width="64" height="64" fill="#fff"/>
       <circle cx="37" cy="32" r="16" fill="#000"/>
     </mask>
   </defs>
-  <rect width="64" height="64" rx="15" fill="url(#pauta-fav-bg)"/>
-  <path d="M0 22H64M0 32H64M0 42H64" stroke="#fff" stroke-width="3.2" mask="url(#pauta-fav-gap)"/>
-  <circle cx="37" cy="32" r="13" fill="#fff"/>
-  <circle cx="37" cy="32" r="3.4" fill="url(#pauta-fav-bg)"/>
+  <rect width="64" height="64" rx="15" fill="#1B1A17"/>
+  <path d="M0 22H64M0 32H64M0 42H64" stroke="#F4F1E9" stroke-width="3.2" mask="url(#pauta-fav-gap)"/>
+  <circle cx="37" cy="32" r="13" fill="#F4F1E9"/>
+  <circle cx="37" cy="32" r="3.4" fill="#C4371D"/>
 </svg>

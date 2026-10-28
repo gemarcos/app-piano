@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { Edit05, Headphones01, Microphone01, Monitor01, Moon01, Palette, Sun, Waves } from '@untitled-ui/icons-react'
+import { Monitor01, Moon01, Sun } from '@untitled-ui/icons-react'
 import { useSettings } from '../../state/settings'
 import type { Difficulty, NoteNaming, QuantizeGrid, ThemePreference, TranscriptionModel } from '../../types'
 import { pitchName } from '../../engine/score'
@@ -103,7 +103,7 @@ function AppearanceGroup() {
     if (v !== theme) switchTheme(v, () => set('theme', v), !reduced)
   }
   return (
-    <SettingsGroup title="Apariencia" icon={Palette}>
+    <SettingsGroup title="Apariencia">
       <ListRow title="Tema">
         <Below>
           <Segmented full options={THEMES} value={theme} onChange={onTheme} ariaLabel="Tema" />
@@ -125,7 +125,7 @@ function NotationGroup() {
   const naming = useSettings((s) => s.noteNaming)
   const set = useSettings((s) => s.set)
   return (
-    <SettingsGroup title="Notación" icon={Edit05}>
+    <SettingsGroup title="Notación">
       <ListRow title="Nombres de notas">
         <Below>
           <Segmented full options={NAMINGS} value={naming} onChange={(v) => set('noteNaming', v)} ariaLabel="Nombres de notas" />
@@ -145,7 +145,7 @@ function TranscriptionGroup() {
   const model = useSettings((s) => s.transcriptionModel)
   const set = useSettings((s) => s.set)
   return (
-    <SettingsGroup title="Transcripción" icon={Waves} footer="Se aplica a las próximas transcripciones.">
+    <SettingsGroup title="Transcripción" footer="Se aplica a las próximas transcripciones.">
       <ListRow title="Modelo" subtitle="Piano es más preciso">
         <Below>
           <Segmented full options={MODELS} value={model} onChange={(v) => set('transcriptionModel', v)} ariaLabel="Modelo de transcripción" />
@@ -199,7 +199,7 @@ function RecordingGroup() {
   const keepAudio = useSettings((s) => s.keepOriginalAudio)
   const set = useSettings((s) => s.set)
   return (
-    <SettingsGroup title="Grabación" icon={Microphone01}>
+    <SettingsGroup title="Grabación">
       <ListRow title="Duración máxima">
         <Below>
           <Segmented
@@ -228,7 +228,7 @@ function PlaybackGroup() {
   const volume = useSettings((s) => Math.round(s.playbackVolume * 100))
   const set = useSettings((s) => s.set)
   return (
-    <SettingsGroup title="Reproducción" icon={Headphones01}>
+    <SettingsGroup title="Reproducción">
       <ListRow title="Timbre">
         <Below>
           <Segmented full options={PIANO_SOUND_OPTIONS} value={pianoSound} onChange={setPianoSound} ariaLabel="Timbre" />

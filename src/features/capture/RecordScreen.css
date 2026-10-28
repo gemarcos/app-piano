@@ -100,8 +100,9 @@
   padding-bottom: var(--s-6);
 }
 
-.cap-record__button {
-  color: var(--ink);
+/* Ink to start; vermilion while it records (the stop sign of a take in progress). */
+.cap-record__button.ui-iconbtn--ink {
+  color: var(--ink-inverse);
 }
 
 /* The Untitled "Stop" glyph is an outlined rounded square: fill it for a solid stop sign. */

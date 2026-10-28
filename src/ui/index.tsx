@@ -23,7 +23,6 @@ export { ListRow, SettingsGroup, type ListRowProps, type SettingsGroupProps } fr
 export { EmptyState, type EmptyStateProps, type EmptyStateAction } from './EmptyState'
 export { EmptyArt, type EmptyArtProps } from './EmptyArt'
 export { Intro } from './Intro'
-export { Celebration, type CelebrationProps } from './Celebration'
 export { playUiSound, useUiSoundsBlocked, installUiSoundUnlock, uiSounds, UI_SOUNDS, type UiSound } from './sound'
 export { Cover, type CoverProps } from './Cover'
 export { Vinyl, type VinylProps } from './Vinyl'

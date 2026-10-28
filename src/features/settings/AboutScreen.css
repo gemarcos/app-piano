@@ -13,7 +13,7 @@
   width: 80px;
   height: 80px;
   border-radius: 22.6%;
-  box-shadow: var(--shadow-accent);
+  box-shadow: none;
 }
 
 .set-about__id {
@@ -54,7 +54,7 @@
 }
 
 .set-about__heading {
-  padding: 0 var(--s-1) var(--s-2);
+  padding: 0 0 var(--s-2);
   font-size: var(--fs-caption);
   font-weight: 600;
   letter-spacing: 0;
@@ -63,26 +63,25 @@
 
 /* ---------- Credit lists ---------- */
 
+/* Rows on the page between hairlines, as in Ajustes. */
 .set-credits {
-  overflow: hidden;
-  border-radius: var(--r-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 
 .set-credit {
-  --inset: var(--s-4);
+  --inset: 0px;
   position: relative;
   display: flex;
   align-items: center;
   gap: var(--s-3);
   min-height: 60px;
-  padding: 10px var(--s-4);
+  padding: 10px 0;
   transition: background-color var(--dur-fast) var(--ease);
 }
 
 .set-credit:has(.set-credit__thumb) {
-  --inset: calc(var(--s-4) + 40px + var(--s-3));
+  --inset: calc(40px + var(--s-3));
 }
 
 .set-credit + .set-credit::before {
@@ -93,8 +92,6 @@
   right: 0;
   height: 1px;
   background: var(--line);
-  transform: scaleY(0.6);
-  transform-origin: top;
   pointer-events: none;
 }
 
@@ -112,7 +109,7 @@
   flex: none;
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: var(--r-xs);
   object-fit: cover;
   background: var(--surface-2);
 }

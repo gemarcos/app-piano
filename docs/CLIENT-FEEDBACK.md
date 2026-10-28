@@ -4,6 +4,10 @@ Feedback from the client, relayed during development. Newest first. Every agent:
 
 <!-- entries: "## YYYY-MM-DD HH:MM — area" followed by the request -->
 
+## 2026-10-28 12:30 — UI with its own identity (no generic AI look); work in parts with feedback
+
+The client asked for a professional interface with its own visual identity, avoiding generic AI patterns (decorative gradients, glows and blobs, cards in cards, big radii everywhere, shadows on everything, card grids by default, decorative badges and icons, show-off animations), with a clear hierarchy and every state cared for. Work in parts, with feedback (images) after each change and less overthinking. Applied direction «Papel pautado» (see docs/UI-KIT.md): paper and ink, one vermilion accent with a job, Newsreader serif for titles and works, hairlines instead of cards, flat bottom bars. The intro and interface sounds stay (requested earlier), the decorative backdrop, burst and glows are gone.
+
 ## 2026-10-28 09:05 — PROFESSIONAL (commercial) use: remove what cannot be used
 
 **Decision: Pauta is for professional, commercial use.** Remove anything that cannot be used commercially; everything else stays and gets better. Consequences decided by the lead:

@@ -6,7 +6,7 @@ import { motion } from 'motion/react'
 import { MusicNote01, Play, VideoRecorder } from '@untitled-ui/icons-react'
 import { computePeaks, type DecodedMedia } from '../../engine/audio'
 import { formatTime } from '../../lib/format'
-import { BackButton, BottomBar, Button, Card, Icon, IconButton, Page, PauseIcon, TopBar, fadeUp } from '../../ui'
+import { BackButton, BottomBar, Button, Icon, IconButton, Page, PauseIcon, TopBar, fadeUp } from '../../ui'
 import { normalizeSelection } from './selection'
 import { getCapture, useCaptureStore, type CaptureRange } from './store'
 import { TrimWaveform } from './TrimWaveform'
@@ -114,7 +114,7 @@ function ImportView({ decoded }: { decoded: DecodedMedia }) {
         </motion.div>
 
         <motion.div className="cap-import__trim" {...fadeUp(0.1)}>
-          <Card padding="lg" className="cap-import__card">
+          <div className="cap-import__card">
             <TrimWaveform
               peaks={peaks}
               duration={duration}
@@ -129,11 +129,11 @@ function ImportView({ decoded }: { decoded: DecodedMedia }) {
                 {formatTime(selection.start)} – {formatTime(selection.end)}
               </span>
             </p>
-          </Card>
+          </div>
           <IconButton
             icon={preview.playing ? PauseIcon : Play}
             label={preview.playing ? 'Pausar' : 'Escuchar la selección'}
-            variant="neu"
+            variant="surface"
             size="lg"
             className="cap-import__play"
             onClick={toggle}
@@ -141,7 +141,7 @@ function ImportView({ decoded }: { decoded: DecodedMedia }) {
         </motion.div>
       </div>
       <BottomBar>
-        <Button variant="accent" size="lg" onClick={transcribe}>
+        <Button variant="ink" size="lg" onClick={transcribe}>
           Transcribir
         </Button>
       </BottomBar>

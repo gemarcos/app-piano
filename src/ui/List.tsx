@@ -98,27 +98,18 @@ export function ListRow({
 
 export interface SettingsGroupProps {
   title?: ReactNode
-  /** Small accent tile before the title. */
-  icon?: IconComponent
   children: ReactNode
   /** Small explanatory line under the card. */
   footer?: ReactNode
   className?: string
 }
 
-/** Card of rows separated by hairlines, with an optional caption above and footnote below. */
-export function SettingsGroup({ title, icon, children, footer, className }: SettingsGroupProps) {
+/** Rows between hairlines (no card), with an optional heading above and footnote below. */
+export function SettingsGroup({ title, children, footer, className }: SettingsGroupProps) {
   return (
     <section className={cx('ui-group', className)}>
       {title != null && (
-        <h3 className="ui-group__title">
-          {icon && (
-            <span className="ui-group__icon" aria-hidden="true">
-              <Icon icon={icon} size={14} />
-            </span>
-          )}
-          {title}
-        </h3>
+        <h3 className="ui-group__title">{title}</h3>
       )}
       <div className="ui-group__card">{children}</div>
       {footer != null && <p className="ui-group__footer">{footer}</p>}

@@ -16,6 +16,7 @@ export const SOFTWARE: SoftwareCredit[] = [
   { name: 'abcjs', author: 'Paul Rosen, Gregory Dyke', license: 'MIT', url: 'https://github.com/paulrosen/abcjs' },
   { name: 'Untitled UI Icons', author: 'Untitled UI', license: 'MIT', url: 'https://www.untitledui.com/resources/icons' },
   { name: 'Plus Jakarta Sans', author: 'Tokotype', license: 'OFL-1.1', url: 'https://github.com/tokotype/PlusJakartaSans' },
+  { name: 'Newsreader', author: 'Production Type', license: 'OFL-1.1', url: 'https://github.com/productiontype/Newsreader' },
   { name: 'Motion', author: 'Matt Perry', license: 'MIT', url: 'https://motion.dev' },
   { name: 'Dexie.js', author: 'David Fahlander', license: 'Apache-2.0', url: 'https://dexie.org' },
   { name: 'zustand', author: 'Poimandres', license: 'MIT', url: 'https://github.com/pmndrs/zustand' },

@@ -74,9 +74,8 @@
   height: 64px;
   margin: -32px 0 0 -32px;
   border-radius: 50%;
-  background: var(--accent-gradient);
+  background: var(--accent);
   color: var(--on-accent);
-  box-shadow: 0 12px 28px -6px var(--accent-glow), var(--highlight);
 }
 
 .cap-proc__check .ui-icon path {

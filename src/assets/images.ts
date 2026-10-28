@@ -202,7 +202,7 @@ export function pickCoverId(seed: string, avoid?: Iterable<string>): string {
 /* ---------- Brand icons (public/icons) ---------- */
 
 export const brandIcons = {
-  /** Accent-gradient rounded tile with the white mark (512 viewBox). Fine as <img>. */
+  /** Ink rounded tile with the paper mark and the vermilion label (512 viewBox). Fine as <img>. */
   logo: base + 'icons/logo.svg',
   /** Mark only, black on transparent. Use as a CSS mask (`mask: url(...) center / contain no-repeat; background: currentColor`) to tint it. */
   mark: base + 'icons/mark.svg',

@@ -2,7 +2,7 @@
 // decoded take to Processing. Recording starts on mount; every exit path releases the microphone.
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { AnimatePresence, motion, useMotionValue } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { Microphone01, Stop, XClose } from '@untitled-ui/icons-react'
 import { decodeMediaFile, startRecording, type CaptureMode, type RecorderHandle } from '../../engine/audio'
 import { getSettings, useSettings } from '../../state/settings'
@@ -63,9 +63,6 @@ export function RecordScreen() {
   const maxSec = useSettings((s) => (Number.isFinite(s.maxRecordSec) && s.maxRecordSec >= 5 ? s.maxRecordSec : 90))
   const { width, height } = useViewportSize()
   const levels = useMemo(createLevelStore, [])
-  /** The level as a motion value for the vinyl's halo (no re-render at the meter rate). */
-  const level = useMotionValue(0)
-  useEffect(() => levels.subscribe(() => level.set(levels.get())), [levels, level])
 
   const [phase, setPhase] = useState<Phase>('starting')
   const [message, setMessage] = useState('')
@@ -196,8 +193,6 @@ export function RecordScreen() {
             spinning={recording}
             tonearm={recording ? 'play' : 'rest'}
             progress={recording || phase === 'stopping' ? elapsed / maxSec : undefined}
-            halo={recording ? 'live' : undefined}
-            level={level}
             ariaLabel={recording ? 'Escuchando' : undefined}
           />
         </HeroVinyl>
@@ -238,7 +233,7 @@ export function RecordScreen() {
           <IconButton
             icon={phase === 'idle' ? Microphone01 : Stop}
             label={phase === 'idle' ? 'Grabar' : 'Detener'}
-            variant="neu"
+            variant={phase === 'idle' ? 'ink' : 'accent'}
             size="xl"
             className={phase === 'idle' ? 'cap-record__button' : 'cap-record__button is-stop'}
             disabled={phase === 'starting' || phase === 'stopping'}

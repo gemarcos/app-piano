@@ -1,5 +1,13 @@
 # Pauta UI kit
 
+> **2026-10-28, direction «Papel pautado» (supersedes the colour, depth and motion notes below where they differ):**
+> warm paper and ink, one flat vermilion accent with a job (record, the note that sounds, what is active), the
+> Newsreader serif (`--font-display`) for titles and works, small radii (`--r-control` 6 px for buttons, chips,
+> search, segmented), hairlines instead of cards (SettingsGroup and lists have no card), shadows only on floating
+> sheets. Removed: `Backdrop`, `Celebration`, the Vinyl `halo`, SettingsGroup `icon`, button sweeps and gradients.
+> The tab bar is a flat labelled bottom bar with an accent rule on the active tab; the player is a flat bottom bar.
+
+
 Everything is exported from `src/ui/index.tsx`: `import { Page, TopBar, Button } from '../../ui'`.
 Live gallery (dev server only): `#/__kit`, plus layout demos `#/__kit?demo=screen` and `#/__kit?demo=tab`.
 Previews: `docs/screenshots/ui-*.png`.

@@ -128,60 +128,36 @@
 }
 
 .ui-group__title {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  padding: 0 var(--s-1) var(--s-3);
-  font-size: var(--fs-micro);
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--ink-3);
+  padding-bottom: var(--s-2);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ink-2);
 }
 
-/* Small accent tile before a group title */
-.ui-group__icon {
-  display: inline-grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
-  background: var(--accent-gradient);
-  color: var(--on-accent);
-  box-shadow: 0 4px 10px -4px var(--accent-glow), var(--highlight);
-}
-
-.ui-group__icon .ui-icon path {
-  stroke-width: 2.1;
-}
-
+/* No card: rows sit on the page between hairlines, flush with the text column. */
 .ui-group__card {
-  overflow: hidden;
-  border-radius: var(--r-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm), var(--edge);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 
 .ui-group__card > * {
   position: relative;
+  --row-px: 0px;
 }
 
-/* Hairlines between rows, inset from the left like the text */
 .ui-group__card > * + *::before {
   content: '';
   position: absolute;
   top: 0;
-  left: var(--row-px, var(--s-4));
+  left: 0;
   right: 0;
   height: 1px;
   background: var(--line);
-  transform: scaleY(0.6);
-  transform-origin: top;
   pointer-events: none;
 }
 
 .ui-group__footer {
-  padding: var(--s-2) var(--s-1) 0;
+  padding: var(--s-2) 0 0;
   font-size: var(--fs-caption);
   font-weight: 500;
   color: var(--ink-3);
