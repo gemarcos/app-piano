@@ -1,5 +1,4 @@
 // Owner: settings. Third-party software and sounds credited in Acerca de (source: docs/CREDITS.md).
-// Image credits come from allImages (src/assets/images.ts).
 
 export interface SoftwareCredit {
   name: string

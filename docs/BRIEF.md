@@ -32,7 +32,7 @@ Blend them into ONE coherent system:
 - **Typography:** `Plus Jakarta Sans Variable` (bundled via @fontsource). Titles bold (700) with slight negative tracking; secondary text medium (500) in `--ink-2`/`--ink-3`. Use tabular numbers for times/tempo (`font-variant-numeric: tabular-nums`).
 - **Shapes:** cards `--r-lg` (24px), sheets `--r-xl` top corners, pills fully rounded, covers either circles (ref 1) or `--r-md` squares (ref 2/3).
 - **Depth:** `--shadow-sm/md/lg` for cards; neumorphic raised/inset (`--shadow-neu`, `--shadow-neu-inset`) only for the few round "hardware" controls (record button, play button, transport).
-- **Images:** copyright-free photos (Unsplash/Pexels license or CC0/Public Domain), stored locally under `public/images/`, credited in `docs/CREDITS.md` and the About screen. Use them sparingly (covers, one hero, empty states).
+- **Images:** none since the «Papel pautado» redesign (see docs/UI-KIT.md): covers, empty states and the intro are drawn by the app. Any future image must be copyright-free, stored locally and credited in `docs/CREDITS.md` and the About screen.
 - **Theming:** all colors are CSS custom properties in `src/styles/tokens.css` (light default + dark via `prefers-color-scheme` guarded by `:root:not([data-theme="light"])`, and forced via `:root[data-theme="dark"]`). Never hard-code colors in components. Score SVG must be readable in dark mode (use `currentColor` / token colors).
 - **Touch:** min hit target 44×44. Respect `env(safe-area-inset-*)`. Layout works from 320px to 480px wide; on wider screens the app is a centered column (max 480px) on the page background.
 
@@ -86,7 +86,6 @@ public/
                              -> the viewer's own renderer (src/features/viewer/synth.ts, mixer.ts, pianoPlan.ts)
                                 plays them with dynamics, release and the sustain pedal; abcjs only DRAWS the score.
                                 Paths: getPianoSampleUrl, CLASSIC_PIANO_DIR, METRONOME_CLICKS in src/assets/images.ts
-  images/                    copyright-free photos (assets)
   icons/                     PWA icons + favicon (assets)
 ```
 

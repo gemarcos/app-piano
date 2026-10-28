@@ -2,26 +2,9 @@
 
 Everything Pauta ships that was made by someone else, with its license. Licenses were checked on each source page (October 2026). The machine-readable image list (used by the About screen) is `src/assets/images.ts`.
 
-## Photos (`public/images/`)
+## Photos
 
-All photos were cropped, resized and converted to WebP. No other edits were made. No photo shows recognizable people, logos or watermarks.
-
-| File | Description | Author | Source | License |
-|---|---|---|---|---|
-| `covers/keys-soft.webp` | Soft-focus black and white piano keys | Maciej Korsan | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Keys-piano-sh.jpg) (originally [StockSnap](https://stocksnap.io/photo/8QCSDQK2IX)) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
-| `covers/keys-touch.webp` | Finger pressing a piano key | Hans Braxmeier | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Piano_keys_by_Hans_Braxmeier.jpg) (originally [Pixabay](https://pixabay.com/en/play-piano-piano-piano-keys-finger-7626/)) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
-| `covers/vinyl-pastel.webp` | Pastel vinyl record on a turntable | Lee Campbell | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Playing_a_new_vinyl_(Unsplash).jpg) (originally [Unsplash](https://unsplash.com/photos/1w1OMV8CEeM), 2016, CC0 era) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
-| `covers/headphones-pastel.webp` | Pink headphones on a pink and mint background | Icons8 Team | [Unsplash](https://unsplash.com/photos/white-corded-headphones-7LNatQYMzm4) | [Unsplash License](https://unsplash.com/license) |
-| `covers/keys-graphic.webp` | Piano keys on a white background | Martin Woortman | [Unsplash](https://unsplash.com/photos/a-close-up-of-a-black-and-white-piano-keys-lBeXkAS8fuM) | [Unsplash License](https://unsplash.com/license) |
-| `covers/keys-ivory.webp` | Ivory and black piano keys, close-up | Akshar Dave | [Unsplash](https://unsplash.com/photos/black-and-white-piano-keys-9ZTgaXjcx58) | [Unsplash License](https://unsplash.com/license) |
-| `covers/sheet-grey.webp` | Open sheet music in soft light | Marius Masalar | [Unsplash](https://unsplash.com/photos/tilt-selective-photograph-of-music-notes-rPOmLGwai2w) | [Unsplash License](https://unsplash.com/license) |
-| `covers/sheet-blush.webp` | Printed sheet music in warm light | Tommy Diner | [Unsplash](https://unsplash.com/photos/an-open-book-with-musical-notes-on-it-n8rK2ALPHTY) | [Unsplash License](https://unsplash.com/license) |
-| `covers/haze-lavender.webp` | Soft lavender and blue gradient | Radoslav Bali | [Unsplash](https://unsplash.com/photos/lavender-and-blue-gradient-Bp2sWPJGPHs) | [Unsplash License](https://unsplash.com/license) |
-| `covers/haze-peach.webp` | Soft peach and blue gradient | Plufow Le Studio | [Unsplash](https://unsplash.com/photos/soft-pastel-gradient-background-aE8Mx8-vQss) | [Unsplash License](https://unsplash.com/license) |
-| `hero-home.webp` | Piano keyboard seen from above on white | Denise Jans | [Unsplash](https://unsplash.com/photos/white-and-black-piano-keyboard-RQ0_Fp2Hr2M) | [Unsplash License](https://unsplash.com/license) |
-| `empty-library.webp` | Light turntable at rest in soft window light | Lee Campbell | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Minimal_vinyl_player_(Unsplash).jpg) (originally [Unsplash](https://unsplash.com/photos/4f_Kk-AYf64), April 2017, CC0 era) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
-
-Every Unsplash page above showed "Free to use under the Unsplash License". None of them is an Unsplash+ photo. The Unsplash License does not require attribution. We credit the photographers anyway.
+None. Since the «Papel pautado» redesign (2026-10-28) the interface uses no photographs: the stock photos that were shipped earlier (Unsplash and Wikimedia Commons CC0) were removed with their credits.
 
 ## Playback sounds (`public/soundfonts/`)
 

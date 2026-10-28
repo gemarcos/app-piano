@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { LinkExternal01 } from '@untitled-ui/icons-react'
-import { allImages, brandIcons, type ImageAsset } from '../../assets/images'
+import { brandIcons } from '../../assets/images'
 import { BackButton, Icon, Page, TopBar, ease, listContainer, listItem, softSpring } from '../../ui'
 import { version } from '../../../package.json'
 import { SOFTWARE, SOUNDFONT_ATTRIBUTION, SOUNDFONT_LINKS, type SoftwareCredit } from './credits'
@@ -30,38 +30,6 @@ function withLinks(text: string, links: Record<string, string>): ReactNode[] {
     ) : (
       part
     ),
-  )
-}
-
-/** "CC0 1.0 (dominio público)" -> "CC0 1.0": keeps the meta line on one line (full name in aria-label). */
-const shortLicense = (license: string) => license.replace(/\s*\(.*\)\s*$/, '')
-
-function ImageCredit({ image }: { image: ImageAsset }) {
-  return (
-    <li className="set-credit">
-      <img className="set-credit__thumb" src={image.src} alt="" width={40} height={40} loading="lazy" decoding="async" />
-      <div className="set-credit__text">
-        <ExternalLink
-          href={image.sourceUrl}
-          className="set-credit__title set-credit__stretch"
-          label={`${image.author}, ${image.sourceName}${NEW_TAB}`}
-        >
-          {image.author}
-        </ExternalLink>
-        <span className="set-credit__meta">
-          {image.sourceName}
-          {' · '}
-          {image.licenseUrl ? (
-            <ExternalLink href={image.licenseUrl} className="set-inline-link set-credit__license-link" label={image.license + NEW_TAB}>
-              {shortLicense(image.license)}
-            </ExternalLink>
-          ) : (
-            image.license
-          )}
-        </span>
-      </div>
-      <Icon icon={LinkExternal01} size={16} className="set-credit__ext" />
-    </li>
   )
 }
 
@@ -119,14 +87,6 @@ export function AboutScreen() {
       </header>
 
       <motion.div className="set-about__sections" variants={listContainer} initial="hidden" animate="show">
-        <Section title="Imágenes">
-          <ul className="set-credits">
-            {allImages.map((image) => (
-              <ImageCredit key={image.id} image={image} />
-            ))}
-          </ul>
-        </Section>
-
         <Section title="Sonidos">
           <p className="set-credits set-attribution">{withLinks(SOUNDFONT_ATTRIBUTION, SOUNDFONT_LINKS)}</p>
         </Section>

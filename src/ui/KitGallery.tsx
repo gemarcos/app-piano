@@ -55,7 +55,6 @@ import {
   useToast,
 } from './index'
 import { BackButton } from './Layout'
-import { getCover } from '../assets/images'
 import { ScreenDemo, TabDemo, demoPeaks } from './KitDemos'
 import './KitGallery.css'
 
@@ -90,7 +89,6 @@ export default function KitGallery() {
   return <Gallery />
 }
 
-const img = (id: string) => getCover(id)?.src
 
 function Gallery() {
   const toast = useToast()
@@ -262,14 +260,14 @@ function Gallery() {
         <Section title="Listas">
           <Card padding="none">
             <ListRow
-              leading={<Cover src={img('keys-ivory')} seed="minueto" size={48} />}
+              leading={<Cover seed="minueto" size={48} />}
               title="Minueto en Sol"
               subtitle="Demo · Sol mayor · 3/4"
               trailing="1:12"
               onClick={() => toast.show('Abrir partitura')}
             />
             <ListRow
-              leading={<Cover src={img('haze-lavender')} seed="para-elisa" size={48} />}
+              leading={<Cover seed="para-elisa" size={48} />}
               title="Para Elisa"
               subtitle="Demo · La menor · 3/8"
               trailing={<Icon icon={Star01} size={16} />}
@@ -297,9 +295,9 @@ function Gallery() {
 
         <Section title="Portadas">
           <div className="kit-covers">
-            <Cover src={img('keys-graphic')} seed="a" size={112} />
+            <Cover seed="a" size={112} />
             <Cover seed="b" size={112} />
-            <Cover src={img('keys-soft')} seed="c" size={112} shape="circle" spinning={playing} />
+            <Cover seed="c" size={112} shape="circle" spinning={playing} />
           </div>
           <div className="kit-covers kit-gap-top">
             {['d', 'e', 'f', 'g', 'h', 'i'].map((s) => (
@@ -322,7 +320,7 @@ function Gallery() {
             </Card>
           </div>
           <div className="kit-glass-demo kit-gap-top">
-            <Cover src={img('haze-lavender')} seed="glass" size={400} className="kit-glass-bg" />
+            <Cover seed="glass" size={400} className="kit-glass-bg" />
             <Card glass padding="md" className="kit-glass-card">
               <p className="kit-card-title">Superficie translúcida</p>
               <p className="kit-card-sub">glass</p>

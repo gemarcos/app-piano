@@ -38,12 +38,6 @@ export async function getScore(id: string): Promise<ScoreDoc | undefined> {
   return db.scores.get(id)
 }
 
-/** Cover ids of the `count` most recently created items (new items avoid them, so neighbours differ). */
-export async function recentCoverIds(count = 4): Promise<string[]> {
-  const docs = await db.scores.orderBy('createdAt').reverse().limit(count).toArray()
-  return docs.map((d) => d.coverId).filter(Boolean)
-}
-
 /** Deletes the item and its stored audio. */
 export async function deleteScore(id: string): Promise<void> {
   await db.transaction('rw', db.scores, db.audio, async () => {

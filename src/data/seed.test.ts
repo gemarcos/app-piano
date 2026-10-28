@@ -202,21 +202,6 @@ describe('demo items', () => {
     }
   })
 
-  it('get three different covers, the same ones on every restore', async () => {
-    const app = await reload()
-    const covers = app.demoCoverIds()
-    const values = Object.values(covers)
-    expect(values).toHaveLength(3)
-    expect(new Set(values).size).toBe(3)
-    await app.seedDemosOnce()
-    const before = new Map((await app.db.scores.toArray()).map((d) => [d.id, d.coverId]))
-    await app.clearLibrary()
-    await app.restoreDemos()
-    for (const doc of await app.db.scores.toArray()) expect(doc.coverId).toBe(before.get(doc.id))
-    // The first demo keeps the cover pickCoverId gives it.
-    expect(covers['oda-alegria']).toBe(app.pickCoverId('oda-alegria'))
-  })
-
   it('are listed newest first in their canonical order', async () => {
     const app = await reload()
     await app.seedDemosOnce()

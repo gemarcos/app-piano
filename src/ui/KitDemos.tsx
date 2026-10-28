@@ -2,7 +2,6 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'motion/react'
 import { DotsHorizontal, MusicNote01, Star01 } from '@untitled-ui/icons-react'
-import { getCover } from '../assets/images'
 import {
   BackButton,
   BottomBar,
@@ -26,7 +25,6 @@ import {
 } from './index'
 import './KitGallery.css'
 
-const img = (id: string) => getCover(id)?.src
 
 export function demoPeaks(n: number): number[] {
   let seed = 7
@@ -53,7 +51,7 @@ export function ScreenDemo() {
         right={<IconButton icon={DotsHorizontal} label="Más opciones" />}
       />
       <div className="kit-screen">
-        <Cover src={img('keys-ivory')} seed="ensayo" size={168} className="kit-screen__cover" />
+        <Cover seed="ensayo" size={168} className="kit-screen__cover" />
         <p className="kit-screen__time tabular">0:33</p>
         <p className="kit-screen__hint">Selección</p>
         <Card padding="lg" className="kit-screen__card">
@@ -79,9 +77,9 @@ export function ScreenDemo() {
 }
 
 const ITEMS = [
-  { id: 'minueto', title: 'Minueto en Sol', meta: 'Sol mayor · 3/4', cover: 'keys-ivory', fav: true },
-  { id: 'elisa', title: 'Para Elisa', meta: 'La menor · 3/8', cover: 'haze-lavender', fav: false },
-  { id: 'gymno', title: 'Gymnopédie n.º 1', meta: 'Re mayor · 3/4', cover: 'keys-soft', fav: false },
+  { id: 'minueto', title: 'Minueto en Sol', meta: 'Sol mayor · 3/4', fav: true },
+  { id: 'elisa', title: 'Para Elisa', meta: 'La menor · 3/8', fav: false },
+  { id: 'gymno', title: 'Gymnopédie n.º 1', meta: 'Re mayor · 3/4', fav: false },
   { id: 'rec-0941', title: 'Grabación 27 oct, 09:41', meta: 'Micrófono · 0:48', cover: '', fav: false },
 ]
 
@@ -108,7 +106,7 @@ export function TabDemo() {
               <motion.div key={it.id} variants={listItem}>
                 <Card padding="none" onClick={() => {}} ariaLabel={it.title}>
                   <ListRow
-                    leading={<Cover src={it.cover ? img(it.cover) : undefined} seed={it.id} size={52} />}
+                    leading={<Cover seed={it.id} size={52} />}
                     title={it.title}
                     subtitle={it.meta}
                     trailing={it.fav ? <Icon icon={Star01} size={16} /> : undefined}

@@ -157,8 +157,8 @@ export interface ScoreDoc {
   sourceKind?: 'audio' | 'video'
   /** Seconds of transcribed audio. */
   durationSec: number
-  /** Image id from src/assets/images.ts. */
-  coverId: string
+  /** Cover photo id from earlier versions (no longer shown or assigned; kept so old libraries and backups load). */
+  coverId?: string
   favorite: boolean
   /** Raw transcription; the viewer rebuilds the score from these. */
   notes: NoteEvent[]

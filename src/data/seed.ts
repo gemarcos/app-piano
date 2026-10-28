@@ -5,7 +5,6 @@
 // - restoreDemos(): Ajustes > "Restaurar ejemplos". Re-adds the demos whose ids are missing.
 // Demo ids are deterministic (DEMO_ID_PREFIX + slug), so the library can never hold two copies.
 import type { ScoreDoc, ScoreParams } from '../types'
-import { covers, pickCoverId } from '../assets/images'
 import { buildScore, summarizeScore } from '../engine/score'
 import { getSettings } from '../state/settings'
 import { db } from './db'
@@ -20,30 +19,11 @@ export function demoId(demo: DemoPiece): string {
 }
 
 /**
- * One cover per demo, all different: pickCoverId(slug), or the next unused cover when an earlier demo
- * already took it. Computed over the whole demo list, so a restored demo always gets the same cover.
- */
-export function demoCoverIds(): Record<string, string> {
-  const used = new Set<string>()
-  const out: Record<string, string> = {}
-  for (const demo of demoPieces) {
-    let id = pickCoverId(demo.slug)
-    const start = covers.findIndex((c) => c.id === id)
-    if (start >= 0) {
-      for (let step = 0; step < covers.length && used.has(id); step++) id = covers[(start + step) % covers.length].id
-    }
-    used.add(id)
-    out[demo.slug] = id
-  }
-  return out
-}
-
-/**
  * Library item for a demo (pure, no DB access). Analysis pinned to the demo's tempo, meter and key;
  * params = the user's defaults with the demo's split point, 'original' difficulty and the 1/16 grid
  * (the demo notes are exact sixteenths: the 1/8 transcription default would merge the Prelude's figures).
  */
-export function buildDemoDoc(demo: DemoPiece, now: number, coverId = demoCoverIds()[demo.slug] ?? pickCoverId(demo.slug)): ScoreDoc {
+export function buildDemoDoc(demo: DemoPiece, now: number): ScoreDoc {
   const analysis = demoAnalysis(demo)
   const params: ScoreParams = { ...demoParams(demo, getSettings()), quantize: 16, difficulty: 'original' }
   const score = buildScore(demo.notes, params, analysis, demo.title)
@@ -55,7 +35,6 @@ export function buildDemoDoc(demo: DemoPiece, now: number, coverId = demoCoverId
     updatedAt: now,
     source: 'demo',
     durationSec: score.durationSeconds,
-    coverId,
     favorite: false,
     notes: demo.notes,
     analysis,
@@ -67,12 +46,11 @@ export function buildDemoDoc(demo: DemoPiece, now: number, coverId = demoCoverId
 /** Adds the demos whose ids are missing, in one transaction. Resolves with how many were added. */
 async function addMissingDemos(): Promise<number> {
   const now = Date.now()
-  const coverIds = demoCoverIds()
   const docs: ScoreDoc[] = []
   demoPieces.forEach((demo, i) => {
     try {
       // 1 ms apart, so "Recientes" lists the demos in their canonical order.
-      docs.push(buildDemoDoc(demo, now - i, coverIds[demo.slug]))
+      docs.push(buildDemoDoc(demo, now - i))
     } catch {
       // A demo that cannot be built is skipped; the others still go in.
     }
