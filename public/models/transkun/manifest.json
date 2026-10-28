@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "core": {
+    "file": "core.onnx",
+    "bytes": 27839628
+  },
+  "heads": {
+    "file": "heads.onnx",
+    "bytes": 1717652
+  },
+  "frontend": {
+    "file": "frontend.json",
+    "bytes": 544731
+  },
+  "wasmBytes": 26781914
+}

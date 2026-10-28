@@ -202,7 +202,7 @@ export interface Settings {
   playbackVolume: number
   /** Play the sustain pedal inferred from the audio (and show its marks in the score). */
   sustainPedal: boolean
-  /** Transcription model: 'auto' = piano model (Onsets and Frames) when the device can run it, else 'fast' (Basic Pitch). */
+  /** Transcription model: 'auto' = piano model (Transkun, WebGPU) when the device can run it, else 'fast' (Basic Pitch). */
   transcriptionModel: TranscriptionModel
   /** Viewer playback timbre: 'grand' (Salamander grand piano) or 'classic' (the FluidR3 piano of the first version). */
   pianoSound: 'grand' | 'classic'

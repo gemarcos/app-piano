@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, statSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTINGS } from '../../state/settings'
 import { DEFAULT_TRANSCRIBE_OPTIONS } from './index'
@@ -129,36 +129,24 @@ describe('bundle hygiene', () => {
   })
 })
 
-describe('piano model (Onsets and Frames) decoder settings', () => {
-  it('maps sensitivity to the onset threshold (0.35 at the default) and keeps frames at 0.5', async () => {
-    const { pianoDecoderParams, PIANO_ONSET_ANCHORS, PIANO_FRAME_THRESHOLD } = await import('./params')
-    expect(pianoDecoderParams({ sensitivity: 0.5, minNoteMs: 90 }).onsetThreshold).toBeCloseTo(0.35)
-    expect(pianoDecoderParams({ sensitivity: 0, minNoteMs: 90 }).onsetThreshold).toBeCloseTo(PIANO_ONSET_ANCHORS[0])
-    expect(pianoDecoderParams({ sensitivity: 1, minNoteMs: 90 }).onsetThreshold).toBeCloseTo(PIANO_ONSET_ANCHORS[2])
-    let prev = 1
-    for (let s = 0; s <= 1.0001; s += 0.1) {
-      const p = pianoDecoderParams({ sensitivity: s, minNoteMs: 90 })
-      expect(p.onsetThreshold).toBeLessThanOrEqual(prev)
-      expect(p.frameThreshold).toBe(PIANO_FRAME_THRESHOLD)
-      prev = p.onsetThreshold
-    }
-  })
-
-  it('drops notes shorter than minNoteMs', async () => {
-    const { pianoDecoderParams } = await import('./params')
-    expect(pianoDecoderParams({ sensitivity: 0.5, minNoteMs: 90 }).minDuration).toBeCloseTo(0.09)
-    expect(pianoDecoderParams({ sensitivity: 0.5, minNoteMs: Number.NaN }).minDuration).toBeCloseTo(0.09)
-    expect(pianoDecoderParams({ sensitivity: 0.5, minNoteMs: -5 }).minDuration).toBe(0)
-  })
-
+describe('piano model (Transkun) wiring', () => {
   it('defaults to the automatic model choice, as Settings', () => {
     expect(DEFAULT_SETTINGS.transcriptionModel).toBe('auto')
   })
 
-  it('keeps tfjs out of the client: the model folder URL is resolved there, the code only in the worker', () => {
+  it('keeps tfjs and onnxruntime out of the client: the model folder URL is resolved there, the code only in the worker', () => {
     const source = readFileSync(new URL('./index.ts', import.meta.url), 'utf8')
-    expect(source).toContain("new URL('models/onsets-frames/', document.baseURI)")
-    expect(source).not.toMatch(/from '\.\/oaf\//)
-    expect(source).not.toMatch(/@tensorflow/)
+    expect(source).toContain("new URL('models/transkun/', document.baseURI)")
+    expect(source).not.toMatch(/from '\.\/transkun\//)
+    expect(source).not.toMatch(/from '(@tensorflow|onnxruntime)/)
+  })
+
+  it('ships the model files the worker expects, with their sizes', () => {
+    const dir = new URL('../../../public/models/transkun/', import.meta.url)
+    const manifest = JSON.parse(readFileSync(new URL('manifest.json', dir), 'utf8'))
+    for (const key of ['core', 'heads', 'frontend']) expect(statSync(new URL(manifest[key].file, dir)).size).toBe(manifest[key].bytes)
+    const wasm = new URL('../../../node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.asyncify.wasm', import.meta.url)
+    expect(statSync(wasm).size).toBe(manifest.wasmBytes)
+    expect(readFileSync(new URL('LICENSE', dir), 'utf8')).toContain('MIT License')
   })
 })

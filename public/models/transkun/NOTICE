@@ -1,0 +1,23 @@
+Transkun V2 piano transcription model (Yujia Yan) - pretrained checkpoint "2.0" exported to ONNX for Pauta
+
+Source: the transkun Python package, version 2.0.1 (https://github.com/Yujia-Yan/Transkun, pypi.org/project/transkun),
+files transkun/pretrained/2.0.pt and 2.0.conf. Paper: Yujia Yan and Zhiyao Duan, "Scoring Intervals using
+Non-Hierarchical Transformer for Automatic Piano Transcription", ISMIR 2024.
+License: MIT, Copyright (c) 2021 Yujia Yan (see LICENSE in this folder, copied from the package).
+
+Training data: the checkpoint is trained on the MAESTRO dataset, which is licensed CC BY-NC-SA 4.0 (non-commercial,
+share-alike). Whether those terms reach the trained weights is an open legal question; get legal advice before any
+commercial release. The same applies to the Basic Pitch model this app also ships.
+
+Changes made by Pauta (2026): the PyTorch model was exported to ONNX in two graphs. core.onnx takes the 6-window log-mel
+features of one 16 s segment and returns the interval score matrices and the context vectors (backbone and
+ScaledInnerProductIntervalScorer, the scorer rewritten without diag_embed, gradient checkpointing off). heads.onnx
+returns the velocity logits and the onset / offset refinement and presence logits (the ContinuousBernoulli mean is
+computed in JS). Weights are stored as float16 (each large weight tensor followed by a Cast back to float32, folded
+by ONNX Runtime when the model loads, so the arithmetic stays float32): 29.6 MB instead of 58.6 MB, with no note
+changed on the benchmark and the client recording (2160 notes compared). The front end (framing, gain normalization, FFT, mel filters) and the semi-CRF Viterbi decoding and
+segment stitching were reimplemented in TypeScript (src/engine/transcribe/transkun/). frontend.json holds the frame
+parameters, the six analysis windows and the mel filter bank taken from the checkpoint. Measured against the
+official PyTorch transcription on the realistic benchmark: same note F1 on every file (0.973).
+
+Files: manifest.json (sizes), core.onnx, heads.onnx, frontend.json, LICENSE.

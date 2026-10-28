@@ -2,13 +2,19 @@
 import type { NoteEvent, TranscriptionModel } from '../../types'
 import type { TranscribeOptions, TranscribeStage } from './index'
 
-export type TranscriberBackend = 'webgl' | 'cpu'
+/** 'webgl' / 'cpu': Basic Pitch (tfjs); 'webgpu' / 'wasm': the piano model (onnxruntime-web). */
+export type TranscriberBackend = 'webgl' | 'cpu' | 'webgpu' | 'wasm'
 
-/** Model that produced a transcription: 'piano' = Onsets and Frames, 'fast' = Basic Pitch. */
+/** Model that produced a transcription: 'piano' = Transkun V2, 'fast' = Basic Pitch. */
 export type ActiveModel = 'piano' | 'fast'
 
 /** Why the piano model was not used although it was requested ('auto' or 'piano'). */
-export type PianoFallback = 'no-webgl2' | 'slow' | 'offline' | 'load-failed' | 'run-failed'
+/**
+ * Why Basic Pitch ran although the piano model was requested: no usable WebGPU, no WebGL2 for the speed check, a GPU
+ * predicted too slow ('auto' only), model files unavailable offline, loading or running failed, or the piano model
+ * found no notes at all (not a piano, e.g. synthetic tones or another instrument).
+ */
+export type PianoFallback = 'no-webgpu' | 'no-webgl2' | 'slow' | 'offline' | 'load-failed' | 'run-failed' | 'no-notes'
 
 export interface TranscriptionInfo {
   /** What the caller asked for (TranscribeOptions.model, default 'auto'). */
@@ -16,6 +22,11 @@ export interface TranscriptionInfo {
   /** What ran. */
   model: ActiveModel
   backend: TranscriberBackend
+  /**
+   * What NoteEvent.duration means: 'key' = key-held time (the piano model regresses the key release; the sustain pedal
+   * comes separately, see TranscribeJob.pedal), 'sounding' = until the note stops sounding (Basic Pitch).
+   */
+  durations: 'key' | 'sounding'
   /** Set when the piano model was requested but Basic Pitch ran instead. */
   fallback?: PianoFallback
 }
@@ -27,7 +38,7 @@ export type WorkerRequest =
       id: number
       /** Basic Pitch model.json. */
       modelUrl: string
-      /** Folder of the Onsets and Frames checkpoint (ends with '/'). */
+      /** Folder of the piano model files (Transkun, ends with '/'). */
       pianoUrl: string
       samples: Float32Array
       opts: TranscribeOptions
@@ -44,9 +55,7 @@ export interface RawActivations {
   nFrames: number
   frames: Float32Array
   onsets: Float32Array
-  /** Onsets and Frames only: velocity head (Magenta's 10..90 scale). */
-  velocities?: Float32Array
-  /** Which model produced them (frame rate: Basic Pitch 86.13 fps, Onsets and Frames 31.25 fps). */
+  /** Which model produced them (Basic Pitch only, 86.13 fps). */
   model?: ActiveModel
   /** Multiply decoded note times by this to get input seconds (tuning compensation stretches the audio). */
   timeScale: number
@@ -81,6 +90,8 @@ export type WorkerResponse =
       raw?: RawActivations
       tuning?: TuningInfo
       info: TranscriptionInfo
+      /** Sustain-pedal spans in seconds of the samples ([] when the model has none). */
+      pedal: { start: number; end: number }[]
       /** tfjs memory after the job (diagnostics): live tensors, their bytes, GPU textures allocated (pool included). */
       memory?: { tensors: number; bytes: number; gpuAllocated?: number }
     }

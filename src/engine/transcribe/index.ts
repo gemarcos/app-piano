@@ -1,10 +1,11 @@
-// Owner: engine-audio / piano-model. Public API — transcription in a Web Worker: the piano model (Magenta's Onsets and
-// Frames, src/engine/transcribe/oaf/) with Basic Pitch as the fast fallback.
+// Owner: engine-audio / piano-model. Public API — transcription in a Web Worker: the piano model (Transkun V2 via
+// onnxruntime-web, src/engine/transcribe/transkun/) with Basic Pitch as the fast fallback.
 // This file must never import tfjs / basic-pitch (only worker.ts does), so the main bundle stays lean.
 import type { NoteEvent, TranscriptionModel } from '../../types'
 import type { RawActivations, TranscriberBackend, TranscriptionInfo, TuningInfo, WorkerRequest, WorkerResponse } from './protocol'
 
 export type { ActiveModel, PianoFallback, TranscriberBackend, TranscriptionInfo, TuningInfo } from './protocol'
+export { sustainNotes } from './sustain'
 
 export interface TranscribeOptions {
   /**
@@ -37,6 +38,17 @@ export interface TranscribeJob {
    * pending when the job fails or is cancelled before a model was chosen.
    */
   model?: Promise<TranscriptionInfo>
+  /**
+   * Sustain-pedal spans, {start, end} in seconds of the samples, sorted by start: from the piano model (Transkun's
+   * pedal events); [] for Basic Pitch, which has no pedal. Resolves with the notes. Never rejects: it stays pending
+   * when the job fails or is cancelled. Pair it with info.durations === 'key' (notes are key-held times).
+   */
+  pedal?: Promise<PedalSpan[]>
+}
+
+export interface PedalSpan {
+  start: number
+  end: number
 }
 
 const START_ERROR = 'No se pudo iniciar la transcripción en este navegador.'
@@ -50,6 +62,7 @@ interface PendingJob {
   /** Test harness hook (raw activations + timings). */
   onDetails?: (details: TranscribeDetails) => void
   onModel?: (info: TranscriptionInfo) => void
+  onPedal?: (pedal: PedalSpan[]) => void
 }
 
 export interface TranscribeDetails {
@@ -61,6 +74,8 @@ export interface TranscribeDetails {
   tuning?: TuningInfo
   /** Model that produced the notes (and why the piano model was skipped, if it was). */
   info?: TranscriptionInfo
+  /** Sustain-pedal spans (seconds; [] for Basic Pitch). */
+  pedal?: PedalSpan[]
   /** tfjs memory after the job (diagnostics). */
   memory?: { tensors: number; bytes: number; gpuAllocated?: number }
 }
@@ -107,9 +122,9 @@ function modelUrl(): string {
   return new URL('models/basic-pitch/model.json', document.baseURI).href
 }
 
-/** Folder of the piano model checkpoint (public/models/onsets-frames/). */
+/** Folder of the piano model files (public/models/transkun/; lazily downloaded, not precached). */
 function pianoUrl(): string {
-  return new URL('models/onsets-frames/', document.baseURI).href
+  return new URL('models/transkun/', document.baseURI).href
 }
 
 function namedError(name: string, message: string): Error {
@@ -176,7 +191,8 @@ function handleMessage(msg: WorkerResponse) {
       lastInfo = msg.info
       jobs.delete(msg.id)
       job.onModel?.(msg.info)
-      job.onDetails?.({ backend: msg.backend, renderer: msg.renderer, timings: msg.timings, raw: msg.raw, tuning: msg.tuning, info: msg.info, memory: msg.memory })
+      job.onDetails?.({ backend: msg.backend, renderer: msg.renderer, timings: msg.timings, raw: msg.raw, tuning: msg.tuning, info: msg.info, pedal: msg.pedal, memory: msg.memory })
+      job.onPedal?.(msg.pedal)
       job.resolve(msg.notes)
       break
     case 'error':
@@ -229,6 +245,8 @@ export function startTranscription(
   let settled = false
   let chosen: ((info: TranscriptionInfo) => void) | null = null
   const model = new Promise<TranscriptionInfo>((resolve) => (chosen = resolve))
+  let pedalDone: ((pedal: PedalSpan[]) => void) | null = null
+  const pedal = new Promise<PedalSpan[]>((resolve) => (pedalDone = resolve))
   const promise = new Promise<NoteEvent[]>((resolve, reject) => {
     send(
       id,
@@ -245,6 +263,7 @@ export function startTranscription(
         onProgress,
         onDetails: extra?.onDetails,
         onModel: (info) => chosen?.(info),
+        onPedal: (spans) => pedalDone?.(spans),
       },
       {
         type: 'transcribe',
@@ -262,6 +281,7 @@ export function startTranscription(
   return {
     promise,
     model,
+    pedal,
     cancel() {
       if (settled || !jobs.has(id)) return
       shutdown(abortError())

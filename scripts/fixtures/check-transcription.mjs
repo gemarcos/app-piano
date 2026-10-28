@@ -10,10 +10,8 @@
 //                       (default: Chrome's own choice; on Windows headless Chrome usually gets the GPU via ANGLE/D3D11)
 //   --backend cpu       force the tfjs CPU backend
 //   --tuning off|<cents> disable tuning compensation or force a correction (default: automatic, as shipped)
-//   --model auto|piano|fast  transcription model (Settings.transcriptionModel; default auto): piano = Onsets and
-//                       Frames, fast = Basic Pitch; the model that actually ran is printed per fixture
-//   --sweep-piano       grid-search the piano model's decoder (onset / frame thresholds, minimum duration, onset
-//                       shift) on cached activations of the realistic benchmark (implies --model piano)
+//   --model auto|piano|fast  transcription model (Settings.transcriptionModel; default auto): piano = Transkun V2
+//                       (WebGPU), fast = Basic Pitch; the model that actually ran is printed per fixture
 //   --local             also run the local real recordings: test/fixtures/local/<name>.json references (from
 //                       scripts/fixtures/align-reference.mjs) next to their audio (git-ignored, never committed):
 //                       note F1 at +-50 and +-100 ms, recall by register, octave / semitone / merged errors
@@ -85,8 +83,7 @@ const opts = {
   minNoteMs: Number(option('--min-note-ms', 90)),
   backend: option('--backend', undefined),
   tuning: ((v) => (v === undefined || v === 'auto' ? undefined : v === 'off' ? 'off' : Number(v)))(option('--tuning', undefined)),
-  model: flag('--sweep-piano') ? 'piano' : option('--model', 'auto'),
-  sweepPiano: flag('--sweep-piano'),
+  model: option('--model', 'auto'),
   local: flag('--local') || flag('--local-only'),
   localOnly: flag('--local-only'),
   gpu: flag('--gpu'),
@@ -237,7 +234,7 @@ async function localBenchmark(call, runOpts, results) {
     if (opts.dump) {
       // Transcribed notes for offline work on the score (e.g. rhythm against the reference's beats).
       const out = path.join(opts.dump, `${fixture.slice(6)}.${r.model ?? 'notes'}.notes.json`)
-      writeFileSync(out, JSON.stringify({ fixture, model: r.model, notes: r.notes }))
+      writeFileSync(out, JSON.stringify({ fixture, model: r.model, durations: r.durations, pedal: r.pedal ?? [], notes: r.notes }))
       console.log(`  notes written to ${out}`)
     }
   }
@@ -297,7 +294,7 @@ try {
     backend: opts.backend,
     tuning: opts.tuning,
     model: opts.model,
-    raw: Boolean(opts.sweep || opts.sweepSensitivity || opts.sweepReal || opts.sweepPiano || opts.dump),
+    raw: Boolean(opts.sweep || opts.sweepSensitivity || opts.sweepReal || opts.dump),
   }
   if (opts.dump) mkdirSync(opts.dump, { recursive: true })
   console.log(`\nTranscription check  (model ${opts.model}, sensitivity ${opts.sensitivity}, minNoteMs ${opts.minNoteMs}, tuning ${opts.tuning ?? 'auto'}, ${baseUrl})\n`)
@@ -374,7 +371,7 @@ try {
       Object.entries(results).map(([f, r]) => [
         f,
         {
-          kind: r.kind, duration: r.duration, notes: r.notes.length, backend: r.backend, model: r.model, fallback: r.fallback, timings: r.timings, info: r.info, tuning: r.tuning,
+          kind: r.kind, duration: r.duration, notes: r.notes.length, backend: r.backend, model: r.model, fallback: r.fallback, modelBackend: r.modelBackend, durations: r.durations, pedalSpans: r.pedal?.length, timings: r.timings, info: r.info, tuning: r.tuning,
           metrics: r.metrics && { ...r.metrics, falsePositives: undefined, falseNegatives: undefined },
           breakdown: r.detailed?.breakdown,
         },
@@ -442,26 +439,6 @@ try {
         `  on ${fmt(row.params.onsetThreshold)} fr ${fmt(row.params.frameThreshold)} tol ${row.params.energyTolerance} min ${row.params.minNoteMs} | ` +
           sweepSet.map((f) => `${f.split('/').pop().slice(0, 10)} ${fmt(row.f1[f])}`).join(' ') +
           ` | mean ${fmt(row.meanF1, 3)} | dur err ${Object.values(row.durationErrors ?? {}).reduce((a, b) => a + b, 0)}`,
-      ),
-    )
-  }
-
-  if (opts.sweepPiano) {
-    const grid = {
-      onset: list('--onset', '0.3,0.4,0.45,0.5,0.55,0.6,0.7'),
-      frame: list('--frame', '0.5'),
-      minDuration: list('--min-dur', '0,0.04,0.06,0.09'),
-      shift: list('--shift', '0.015'),
-      tolerance: option('--sweep-tol', null) === null ? undefined : Number(option('--sweep-tol', null)),
-    }
-    const rows = await call((f, g) => window.__sweepPiano(f, g), sweepSet, grid)
-    rows.sort((a, b) => b.meanF1 - a.meanF1)
-    console.log(`\npiano sweep: ${rows.length} combinations, best 15 by mean F1`)
-    rows.slice(0, 15).forEach((row) =>
-      console.log(
-        `  on ${fmt(row.params.onset)} fr ${fmt(row.params.frame)} min ${fmt(row.params.minDuration, 3)} shift ${fmt(row.params.shift, 3)} | ` +
-          sweepSet.map((f) => `${f.split('/').pop().slice(0, 10)} ${fmt(row.f1[f])}`).join(' ') +
-          ` | mean ${fmt(row.meanF1, 3)} | dur err ${row.durationErrors}`,
       ),
     )
   }

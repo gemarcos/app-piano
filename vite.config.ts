@@ -46,17 +46,22 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,webp,jpg,woff2,json,bin,mp3}'],
-        // The piano model (Onsets and Frames, ~16 MB) is NOT precached, so first visits stay light: the transcription
-        // worker downloads it the first time it is used and keeps it in its own Cache Storage entry
-        // ('pauta-onsets-frames-v1', src/engine/transcribe/oaf/weights.ts), which also makes it work offline. No Workbox
-        // runtime route either (it would store the files twice). Basic Pitch stays precached: offline always works.
-        globIgnores: ['**/node_modules/**/*', '**/models/onsets-frames/**'],
+        // The piano model (Transkun, ~30 MB) and onnxruntime-web (its JS chunk and its ~27 MB WebAssembly binary; .wasm
+        // is not in globPatterns) are NOT precached, so first visits stay light: the transcription worker downloads them
+        // the first time the piano model runs and keeps them in its own Cache Storage entry ('pauta-piano-transkun-v1',
+        // src/engine/transcribe/transkun/files.ts), which also makes it work offline. No Workbox runtime route either
+        // (it would store the files twice). Basic Pitch stays precached: offline always works.
+        globIgnores: ['**/node_modules/**/*', '**/models/transkun/**', '**/assets/ort*.js'],
         maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
+        // onnxruntime-web's JS chunk (hashed name) is cached the first time the piano model loads, for offline use.
+        runtimeCaching: [{ urlPattern: /\/assets\/ort[^/]*\.js$/, handler: 'CacheFirst', options: { cacheName: 'pauta-ort-js', expiration: { maxEntries: 4 } } }],
         importScripts: ['share-target-sw.js'],
       },
     }),
   ],
   worker: { format: 'es' },
+  // onnxruntime-web loads its own WebAssembly glue: pre-bundling it breaks that in the dev server.
+  optimizeDeps: { exclude: ['onnxruntime-web'] },
   server: { host: true, port: 5173 },
   build: { target: 'es2022', chunkSizeWarningLimit: 4000 },
 })

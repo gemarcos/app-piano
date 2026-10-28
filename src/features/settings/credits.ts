@@ -9,9 +9,10 @@ export interface SoftwareCredit {
 }
 
 export const SOFTWARE: SoftwareCredit[] = [
-  { name: 'Onsets and Frames (Magenta.js)', author: 'Google Magenta', license: 'Apache-2.0', url: 'https://github.com/magenta/magenta-js' },
+  { name: 'Transkun', author: 'Yujia Yan', license: 'MIT', url: 'https://github.com/Yujia-Yan/Transkun' },
   { name: 'Basic Pitch', author: 'Spotify', license: 'Apache-2.0', url: 'https://github.com/spotify/basic-pitch-ts' },
   { name: 'TensorFlow.js', author: 'Google', license: 'Apache-2.0', url: 'https://github.com/tensorflow/tfjs' },
+  { name: 'ONNX Runtime Web', author: 'Microsoft', license: 'MIT', url: 'https://github.com/microsoft/onnxruntime' },
   { name: 'abcjs', author: 'Paul Rosen, Gregory Dyke', license: 'MIT', url: 'https://github.com/paulrosen/abcjs' },
   { name: 'Untitled UI Icons', author: 'Untitled UI', license: 'MIT', url: 'https://www.untitledui.com/resources/icons' },
   { name: 'Plus Jakarta Sans', author: 'Tokotype', license: 'OFL-1.1', url: 'https://github.com/tokotype/PlusJakartaSans' },

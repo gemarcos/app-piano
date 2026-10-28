@@ -1,5 +1,5 @@
-// Transcription worker: the piano model (Onsets and Frames, oaf/) and Basic Pitch, the fast fallback. The ONLY
-// module that imports tfjs / basic-pitch (keeps the main bundle lean). One long-lived instance keeps the models
+// Transcription worker: the piano model (Transkun V2 through onnxruntime-web, transkun/) and Basic Pitch, the fast
+// fallback. The ONLY module that imports tfjs / basic-pitch / onnxruntime-web (keeps the main bundle lean). One long-lived instance keeps the models
 // loaded; jobs run one at a time.
 import * as tf from '@tensorflow/tfjs'
 import { BasicPitch } from '@spotify/basic-pitch'
@@ -14,12 +14,11 @@ import type {
   WorkerRequest,
   WorkerResponse,
 } from './protocol'
-import { decoderParams, pianoDecoderParams, scaleNoteTimes } from './params'
+import { decoderParams, scaleNoteTimes } from './params'
 import { decodeNotes } from './decode'
 import { estimateTuning, retune, retuneFactor, tuningCorrection, TUNING_MIN_CONFIDENCE } from './tuning'
 import { withVelocities } from './velocity'
-import { PianoModel } from './oaf/piano'
-import { isModelCached } from './oaf/weights'
+import { PianoModel, type PianoFiles } from './transkun/piano'
 
 interface WorkerScope {
   onmessage: ((event: MessageEvent<WorkerRequest>) => void) | null
@@ -53,6 +52,9 @@ let loaded: LoadedModel | null = null
 let loading: Promise<LoadedModel> | null = null
 let queue: Promise<void> = Promise.resolve()
 const piano = new PianoModel()
+/** onnxruntime-web's WebAssembly binary for its WebGPU build (bundled as an asset; fetched into our own cache). */
+const ORT_WASM_URL = new URL('../../../node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.asyncify.wasm', import.meta.url).href
+const pianoFiles = (base: string): PianoFiles => ({ base, wasmUrl: ORT_WASM_URL })
 
 tf.enableProdMode()
 
@@ -93,7 +95,7 @@ async function selectBackend(preferWebgl: boolean): Promise<TranscriberBackend> 
     try {
       if (await tf.setBackend('webgl')) {
         await tf.ready()
-        // Half-float GPUs lose too much precision (Basic Pitch's CQT front end, the piano model's LSTM).
+        // Half-float GPUs lose too much precision in Basic Pitch's CQT front end.
         if (tf.env().getBool('WEBGL_RENDER_FLOAT32_CAPABLE')) {
           renderer = webglRenderer()
           return 'webgl'
@@ -217,6 +219,8 @@ type Progress = (fraction: number, stage: 'loading-model' | 'analyzing' | 'extra
 
 interface JobResult {
   notes: NoteEvent[]
+  /** Sustain-pedal spans (piano model only). */
+  pedal?: { start: number; end: number }[]
   raw?: RawActivations
   loadedAt: number
   inferredAt: number
@@ -236,10 +240,10 @@ let heartbeat: () => void = () => {}
 async function runPiano(req: TranscribeRequest, tuning: TuningInfo | undefined, progress: Progress): Promise<JobResult> {
   const loadedAt = performance.now()
   progress(0.1, 'analyzing')
-  let raw: RawActivations | undefined
-  const onRaw = req.debugRaw ? (r: RawActivations) => (raw = r) : undefined
-  const notes = await piano.transcribe(req.samples, tuning?.applied ?? 0, pianoDecoderParams(req.opts), (p) => progress(0.1 + 0.8 * p, 'analyzing'), onRaw, heartbeat)
-  return { notes, raw, loadedAt, inferredAt: performance.now() }
+  // No minimum duration: the piano model's durations are key-held times (median about 0.1 s on the client's
+  // recording) and a 90 ms floor costs 0.03 F1 on the benchmark and 0.19 on that recording. minNoteMs is for Basic Pitch.
+  const { notes, pedal } = await piano.transcribe(req.samples, tuning?.applied ?? 0, 0, (p) => progress(0.1 + 0.8 * p, 'analyzing'), heartbeat)
+  return { notes, pedal, loadedAt, inferredAt: performance.now() }
 }
 
 async function runBasicPitch(req: TranscribeRequest, tuning: TuningInfo | undefined, progress: Progress): Promise<JobResult & { model: LoadedModel }> {
@@ -290,7 +294,8 @@ function memoryInfo() {
 }
 
 function modelInfo(requested: TranscriptionModel, model: ActiveModel, fallback?: PianoFallback): TranscriptionInfo {
-  return { requested, model, backend: backend ?? 'cpu', ...(fallback ? { fallback } : {}) }
+  const ranBackend: TranscriberBackend = model === 'piano' ? (piano.backend ?? 'wasm') : (backend ?? 'cpu')
+  return { requested, model, backend: ranBackend, durations: model === 'piano' ? 'key' : 'sounding', ...(fallback ? { fallback } : {}) }
 }
 
 async function runTranscription(req: TranscribeRequest) {
@@ -321,7 +326,7 @@ async function runTranscription(req: TranscribeRequest) {
   if (requested !== 'fast' && req.samples.length >= MIN_SAMPLES) {
     try {
       await ensureBackend(req.backend)
-      const reason = await piano.prepare(requested, req.pianoUrl, renderer, (f) => tracked(DOWNLOAD_SHARE * f, 'loading-model'), heartbeat)
+      const reason = await piano.prepare(requested, pianoFiles(req.pianoUrl), renderer, (f) => tracked(DOWNLOAD_SHARE * f, 'loading-model'))
       if (reason) fallback = reason
     } catch (err) {
       console.warn('[Pauta] piano model unavailable', err)
@@ -339,6 +344,13 @@ async function runTranscription(req: TranscribeRequest) {
       piano.markBroken()
       fallback = 'run-failed'
     }
+    // The piano model hears only piano: on other instruments (or synthetic tones) it can find nothing at all, where
+    // Basic Pitch still transcribes. Silence costs one more (fast) pass and stays empty.
+    if (result && result.notes.length === 0) {
+      console.info('[Pauta] piano model found no notes, trying Basic Pitch')
+      result = null
+      fallback = 'no-notes'
+    }
   }
   let ran: ActiveModel = 'piano'
   if (!result) {
@@ -351,7 +363,7 @@ async function runTranscription(req: TranscribeRequest) {
   progress(1, 'extracting-notes')
 
   const { notes, raw } = result
-  const transfer: Transferable[] = raw ? [raw.frames.buffer, raw.onsets.buffer, ...(raw.velocities ? [raw.velocities.buffer] : [])] : []
+  const transfer: Transferable[] = raw ? [raw.frames.buffer, raw.onsets.buffer] : []
   post(
     {
       type: 'result',
@@ -363,19 +375,20 @@ async function runTranscription(req: TranscribeRequest) {
       raw,
       tuning,
       info: modelInfo(requested, ran, ran === 'fast' && requested !== 'fast' ? fallback : undefined),
+      pedal: result.pedal ?? [],
       memory: memoryInfo(),
     },
     transfer,
   )
 }
 
-/** Preload: the piano model when it is cached and allowed ('auto' / 'piano'), otherwise Basic Pitch. Never downloads the checkpoint. */
+/** Preload: the piano model when it is cached and allowed ('auto' / 'piano'), otherwise Basic Pitch. Never downloads it. */
 async function preload(req: Extract<WorkerRequest, { type: 'preload' }>): Promise<ActiveModel> {
   const requested = req.model ?? 'auto'
   if (requested !== 'fast') {
     await ensureBackend(req.backend)
-    if (await isModelCached(req.pianoUrl)) {
-      const reason = await piano.prepare(requested, req.pianoUrl, renderer).catch(() => 'load-failed' as const)
+    if (await piano.cached(pianoFiles(req.pianoUrl))) {
+      const reason = await piano.prepare(requested, pianoFiles(req.pianoUrl), renderer).catch(() => 'load-failed' as const)
       if (!reason) return 'piano'
     }
   }

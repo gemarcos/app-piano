@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Bundle hygiene proof: a throwaway production build with the project's own vite.config.ts and two inputs,
 // the app (index.html) and a probe that imports the audio + transcription engines exactly like the capture
-// pipeline does. Checks that the Basic Pitch worker is its own chunk and that tfjs / basic-pitch code appears in
-// no other chunk. The probe source and the build output live in a temp folder (never dist/).
+// pipeline does. Checks that the transcription worker is its own chunk and that tfjs / basic-pitch code appears in
+// no other chunk, and that onnxruntime-web (the piano model's runtime) is a separate chunk loaded only by the worker,
+// with its WebAssembly binary emitted once. The probe source and the build output live in a temp folder (never dist/).
 // Usage: node scripts/fixtures/check-bundle.mjs [--out <dir>]   (default <os tmpdir>/pauta/bundle-check; exit 1 on failure)
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
@@ -46,6 +47,8 @@ await build({
 
 // Code-level identifiers of tfjs / basic-pitch (credit URLs and the model path string are not code).
 const MARKERS = ['WEBGL_RENDER_FLOAT32_CAPABLE', 'WEBGL_VERSION', 'setBackend', 'loadGraphModel', 'evaluateModel', 'Identity_2']
+// Internals of onnxruntime-web (its WebAssembly entry points).
+const ORT_MARKERS = ['_OrtCreateSession', 'OrtRun']
 const files = []
 const walk = (dir) => readdirSync(dir).forEach((f) => (statSync(path.join(dir, f)).isDirectory() ? walk(path.join(dir, f)) : files.push(path.join(dir, f))))
 walk(OUT)
@@ -55,11 +58,14 @@ const rows = files
   .map((f) => {
     const src = readFileSync(f, 'utf8')
     const spawns = /new Worker\(new URL\((?:new URL\()?[`"']([^`"']+)[`"']/.exec(src)?.[1]
-    return { name: path.relative(OUT, f).split(path.sep).join('/'), kib: statSync(f).size / 1024, found: MARKERS.filter((m) => src.includes(m)), spawns, src }
+    const ort = ORT_MARKERS.every((m) => src.includes(m))
+    return { name: path.relative(OUT, f).split(path.sep).join('/'), kib: statSync(f).size / 1024, found: MARKERS.filter((m) => src.includes(m)), ort, spawns, src }
   })
 console.log(`\nbuild: ${OUT}\nchunk                                       KiB  tfjs/basic-pitch code`)
-for (const r of rows) console.log(r.name.padEnd(40), r.kib.toFixed(1).padStart(8), ' ', r.found.length ? r.found.join(', ') : '-', r.spawns ? `  [spawns ${r.spawns}]` : '')
+for (const r of rows) console.log(r.name.padEnd(40), r.kib.toFixed(1).padStart(8), ' ', r.found.length ? r.found.join(', ') : '-', r.ort ? '  [onnxruntime-web]' : '', r.spawns ? `  [spawns ${r.spawns}]` : '')
 const workers = rows.filter((r) => /(^|\/)worker-[^/]+\.js$/.test(r.name))
+const ortChunks = rows.filter((r) => r.ort)
+const wasm = files.filter((f) => /^ort-wasm.*\.wasm$/.test(path.basename(f)))
 const probeChunk = rows.find((r) => /(^|\/)probe-[^/]+\.js$/.test(r.name))
 // Once the app imports the engine too, Rolldown moves the client into a shared chunk that the probe imports.
 const spawner = [probeChunk, ...rows.filter((r) => r.spawns && probeChunk?.src.includes(path.posix.basename(r.name)))].find((r) => r?.spawns)
@@ -68,6 +74,9 @@ const checks = [
   ['worker chunk holds tfjs + basic-pitch', workers.length === 1 && workers[0].found.length === MARKERS.length],
   ['no other chunk (app, engine client, PWA) contains tfjs / basic-pitch code', rows.filter((r) => !workers.includes(r)).every((r) => !r.found.length)],
   ['the engine client spawns that worker chunk', Boolean(spawner && workers[0]?.name.endsWith(spawner.spawns))],
+  ['onnxruntime-web is one separate chunk (assets/ort*.js, kept out of the precache)', ortChunks.length === 1 && /(^|\/)assets\/ort[^/]*\.js$/.test(ortChunks[0].name)],
+  ['only the worker loads the onnxruntime-web chunk', ortChunks.length === 1 && rows.filter((r) => r.src.includes(path.posix.basename(ortChunks[0].name))).every((r) => workers.includes(r))],
+  ['its WebAssembly binary is emitted once', wasm.length === 1],
 ]
 console.log('')
 for (const [label, ok] of checks) console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}`)

@@ -2,7 +2,7 @@
 // toModelInput -> transcribe (worker: piano model or Basic Pitch) -> analyzeNotes -> defaultParams -> buildScore -> summarizeScore
 // -> optional audio -> createScore. The transcriber is imported ONLY through its index.ts (tfjs stays in the worker chunk).
 import { encodeWav, MODEL_SAMPLE_RATE, toModelInput, type DecodedMedia } from '../../engine/audio'
-import { transcribe } from '../../engine/transcribe'
+import { getLastTranscriptionInfo, sustainNotes, transcribe } from '../../engine/transcribe'
 import { analyzeNotes, buildScore, defaultParams, summarizeScore } from '../../engine/score'
 import { createScore, recentCoverIds, saveAudio } from '../../data/db'
 import { pickCoverId } from '../../assets/images'
@@ -107,6 +107,8 @@ async function run(input: PipelineInput, signal: AbortSignal, report: PipelinePr
     signal.removeEventListener('abort', abort)
   }
   throwIfAborted(signal)
+  // The piano model gives key-held times and the pedal apart; the score is built on how long each note sounds.
+  if (getLastTranscriptionInfo()?.durations === 'key') notes = sustainNotes(notes, (await job.pedal) ?? [])
   progress(overallProgress(1), 'writing')
   if (!notes.length) return { status: 'empty' }
 
