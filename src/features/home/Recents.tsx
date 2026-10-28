@@ -1,13 +1,14 @@
-// Owner: capture. "Recientes" on Home: a horizontal row of cover cards (ref-3 "Popular Song" style).
+// Owner: capture. "Recientes" on Home: the last pieces as a short list (title, key, length), like an index of works.
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { getCover } from '../../assets/images'
 import { keyName } from '../../engine/score'
+import { formatTime } from '../../lib/format'
 import { useSettings } from '../../state/settings'
 import type { NoteNaming, ScoreDoc } from '../../types'
-import { Cover, SectionHeader, fadeUp, listContainer, listItem, playUiSound, spring, tapScale } from '../../ui'
+import { SectionHeader, fadeUp, playUiSound } from '../../ui'
 
-const CARD = 148
+/** Rows kept on Home; the rest live in Biblioteca. */
+export const RECENT_ROWS = 3
 
 function keyLabel(doc: ScoreDoc, naming: NoteNaming): string {
   try {
@@ -17,51 +18,33 @@ function keyLabel(doc: ScoreDoc, naming: NoteNaming): string {
   }
 }
 
-function RecentCard({ doc, naming, onOpen }: { doc: ScoreDoc; naming: NoteNaming; onOpen: () => void }) {
-  const key = keyLabel(doc, naming)
-  return (
-    <motion.button
-      type="button"
-      className="home-card"
-      onClick={() => {
-        playUiSound('tap')
-        onOpen()
-      }}
-      whileHover={{ y: -3 }}
-      whileTap={tapScale}
-      transition={spring}
-      aria-label={key ? `${doc.title}, ${key}` : doc.title}
-    >
-      <Cover src={getCover(doc.coverId)?.src} seed={doc.id} size={CARD} />
-      <span className="home-card__caption" aria-hidden="true">
-        <span className="home-card__title">{doc.title}</span>
-        {key && <span className="home-card__key">{key}</span>}
-      </span>
-    </motion.button>
-  )
-}
-
-/** `docs` is empty while the library loads: the row keeps its height and the cards fade in when they arrive. */
+/** `docs` is empty while the library loads: the list keeps its height and the rows fade in when they arrive. */
 export function Recents({ docs }: { docs: ScoreDoc[] }) {
   const navigate = useNavigate()
   const naming = useSettings((s) => s.noteNaming)
   return (
-    <motion.section className="home-recents" aria-label="Recientes" {...fadeUp(0.16, 10)}>
-      <SectionHeader title="Recientes" />
-      <motion.ul
-        key={docs.length ? 'items' : 'loading'}
-        className="home-recents__row"
-        style={{ minHeight: CARD + 16 }}
-        variants={listContainer}
-        initial="hidden"
-        animate="show"
-      >
-        {docs.map((doc) => (
-          <motion.li key={doc.id} variants={listItem}>
-            <RecentCard doc={doc} naming={naming} onOpen={() => navigate('/score/' + doc.id)} />
-          </motion.li>
-        ))}
-      </motion.ul>
+    <motion.section className="home-recents" aria-label="Recientes" {...fadeUp(0.16, 6)}>
+      <SectionHeader title="Recientes" action={{ label: 'Ver todo', onClick: () => navigate('/library') }} />
+      <ul className="home-recents__list" style={{ minHeight: RECENT_ROWS * 57 }}>
+        {docs.slice(0, RECENT_ROWS).map((doc) => {
+          const meta = [keyLabel(doc, naming), doc.durationSec ? formatTime(doc.durationSec) : ''].filter(Boolean).join(' · ')
+          return (
+            <li key={doc.id}>
+              <button
+                type="button"
+                className="home-recent"
+                onClick={() => {
+                  playUiSound('tap')
+                  navigate('/score/' + doc.id)
+                }}
+              >
+                <span className="home-recent__title">{doc.title}</span>
+                {meta && <span className="home-recent__meta">{meta}</span>}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
     </motion.section>
   )
 }

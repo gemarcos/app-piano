@@ -1,17 +1,5 @@
 /* Owner: library. Layout of the Biblioteca screen. Colors from tokens only. */
 
-.lib-page {
-  --lib-cover: 56px;
-  --lib-row-gap: 14px;
-}
-
-@media (max-width: 359px) {
-  .lib-page {
-    --lib-cover: 48px;
-    --lib-row-gap: 12px;
-  }
-}
-
 .lib-search {
   margin-top: var(--s-2);
 }
@@ -35,29 +23,17 @@
   height: 8px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 2px var(--bg-top);
+  box-shadow: 0 0 0 2px var(--bg);
   pointer-events: none;
 }
 
-/* ---------- Collections ---------- */
-
-.lib-list,
-.lib-grid {
-  /* popLayout takes leaving items out of the flow relative to this box */
-  position: relative;
-  margin-top: var(--s-4);
-}
+/* ---------- The index of works ---------- */
 
 .lib-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-3);
-}
-
-.lib-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--s-3);
+  /* popLayout takes leaving items out of the flow relative to this box */
+  position: relative;
+  margin-top: var(--s-2);
+  border-top: 1px solid var(--line);
 }
 
 .lib-item {
@@ -70,10 +46,6 @@
 .lib-empty,
 .lib-noresults {
   animation: lib-fade-in 0.42s var(--ease) 0.12s both;
-}
-
-.lib-empty .ui-empty__art {
-  margin-bottom: var(--s-6);
 }
 
 /* Close to the search and chips that caused it, not adrift mid-screen. */

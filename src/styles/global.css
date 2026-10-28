@@ -163,16 +163,18 @@ html.ui-scroll-locked body {
 
 /* Type scale */
 .ui-t-display {
+  font-family: var(--font-display);
   font-size: var(--fs-display);
   font-weight: var(--fw-display);
-  letter-spacing: -0.04em;
+  letter-spacing: -0.015em;
   line-height: 1.1;
 }
 
 .ui-t-title {
+  font-family: var(--font-display);
   font-size: var(--fs-title);
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   line-height: 1.2;
 }
 
@@ -218,10 +220,7 @@ html.ui-scroll-locked body {
 
 /* Accent-gradient text (sparingly: a number or a word that celebrates) */
 .ui-t-gradient {
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--accent);
 }
 
 /* Layout helpers */

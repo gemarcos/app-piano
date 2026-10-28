@@ -1,5 +1,5 @@
-// Owner: capture. Inicio ('/'): calm and almost empty. The vinyl is the hero (tap it to listen); two quiet
-// actions bring in a file or a browser tab; "Recientes" appears once the library has items.
+// Owner: capture. Inicio ('/'): calm and almost empty. The record is the one big action (tap it to listen); quiet
+// actions bring in a file, a link or a browser tab; "Recientes" lists the last pieces once the library has items.
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
@@ -9,17 +9,15 @@ import { preloadModel } from '../../engine/transcribe'
 import { getSettings } from '../../state/settings'
 import { useAllScores } from '../../data/db'
 import { DEMOS_SEEDED_KEY } from '../../data/seed'
-import { brandIcons } from '../../assets/images'
 import type { ScoreDoc } from '../../types'
-import { Button, Page, TopBar, Vinyl, ease, fadeUp, useReducedMotionPref, useToast } from '../../ui'
+import { Button, Page, TopBar, Vinyl, ease, fadeUp, useToast } from '../../ui'
 import { defaultSelection } from '../capture/selection'
 import { useCaptureStore } from '../capture/store'
 import { rememberHeroVinyl, useViewportSize, whenIdle } from '../capture/util'
 import { LinkPill } from '../share/LinkPill'
-import { Recents } from './Recents'
+import { RECENT_ROWS, Recents } from './Recents'
 import './HomeScreen.css'
 
-const MAX_RECENTS = 8
 /** Larger files are refused before decoding (the whole file is decoded in memory). */
 const MAX_FILE_BYTES = 750 * 1024 * 1024
 /**
@@ -59,7 +57,6 @@ export function HomeScreen() {
   const { width, height } = useViewportSize()
   const [tabSupported] = useState(isTabCaptureSupported)
   const [decoding, setDecoding] = useState(false)
-  const reduced = useReducedMotionPref()
   const fileInput = useRef<HTMLInputElement>(null)
   const hero = useRef<HTMLDivElement>(null)
   const alive = useRef(false)
@@ -75,7 +72,7 @@ export function HomeScreen() {
   useEffect(() => whenIdle(() => void preloadModel(getSettings().transcriptionModel)), [])
 
   const recents = useMemo(
-    () => (docs ?? []).slice().sort((a, b) => lastTouched(b) - lastTouched(a)).slice(0, MAX_RECENTS),
+    () => (docs ?? []).slice().sort((a, b) => lastTouched(b) - lastTouched(a)).slice(0, RECENT_ROWS),
     [docs],
   )
   const [recentsHint] = useState(readRecentsHint)
@@ -121,27 +118,14 @@ export function HomeScreen() {
     }
   }
 
-  const size = Math.round(Math.max(200, Math.min(width - 64, height * (hasRecents ? 0.34 : 0.42), 320)))
+  const size = Math.round(Math.max(200, Math.min(width - 64, height * (hasRecents ? 0.32 : 0.42), 300)))
 
   return (
     <Page variant="tab" tabBar className="home">
       <TopBar
         large
         className="home-topbar"
-        title={
-          <span className="home-brand">
-            <motion.span
-              className="home-brand__mark"
-              aria-hidden="true"
-              initial={{ opacity: 0, scale: 0.6, rotate: -40 }}
-              animate={{ opacity: 1, scale: 1, rotate: 0 }}
-              transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.05 }}
-            >
-              <img src={brandIcons.mark} alt="" width={24} height={24} draggable={false} />
-            </motion.span>
-            Pauta
-          </span>
-        }
+        title="Pauta"
       />
       <section className={hasRecents ? 'home-hero has-recents' : 'home-hero'}>
         <motion.div
@@ -151,7 +135,7 @@ export function HomeScreen() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, ease }}
         >
-          <Vinyl size={size} tonearm="rest" spinning={!reduced} speed="idle" halo="breathe" onClick={listen} ariaLabel="Escuchar" />
+          <Vinyl size={size} tonearm="rest" spinning={false} onClick={listen} ariaLabel="Escuchar" />
         </motion.div>
         <motion.p className="home-hero__hint" {...fadeUp(0.08, 8)}>
           Toca para escuchar

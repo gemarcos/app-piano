@@ -1,39 +1,10 @@
-/* Owner: capture. Inicio: wordmark, the vinyl hero, two quiet actions, recent covers. */
+/* Owner: capture. Inicio: wordmark, the record, quiet actions, the last pieces as a list. */
 
-/* A wordmark rather than a page title: smaller than the other tabs' titles, so the vinyl leads. */
+/* A wordmark rather than a page title: the serif of the works, smaller than the other tabs' titles. */
 .home-topbar .ui-topbar__title {
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-}
-
-.home-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* The brand mark (staff + record) on an accent-gradient tile, like the app icon. */
-.home-brand__mark {
-  display: inline-block;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: var(--accent-gradient);
-  box-shadow: 0 6px 14px -6px var(--accent-glow), var(--highlight);
-  position: relative;
-}
-
-.home-brand__mark {
-  display: inline-grid;
-  place-items: center;
-}
-
-/* The black mark drawn white on the gradient tile. */
-.home-brand__mark img {
-  width: 24px;
-  height: 24px;
-  filter: brightness(0) invert(1);
+  font-size: 30px;
+  font-style: italic;
+  letter-spacing: -0.01em;
 }
 
 .home-hero {
@@ -53,20 +24,19 @@
 /*
  * Short phones cannot show the hero and the recent covers together without the floating tab bar covering
  * the cards: the hero fills the first screen and only the "Recientes" title shows, just above the bar
- * (72px large top bar; the bar floats 14px above the safe area; title + gap before the cards = 48px).
+ * (72px large top bar; the bar sits on the safe area; title + gap before the list = 48px).
  */
 @media (max-height: 779px) {
   .home-hero.has-recents {
-    min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 72px - var(--tabbar-h) - 14px - 48px);
+    min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 72px - var(--tabbar-h) - 48px);
     padding-block: var(--s-4);
   }
 }
 
 .home-hero__hint {
-  margin-top: var(--s-3);
+  margin-top: var(--s-4);
   font-size: var(--fs-body);
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-weight: 500;
   color: var(--ink-2);
 }
 
@@ -80,74 +50,49 @@
 
 /* ---------- Recientes ---------- */
 
-.home-recents__row {
+.home-recents__list {
+  border-top: 1px solid var(--line);
+}
+
+.home-recent {
   display: flex;
+  align-items: baseline;
   gap: var(--s-3);
-  margin-inline: calc(var(--gutter) * -1);
-  padding: var(--s-1) var(--gutter) var(--s-3);
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x mandatory;
-  scroll-padding-inline: var(--gutter);
-  scrollbar-width: none;
-}
-
-.home-recents__row::-webkit-scrollbar {
-  display: none;
-}
-
-.home-recents__row > li {
-  flex: none;
-  scroll-snap-align: start;
-}
-
-.home-card {
-  position: relative;
-  display: block;
-  border-radius: var(--r-md);
-  box-shadow: var(--shadow-md);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--line);
   text-align: left;
-  -webkit-touch-callout: none;
+  transition: background-color var(--dur-fast) var(--ease);
 }
 
-.home-card:focus-visible {
-  outline-offset: 3px;
+.home-recent:active {
+  background: var(--press);
 }
 
-.home-card__caption {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  padding: 7px 10px 8px;
-  border-radius: var(--r-sm);
-  background: var(--surface-glass);
-  -webkit-backdrop-filter: saturate(1.4) blur(16px);
-  backdrop-filter: saturate(1.4) blur(16px);
-  box-shadow: inset 0 0 0 1px var(--glass-border);
-}
-
-.home-card__title,
-.home-card__key {
+.home-recent__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.home-card__title {
+.home-recent__meta {
+  flex: none;
   font-size: var(--fs-caption);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1.3;
-  color: var(--ink);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
 }
 
-.home-card__key {
-  font-size: var(--fs-micro);
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--ink-2);
+@media (hover: hover) {
+  .home-recent:hover .home-recent__title {
+    color: var(--accent);
+  }
 }

@@ -1,11 +1,8 @@
-/* Owner: viewer. Score paper: a calm white card (dark paper in dark mode) holding the abcjs SVG. */
+/* Owner: viewer. The score sits straight on the page paper (no card): the music is the screen. */
 
 .vw-paper {
   position: relative;
-  border-radius: var(--r-lg);
-  background: var(--score-paper);
   color: var(--score-ink);
-  box-shadow: var(--shadow-sm);
 }
 
 /* Padding lives here: abcjs 'resize' turns its own target into an aspect-ratio box. */
@@ -35,7 +32,7 @@
   fill: var(--ink-2);
 }
 
-/* Playing notes (and their names) light up softly. */
+/* Playing notes (and their names) turn vermilion: the one place the accent moves. */
 .vw-paper .abcjs-note > * {
   transition: fill 90ms linear;
 }

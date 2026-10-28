@@ -1,38 +1,22 @@
-/* Owner: viewer. Floating glass player (same glass as the tab bar), sticky above the safe area. */
+/* Owner: viewer. Player: a flat bar anchored to the bottom edge, paper with a hairline on top (like the tab bar). */
 
 .vw-player-dock {
   position: sticky;
   bottom: 0;
   z-index: var(--z-bar);
   margin-top: auto;
-  padding: var(--s-3) var(--s-3) calc(var(--safe-bottom) + var(--s-3));
-  pointer-events: none;
-}
-
-/* The score fades into the page under the floating player. */
-.vw-player-dock::before {
-  content: '';
-  position: absolute;
-  inset: 40% 0 0;
-  background: linear-gradient(to bottom, transparent, var(--bg-bottom) 70%);
-  pointer-events: none;
-}
-
-.vw-player-dock > .vw-player {
-  position: relative;
+  padding-bottom: var(--safe-bottom);
+  background: var(--bar-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border-top: 1px solid var(--line);
 }
 
 .vw-player {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 8px 10px 8px;
-  border-radius: var(--r-xl);
-  background: var(--surface-glass);
-  -webkit-backdrop-filter: saturate(1.6) blur(var(--glass-blur));
-  backdrop-filter: saturate(1.6) blur(var(--glass-blur));
-  box-shadow: var(--shadow-float), inset 0 0 0 1px var(--glass-border);
-  pointer-events: auto;
+  padding: 6px 10px 8px;
 }
 
 /* ---------- progress ---------- */
@@ -114,14 +98,6 @@
   display: inline-grid;
 }
 
-.vw-player__pulse {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: var(--accent-glow);
-  pointer-events: none;
-}
-
 .vw-player__play.is-loading .ui-icon {
   opacity: 0;
 }
@@ -145,8 +121,8 @@
   top: -3px;
   right: -5px;
   padding: 1px 4px;
-  border-radius: var(--r-pill);
-  background: var(--accent-gradient);
+  border-radius: var(--r-xs);
+  background: var(--accent);
   color: var(--on-accent);
   font-size: 9px;
   font-weight: 700;
@@ -159,7 +135,7 @@
   min-width: 44px;
   height: 36px;
   padding: 0 8px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-control);
   font-size: var(--fs-caption);
   font-weight: 700;
   color: var(--ink-3);
@@ -192,9 +168,6 @@
 
 /* Narrow phones (320 px): everything a size smaller so the row still fits. */
 @media (max-width: 359px) {
-  .vw-player-dock {
-    padding-inline: var(--s-2);
-  }
   .vw-player {
     padding-inline: 6px;
   }

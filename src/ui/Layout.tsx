@@ -5,14 +5,13 @@ import { ChevronLeft } from '@untitled-ui/icons-react'
 import { IconButton } from './Button'
 import { useReducedMotionPref } from './hooks'
 import { pageVariants } from './motion'
-import { Backdrop } from './Backdrop'
 import { cx } from './cx'
 import './Layout.css'
 
 /* ---------------- AppFrame ---------------- */
 
 /**
- * Centered app column (max --app-max) over the ambient Backdrop. Also mirrors the reduced-motion preference to
+ * Centered app column (max --app-max). Also mirrors the reduced-motion preference to
  * <html data-reduce-motion>.
  */
 export function AppFrame({ children }: { children: ReactNode }) {
@@ -22,7 +21,6 @@ export function AppFrame({ children }: { children: ReactNode }) {
   }, [reduced])
   return (
     <div className="ui-frame">
-      <Backdrop />
       {children}
     </div>
   )

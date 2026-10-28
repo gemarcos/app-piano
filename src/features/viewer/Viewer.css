@@ -41,6 +41,14 @@
   }
 }
 
+/* The work's title in the engraving serif, as in the library. */
+.vw-topbar .ui-topbar__title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
 .vw-topbar .ui-topbar__subtitle {
   overflow: visible;
 }
@@ -70,11 +78,12 @@
   color: var(--ink-2);
 }
 
-/* Loading: a soft paper placeholder. */
+/* Loading: empty staves, the shape of what is coming. */
 .vw-paper-skeleton {
   height: 420px;
-  border-radius: var(--r-lg);
-  background: var(--score-paper);
-  box-shadow: var(--shadow-sm);
-  opacity: 0.6;
+  margin: var(--s-6) var(--s-2) 0;
+  background: repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px 9px) top / 100% 37px no-repeat,
+    repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px 9px) 0 70px / 100% 37px no-repeat,
+    repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px 9px) 0 160px / 100% 37px no-repeat,
+    repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px 9px) 0 230px / 100% 37px no-repeat;
 }

@@ -1,9 +1,9 @@
 // Owner: viewer. Floating glass player at the bottom: time and seekable progress, transport
 // (previous measure, play/pause, next measure) and quick toggles (metronome, loop, speed, settings).
 import { useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { motion } from 'motion/react'
 import { ClockStopwatch, Play, Repeat01, SkipBack, SkipForward, Sliders01 } from '@untitled-ui/icons-react'
-import { IconButton, PauseIcon, Slider, Spinner, cx, ease, useReducedMotionPref } from '../../ui'
+import { IconButton, PauseIcon, Slider, Spinner, cx, ease } from '../../ui'
 import { formatTime } from '../../lib/format'
 import type { PlayerSnapshot } from './player'
 import { formatSpeed, type LoopMode } from './timeline'
@@ -43,7 +43,6 @@ export function PlayerBar(props: PlayerBarProps) {
   const duration = disabled ? 0 : snap.duration
   const position = scrub ?? snap.position
   const playing = snap.status === 'playing' || snap.status === 'countin'
-  const reduced = useReducedMotionPref()
   const loading = snap.status === 'loading'
 
   const onScrub = (v: number) => {
@@ -120,24 +119,10 @@ export function PlayerBar(props: PlayerBarProps) {
           <div className="vw-player__transport">
             <IconButton icon={SkipBack} label="Compás anterior" onClick={props.onPrevious} disabled={disabled} iconSize={22} />
             <span className={cx('vw-player__play', loading && 'is-loading')}>
-              {/* While it plays, a soft ring breathes out of the button. */}
-              <AnimatePresence>
-                {playing && !reduced && (
-                  <motion.span
-                    key="pulse"
-                    className="vw-player__pulse"
-                    aria-hidden="true"
-                    initial={{ opacity: 0, transform: 'scale(1)' }}
-                    animate={{ opacity: [0.5, 0], transform: ['scale(1)', 'scale(1.45)'] }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 1.6, ease: 'easeOut', repeat: Infinity }}
-                  />
-                )}
-              </AnimatePresence>
               <IconButton
                 icon={playing ? PauseIcon : Play}
                 label={playing || loading ? 'Pausar' : 'Reproducir'}
-                variant="accent"
+                variant="ink"
                 size="lg"
                 iconSize={26}
                 onClick={props.onToggle}

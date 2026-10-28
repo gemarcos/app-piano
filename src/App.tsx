@@ -29,7 +29,7 @@ function useTheme() {
     else root.dataset.theme = theme
     const syncThemeColor = () => {
       const meta = document.querySelector('meta[name="theme-color"]')
-      if (meta) meta.setAttribute('content', getComputedStyle(root).getPropertyValue('--bg').trim() || '#EEF0F8')
+      if (meta) meta.setAttribute('content', getComputedStyle(root).getPropertyValue('--bg').trim() || '#F4F1E9')
     }
     syncThemeColor()
     if (theme !== 'system' || typeof window.matchMedia !== 'function') return

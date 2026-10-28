@@ -63,7 +63,7 @@
 .set-reset {
   min-height: 44px;
   padding: 0 var(--s-5);
-  border-radius: var(--r-pill);
+  border-radius: var(--r-control);
   font-size: var(--fs-caption);
   font-weight: 600;
   color: var(--ink-3);

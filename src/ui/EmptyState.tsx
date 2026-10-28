@@ -17,6 +17,8 @@ export interface EmptyStateProps {
   image?: string | ReactNode
   /** One short line. */
   title: ReactNode
+  /** Optional second line: what to do next. */
+  description?: ReactNode
   /** A Button element, or {label, onClick, icon?} for the default ink button. */
   action?: ReactNode | EmptyStateAction
   className?: string
@@ -26,8 +28,8 @@ function isActionObject(a: unknown): a is EmptyStateAction {
   return typeof a === 'object' && a !== null && !isValidElement(a) && 'label' in a && 'onClick' in a
 }
 
-/** Calm centered empty state: optional image, one line, one action. */
-export function EmptyState({ image, title, action, className }: EmptyStateProps) {
+/** Calm centered empty state: optional image, one line (and an optional hint), one action. */
+export function EmptyState({ image, title, description, action, className }: EmptyStateProps) {
   return (
     <div className={cx('ui-empty', className)}>
       {typeof image === 'string' ? (
@@ -38,6 +40,11 @@ export function EmptyState({ image, title, action, className }: EmptyStateProps)
       <motion.p className="ui-empty__title" {...reveal(2, 10)}>
         {title}
       </motion.p>
+      {description != null && (
+        <motion.p className="ui-empty__desc" {...reveal(2, 10)}>
+          {description}
+        </motion.p>
+      )}
       {action != null && (
         <motion.div className="ui-empty__action" {...reveal(3, 10)}>
           {isActionObject(action) ? (

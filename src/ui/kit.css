@@ -5,49 +5,49 @@
 
 :root {
   /* Raised / interactive surfaces */
-  --raised: #ffffff;              /* segmented indicator, raised pills */
-  --knob: #ffffff;                /* toggle knob, slider thumbs */
-  --track: #e2e3ed;               /* slider track, toggle off */
-  --press: rgba(21, 21, 40, 0.05);/* pressed row highlight */
-  --fill: rgba(30, 30, 70, 0.06); /* translucent track: segmented, stepper (works on page and cards) */
-  --glass-border: rgba(255, 255, 255, 0.8);
+  --raised: #fbfaf6;              /* segmented indicator, raised pills */
+  --knob: #fbfaf6;                /* toggle knob, slider thumbs */
+  --track: #d9d3c5;               /* slider track, toggle off */
+  --press: rgba(27, 26, 23, 0.05);/* pressed row highlight */
+  --fill: rgba(27, 26, 23, 0.06); /* translucent track: segmented, stepper (works on page and cards) */
+  --glass-border: var(--line);
   --glass-blur: 24px;
-  --bar-bg: rgba(240, 242, 250, 0.78); /* sticky top bar when scrolled */
-  --bg-top: #f7f8fd;              /* first stop of --bg-gradient */
-  --bg-bottom: #e7e9f5;           /* last stop of --bg-gradient (bottom bars fade into it) */
-  --page-outer: #e0e2ee;          /* desktop: page around the app column */
+  --bar-bg: rgba(244, 241, 233, 0.92); /* sticky top bar when scrolled */
+  --bg-top: #f4f1e9;              /* first stop of --bg-gradient */
+  --bg-bottom: #f4f1e9;           /* last stop of --bg-gradient (bottom bars fade into it) */
+  --page-outer: #e9e5da;          /* desktop: page around the app column */
   --danger-ink: #ffffff;
 
   /* Elevation extras */
-  --shadow-ink: 0 10px 24px rgba(21, 21, 26, 0.16), 0 2px 6px rgba(21, 21, 26, 0.1);
-  --shadow-ink-sm: 0 6px 16px -6px rgba(21, 21, 26, 0.35);
-  --shadow-accent: 0 12px 28px -6px rgba(96, 100, 246, 0.5), 0 2px 6px rgba(79, 107, 246, 0.2);
-  --shadow-knob: 0 2px 6px rgba(30, 30, 70, 0.16), 0 0 0 0.5px rgba(30, 30, 70, 0.08);
-  --shadow-float: 0 16px 40px rgba(40, 40, 90, 0.14), 0 3px 10px rgba(40, 40, 90, 0.06);
+  --shadow-ink: 0 1px 2px rgba(27, 26, 23, 0.12);
+  --shadow-ink-sm: none;
+  --shadow-accent: none;
+  --shadow-knob: 0 1px 3px rgba(27, 26, 23, 0.2), 0 0 0 0.5px rgba(27, 26, 23, 0.1);
+  --shadow-float: 0 0 0 1px var(--line), 0 8px 24px rgba(27, 26, 23, 0.08);
 
   /* Vinyl & turntable hardware */
   --vinyl: #111115;
   --vinyl-edge: #26262e;
   --vinyl-groove: rgba(255, 255, 255, 0.055);
   --vinyl-sheen: rgba(255, 255, 255, 0.2);
-  --vinyl-label: #f2f1ed;
+  --vinyl-label: #f1ece0;
   --vinyl-label-ink: rgba(21, 21, 26, 0.14);
   --vinyl-label-text: #3a3a44;
-  --vinyl-shadow: 0 18px 36px rgba(24, 24, 60, 0.26), 0 4px 10px rgba(24, 24, 60, 0.14);
+  --vinyl-shadow: 0 10px 24px rgba(27, 26, 23, 0.18), 0 2px 6px rgba(27, 26, 23, 0.12);
   --vinyl-rim: rgba(255, 255, 255, 0);
   --arm: #1c1c22;
-  --arm-shadow: rgba(24, 24, 60, 0.28);
+  --arm-shadow: rgba(27, 26, 23, 0.22);
   --metal-hi: #ffffff;
-  --metal: #d9dbe5;
-  --metal-lo: #a3a6b5;
+  --metal: #d6d1c5;
+  --metal-lo: #a19a8b;
 
   /* Generated covers */
-  --cover-staff: rgba(21, 21, 40, 0.11);
-  --cover-note: rgba(79, 107, 246, 0.34);
+  --cover-staff: rgba(27, 26, 23, 0.12);
+  --cover-note: rgba(196, 55, 29, 0.4);
 
   /* Waveform */
-  --wave: #c3c5d4;
-  --wave-dim: #dfe0ea;
+  --wave: #c4bcab;
+  --wave-dim: #e0dacd;
 
   /* Layers */
   --z-bar: 20;
@@ -59,22 +59,22 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --raised: #2b2d39;
-    --knob: #f2f3f7;
-    --track: #2b2d3a;
-    --press: rgba(255, 255, 255, 0.05);
-    --fill: rgba(255, 255, 255, 0.065);
-    --glass-border: rgba(255, 255, 255, 0.07);
-    --bar-bg: rgba(16, 17, 24, 0.78);
-    --bg-top: #13141d;
-    --bg-bottom: #090a0f;
-    --page-outer: #08090c;
+    --raised: #322f29;
+    --knob: #ece7dc;
+    --track: #3a3731;
+    --press: rgba(236, 231, 220, 0.06);
+    --fill: rgba(236, 231, 220, 0.07);
+    --glass-border: var(--line);
+    --bar-bg: rgba(23, 22, 19, 0.92);
+    --bg-top: #171613;
+    --bg-bottom: #171613;
+    --page-outer: #100f0d;
     --danger-ink: #1a0b0c;
-    --shadow-ink: 0 10px 24px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
-    --shadow-ink-sm: 0 6px 16px -6px rgba(0, 0, 0, 0.6);
-    --shadow-accent: 0 12px 28px -6px rgba(110, 110, 255, 0.42), 0 2px 6px rgba(0, 0, 0, 0.3);
+    --shadow-ink: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-ink-sm: none;
+    --shadow-accent: none;
     --shadow-knob: 0 2px 6px rgba(0, 0, 0, 0.45), 0 0 0 0.5px rgba(0, 0, 0, 0.3);
-    --shadow-float: 0 16px 40px rgba(0, 0, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.3);
+    --shadow-float: 0 0 0 1px var(--line), 0 8px 24px rgba(0, 0, 0, 0.35);
     --vinyl: #08080b;
     --vinyl-edge: #1d1d24;
     --vinyl-groove: rgba(255, 255, 255, 0.045);
@@ -88,30 +88,30 @@
     --metal-hi: #f0f1f5;
     --metal: #9b9eae;
     --metal-lo: #5e6172;
-    --cover-staff: rgba(255, 255, 255, 0.09);
-    --cover-note: rgba(123, 140, 255, 0.42);
-    --wave: #3d4052;
-    --wave-dim: #25272f;
+    --cover-staff: rgba(236, 231, 220, 0.1);
+    --cover-note: rgba(236, 106, 75, 0.45);
+    --wave: #4a463e;
+    --wave-dim: #2a2823;
   }
 }
 
 :root[data-theme='dark'] {
-  --raised: #2b2d39;
-  --knob: #f2f3f7;
-  --track: #2b2d3a;
-  --press: rgba(255, 255, 255, 0.05);
-  --fill: rgba(255, 255, 255, 0.065);
-  --glass-border: rgba(255, 255, 255, 0.07);
-  --bar-bg: rgba(16, 17, 24, 0.78);
-  --bg-top: #13141d;
-  --bg-bottom: #090a0f;
-  --page-outer: #08090c;
+  --raised: #322f29;
+  --knob: #ece7dc;
+  --track: #3a3731;
+  --press: rgba(236, 231, 220, 0.06);
+  --fill: rgba(236, 231, 220, 0.07);
+  --glass-border: var(--line);
+  --bar-bg: rgba(23, 22, 19, 0.92);
+  --bg-top: #171613;
+  --bg-bottom: #171613;
+  --page-outer: #100f0d;
   --danger-ink: #1a0b0c;
-  --shadow-ink: 0 10px 24px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
-  --shadow-ink-sm: 0 6px 16px -6px rgba(0, 0, 0, 0.6);
-  --shadow-accent: 0 12px 28px -6px rgba(110, 110, 255, 0.42), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-ink: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-ink-sm: none;
+  --shadow-accent: none;
   --shadow-knob: 0 2px 6px rgba(0, 0, 0, 0.45), 0 0 0 0.5px rgba(0, 0, 0, 0.3);
-  --shadow-float: 0 16px 40px rgba(0, 0, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.3);
+  --shadow-float: 0 0 0 1px var(--line), 0 8px 24px rgba(0, 0, 0, 0.35);
   --vinyl: #08080b;
   --vinyl-edge: #1d1d24;
   --vinyl-groove: rgba(255, 255, 255, 0.045);
@@ -125,10 +125,10 @@
   --metal-hi: #f0f1f5;
   --metal: #9b9eae;
   --metal-lo: #5e6172;
-  --cover-staff: rgba(255, 255, 255, 0.09);
-  --cover-note: rgba(123, 140, 255, 0.42);
-  --wave: #3d4052;
-  --wave-dim: #25272f;
+  --cover-staff: rgba(236, 231, 220, 0.1);
+  --cover-note: rgba(236, 106, 75, 0.45);
+  --wave: #4a463e;
+  --wave-dim: #2a2823;
 }
 
 /* Generated cover tones: derived from base tokens, so they follow the theme (one colour family, several moods). */

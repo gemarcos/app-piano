@@ -1,15 +1,15 @@
-// Owner: library. Biblioteca: search, quick filters, filter/sort sheet, list or grid, item actions.
+// Owner: library. Biblioteca: search, quick filters, filter/sort sheet, the index of works, item actions.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, type Variants } from 'motion/react'
-import { FilterLines, Grid01, List, Microphone01 } from '@untitled-ui/icons-react'
+import { FilterLines, Microphone01 } from '@untitled-ui/icons-react'
 import { useAllScores } from '../../data/db'
 import { isDemoSeedSettled, seedDemosOnce } from '../../data/seed'
 import { useSettings } from '../../state/settings'
-import { Button, Chip, ChipRow, EmptyArt, EmptyState, IconButton, Page, SearchField, TopBar, ease } from '../../ui'
+import { Button, Chip, ChipRow, EmptyState, IconButton, Page, SearchField, TopBar, ease } from '../../ui'
 import { QUICK_FILTERS, activeFilterCount, applyFilters, effectiveFilters, sortDocs } from './filters'
 import { FilterSheet } from './FilterSheet'
-import { LibrarySkeleton, ScoreRow, ScoreTile } from './LibraryItems'
+import { LibrarySkeleton, ScoreRow } from './LibraryItems'
 import { useLibraryUi } from './store'
 import { useScoreActions } from './useScoreActions'
 import './LibraryScreen.css'
@@ -78,8 +78,7 @@ export function LibraryScreen() {
   const quick = useLibraryUi((s) => s.quick)
   const filters = useLibraryUi((s) => s.filters)
   const sort = useLibraryUi((s) => s.sort)
-  const view = useLibraryUi((s) => s.view)
-  const { setQuery, setQuick, setView, clearFilters } = useLibraryUi.getState()
+  const { setQuery, setQuick, clearFilters } = useLibraryUi.getState()
   const [filtersOpen, setFiltersOpen] = useState(false)
   const actions = useScoreActions(scores)
 
@@ -100,28 +99,21 @@ export function LibraryScreen() {
         title="Biblioteca"
         right={
           !loading && !empty ? (
-            <>
-              <span className="lib-filterbtn">
-                <IconButton icon={FilterLines} label={filtered ? 'Filtros (activos)' : 'Filtros'} onClick={() => setFiltersOpen(true)} />
-                {filtered && <span className="lib-filterbtn__dot" aria-hidden="true" />}
-              </span>
-              <IconButton
-                icon={view === 'list' ? Grid01 : List}
-                label={view === 'list' ? 'Ver en cuadrícula' : 'Ver en lista'}
-                onClick={() => setView(view === 'list' ? 'grid' : 'list')}
-              />
-            </>
+            <span className="lib-filterbtn">
+              <IconButton icon={FilterLines} label={filtered ? 'Filtros (activos)' : 'Filtros'} onClick={() => setFiltersOpen(true)} />
+              {filtered && <span className="lib-filterbtn__dot" aria-hidden="true" />}
+            </span>
           ) : undefined
         }
       />
 
       {loading ? (
-        <LibrarySkeleton view={view} />
+        <LibrarySkeleton />
       ) : empty ? (
         <EmptyState
           className="lib-empty"
-          image={<EmptyArt kind="vinyl" />}
           title="Aún no hay partituras"
+          description="Toca el disco en Inicio para escuchar una canción, o abre un archivo."
           action={{ label: 'Escuchar', icon: Microphone01, onClick: () => navigate('/') }}
         />
       ) : (
@@ -140,7 +132,6 @@ export function LibraryScreen() {
           {visible.length === 0 ? (
             <EmptyState
               className="lib-noresults"
-              image={<EmptyArt kind="search" />}
               title="Sin resultados"
               action={
                 <Button variant="secondary" onClick={clearFilters}>
@@ -149,7 +140,7 @@ export function LibraryScreen() {
               }
             />
           ) : (
-            <ul key={view} className={view === 'grid' ? 'lib-grid' : 'lib-list'} aria-label="Partituras">
+            <ul className="lib-list" aria-label="Partituras">
               <AnimatePresence mode="popLayout">
                 {visible.map((doc, i) => (
                   <motion.li
@@ -162,7 +153,7 @@ export function LibraryScreen() {
                     exit="exit"
                     className="lib-item"
                   >
-                    {view === 'grid' ? <ScoreTile doc={doc} {...itemProps} /> : <ScoreRow doc={doc} {...itemProps} />}
+                    <ScoreRow doc={doc} {...itemProps} />
                   </motion.li>
                 ))}
               </AnimatePresence>

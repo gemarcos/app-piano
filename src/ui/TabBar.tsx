@@ -23,7 +23,7 @@ export interface TabBarProps {
   floating?: boolean
 }
 
-/** Floating glass pill with the three main destinations. */
+/** Bottom bar with the three main destinations: icon and name; a thin accent rule marks where you are. */
 export function TabBar({ visible, current, floating = true }: TabBarProps) {
   const location = useLocation()
   const path = current ?? location.pathname
@@ -53,16 +53,8 @@ export function TabBar({ visible, current, floating = true }: TabBarProps) {
               }}
             >
               {active && <motion.span layoutId={indicatorId} className="ui-tabbar__indicator" transition={spring} />}
-              {/* The icon hops once when its tab becomes active. */}
-              <motion.span
-                key={active ? 'on' : 'off'}
-                className="ui-tabbar__glyph"
-                initial={active ? { scale: 0.7, y: 3 } : false}
-                animate={{ scale: 1, y: 0 }}
-                transition={{ type: 'spring', stiffness: 520, damping: 18 }}
-              >
-                <Icon icon={tab.icon} size={24} />
-              </motion.span>
+              <Icon icon={tab.icon} size={22} />
+              <span className="ui-tabbar__label" aria-hidden="true">{tab.label}</span>
             </Link>
           )
         })}

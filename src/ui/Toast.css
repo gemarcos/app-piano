@@ -17,7 +17,7 @@
   max-width: min(100%, 400px);
   min-height: 44px;
   padding: 10px 20px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-control);
   background: var(--ink);
   color: var(--ink-inverse);
   box-shadow: var(--shadow-lg);

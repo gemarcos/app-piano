@@ -5,7 +5,7 @@
   gap: 2px;
   max-width: 100%;
   padding: 3px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-control);
   background: var(--fill);
 }
 
@@ -43,7 +43,7 @@
   justify-content: center;
   min-width: 0;
   padding: 0 14px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-control);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.005em;
@@ -73,7 +73,7 @@
 .ui-seg__thumb {
   position: absolute;
   inset: 0;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-control);
   background: var(--raised);
   box-shadow: var(--shadow-sm), var(--edge);
 }
