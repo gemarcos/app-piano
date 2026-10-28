@@ -41,6 +41,7 @@ export {
   measureDurationSeconds,
 } from './build'
 export type { EngineParams, SplitMode } from './build'
+export { MAX_POLYPHONY } from './build'
 
 /**
  * Source-audio time <-> score ticks through the analysis beat map (rubato), for 'Original' sync:

@@ -309,7 +309,7 @@ describe('abcjs validation', () => {
 })
 
 describe('tuplets in the second voice', () => {
-  it('never open with an invisible rest (abcjs throws while engraving "(3x...")', () => {
+  it('hold no invisible rests (abcjs throws while engraving "(3x..." or "(6z x...")', () => {
     // Melody on the beat above inner triplet eighths that start late: the inner voice opens tuplets on rests.
     const beat = 0.5
     const notes = []
@@ -320,6 +320,6 @@ describe('tuplets in the second voice', () => {
     const analysis = knownAnalysis({ bpm: 120, timeSignature: '4/4' })
     const abc = scoreToAbc(buildScore(notes, plainParams(analysis, { quantize: 16 }), analysis))
     expect(abc).toMatch(/\(3/)
-    expect(abc).not.toMatch(/\(\d(:\d+:\d+)?x/)
+    for (const group of abc.match(/\(\d(:\d+:\d+)?[^ |]*/g) ?? []) expect(group).not.toMatch(/(^|[^"_a-zA-Z])x/)
   })
 })

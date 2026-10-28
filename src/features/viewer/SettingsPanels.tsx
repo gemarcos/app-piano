@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ChevronSelectorVertical, RefreshCcw01 } from '@untitled-ui/icons-react'
 import type { AnalysisResult, Difficulty, Hands, KeySignature, NoteNaming, QuantizeGrid, Score, ScoreParams, Settings, TimeSignature } from '../../types'
-import { TIME_SIGNATURES, allKeys, keyName, pitchName, tonicPc } from '../../engine/score'
+import { MAX_POLYPHONY, TIME_SIGNATURES, allKeys, keyName, pitchName, tonicPc } from '../../engine/score'
 import { Button, Icon, ListRow, RangeSlider, Segmented, SettingsGroup, Slider, Stepper, Toggle, type SegmentedOption } from '../../ui'
 import { formatSemitones, type LoopMode } from './timeline'
 import { SPEED_RANGE, ZOOM_RANGE, type SoundSource, type ViewState } from './viewState'
@@ -305,7 +305,7 @@ export function FiltersPanel({ params, patch, naming, onReset }: FiltersPanelPro
         <ListRow
           title="Polifonía máxima"
           subtitle="Notas a la vez por mano"
-          trailing={<Stepper value={params.maxPolyphony} min={1} max={6} onChange={(v) => patch({ maxPolyphony: v })} ariaLabel="Polifonía máxima" />}
+          trailing={<Stepper value={params.maxPolyphony} min={1} max={MAX_POLYPHONY} format={(v) => (v >= MAX_POLYPHONY ? 'Todas' : String(v))} onChange={(v) => patch({ maxPolyphony: v })} ariaLabel="Polifonía máxima" />}
         />
         <ListRow
           title="Cuantización"

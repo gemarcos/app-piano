@@ -124,7 +124,7 @@ export interface SimplifyOptions {
 
 /** Difficulty transforms + polyphony cap. Input: hands assigned, sorted by onset. */
 export function simplify(notes: QNote[], opts: SimplifyOptions): QNote[] {
-  const cap = Math.max(1, Math.min(6, Math.round(opts.maxPolyphony)))
+  const cap = Math.max(1, Math.round(opts.maxPolyphony))
   if (opts.difficulty === 'intermedio') return capPolyphony(simplifyIntermedio(notes), Math.min(cap, 3))
   if (opts.difficulty === 'facil') {
     const right = skyline(notes.filter((n) => n.right))

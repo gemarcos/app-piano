@@ -37,6 +37,9 @@ const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x
 export type SplitMode = 'auto' | 'fixed'
 
 /** ScoreParams plus engine-score's extension (requested as ScoreParams.splitMode in src/types.ts). */
+/** Notes at once per hand: 10 = no limit (every note of a chord is written, two hands of five fingers each). */
+export const MAX_POLYPHONY = 10
+
 export interface EngineParams extends ScoreParams {
   splitMode?: SplitMode
 }
@@ -58,7 +61,7 @@ export function defaultParams(
     minVelocity: 0.1,
     minDuration: 0.05,
     pitchRange: [21, 108],
-    maxPolyphony: 4,
+    maxPolyphony: MAX_POLYPHONY,
     splitMode: 'auto',
   }
 }
@@ -82,7 +85,7 @@ export function sanitizeParams(params: Partial<EngineParams> | null | undefined,
     minVelocity: finite(p.minVelocity) ? clamp(p.minVelocity, 0, 1) : 0,
     minDuration: finite(p.minDuration) ? Math.max(0, p.minDuration) : 0,
     pitchRange: range,
-    maxPolyphony: finite(p.maxPolyphony) ? clamp(Math.round(p.maxPolyphony), 1, 6) : 4,
+    maxPolyphony: finite(p.maxPolyphony) ? clamp(Math.round(p.maxPolyphony), 1, MAX_POLYPHONY) : MAX_POLYPHONY,
   }
   if (p.splitMode === 'auto' || p.splitMode === 'fixed') out.splitMode = p.splitMode
   return out

@@ -90,7 +90,7 @@ describe('defaultParams / sanitizeParams', () => {
       minVelocity: 0.1,
       minDuration: 0.05,
       pitchRange: [21, 108],
-      maxPolyphony: 4,
+      maxPolyphony: 10,
       splitMode: 'auto',
     })
   })
